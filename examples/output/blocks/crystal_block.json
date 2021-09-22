@@ -1,0 +1,39 @@
+{
+    "format_version": "1.16.100",
+    "minecraft:block": {
+        "description": {
+            "is_experimental": false,
+            "register_to_creative_menu": true,
+            "identifier": "hubgen:crystal_block"
+        },
+        "components": {
+            "minecraft:map_color": "#FFFFFF",
+            "minecraft:geometry": "geometry.custom_block",
+            "minecraft:material_instances": {
+                "*": {
+                    "texture": "crystal"
+                }
+            },
+            "minecraft:block_light_emission": 0.8,
+            "minecraft:friction": 1,
+            "minecraft:on_step_on": {
+                "condition": "1",
+                "event": "hubgen:on_step_on",
+                "target": "player"
+            }
+        },
+        "events": {
+            "hubgen:on_step_on": {
+                "run_command": {
+                    "command": [
+                        "particle minecraft:totem_particle\t~~~",
+                        "particle minecraft:totem_particle\t~~~",
+                        "particle minecraft:totem_particle\t~~~",
+                        "particle minecraft:totem_particle\t~~~"
+                    ],
+                    "target": "self"
+                }
+            }
+        }
+    }
+}

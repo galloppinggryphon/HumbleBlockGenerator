@@ -1,0 +1,108 @@
+{
+    "format_version": "1.16.100",
+    "minecraft:block": {
+        "description": {
+            "is_experimental": false,
+            "register_to_creative_menu": true,
+            "identifier": "hubgen:stairs.winding.left(dark_oak_planks)",
+            "properties": {
+                "hubgen:rotate-y": [
+                    2,
+                    3,
+                    4,
+                    5
+                ]
+            }
+        },
+        "components": {
+            "minecraft:map_color": "#FFFFFF",
+            "minecraft:geometry": "geometry.stairs_winding_left",
+            "minecraft:material_instances": {
+                "*": {
+                    "texture": "dark_oak_planks"
+                }
+            },
+            "minecraft:breathability": "air",
+            "minecraft:entity_collision": {
+                "origin": [
+                    -8,
+                    0,
+                    -8
+                ],
+                "size": [
+                    16,
+                    8,
+                    16
+                ]
+            },
+            "minecraft:pick_collision": {
+                "origin": [
+                    -8,
+                    0,
+                    -8
+                ],
+                "size": [
+                    16,
+                    16,
+                    16
+                ]
+            },
+            "minecraft:on_player_placing": {
+                "event": "hubgen:on_place_rotate_y"
+            }
+        },
+        "events": {
+            "hubgen:on_place_rotate_y": {
+                "sequence": [
+                    {
+                        "set_block_property": {
+                            "hubgen:rotate-y": "(query.cardinal_facing_2d)"
+                        }
+                    }
+                ]
+            }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_property('hubgen:rotate-y') == 2",
+                "components": {
+                    "minecraft:rotation": [
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_property('hubgen:rotate-y') == 3",
+                "components": {
+                    "minecraft:rotation": [
+                        0,
+                        180,
+                        0
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_property('hubgen:rotate-y') == 4",
+                "components": {
+                    "minecraft:rotation": [
+                        0,
+                        90,
+                        0
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_property('hubgen:rotate-y') == 5",
+                "components": {
+                    "minecraft:rotation": [
+                        0,
+                        270,
+                        0
+                    ]
+                }
+            }
+        ]
+    }
+}

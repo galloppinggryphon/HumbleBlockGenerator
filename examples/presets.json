@@ -1,0 +1,106 @@
+{
+	"rotate": {
+		//Rotate around vertical axis
+		"y-axis": {
+			"description": {
+				"properties": {
+					"hubgen:rotate-y": [2, 3, 4, 5]
+				}
+			},
+			"components": {
+				"minecraft:on_player_placing": {
+					"event": "hubgen:on_place_rotate_y"
+				}
+			},
+			"events": {
+				"hubgen:on_place_rotate_y": {
+					"sequence": [
+						{
+							"set_block_property": {
+								"hubgen:rotate-y": "(query.cardinal_facing_2d)"
+							}
+						}
+					]
+				}
+			},
+			"permutations": [
+				{
+					//North
+					"condition": "query.block_property('hubgen:rotate-y') == 2",
+					"components": {
+						"minecraft:rotation": [0, 0, 0]
+					}
+				},
+				{
+					//South
+					"condition": "query.block_property('hubgen:rotate-y') == 3",
+					"components": {
+						"minecraft:rotation": [0, 180, 0]
+					}
+				},
+				{
+					//West
+					"condition": "query.block_property('hubgen:rotate-y') == 4",
+					"components": {
+						"minecraft:rotation": [0, 90, 0]
+					}
+				},
+				{
+					//East
+					"condition": "query.block_property('hubgen:rotate-y') == 5",
+					"components": {
+						"minecraft:rotation": [0, 270, 0]
+					}
+				}
+			]
+		}
+	},
+
+	"bright_and_slippery": {
+		"minecraft:block_light_emission": 0.8,
+		"minecraft:friction": 1
+	},
+
+	"emit_particles_when_walked_on": {
+		"common": {
+			"components": {
+				"minecraft:on_step_on": {
+					"condition": "1",
+					"event": "hubgen:on_step_on",
+					"target": "player"
+				}
+			}
+		},
+
+		"lava_particle": {
+			"events": {
+				"hubgen:on_step_on": {
+					"run_command": {
+						"command": [
+							"particle minecraft:lava_particle\t~~~",
+							"particle minecraft:lava_particle\t~~~",
+							"particle minecraft:lava_particle\t~~~",
+							"particle minecraft:lava_particle\t~~~"
+						],
+						"target": "self"
+					}
+				}
+			}
+		},
+		"totem_particle": {
+			"events": {
+				"hubgen:on_step_on": {
+					"run_command": {
+						"command": [
+							"particle minecraft:totem_particle\t~~~",
+							"particle minecraft:totem_particle\t~~~",
+							"particle minecraft:totem_particle\t~~~",
+							"particle minecraft:totem_particle\t~~~"
+						],
+						"target": "self"
+					}
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,13 @@
+// Scaffolding for all blocks
+{
+    "format_version": "1.16.100",
+    "minecraft:block": {
+      "description": {
+        "is_experimental": false,
+        "register_to_creative_menu": true
+      },
+      "components": {
+        "minecraft:map_color": "#FFFFFF"
+      }
+    }
+  }

@@ -1,0 +1,76 @@
+{
+	"stairs": {
+		"export": true,
+		"title": "Stairs",
+		"apply": {
+			"rotate": "y-axis"
+		},
+		"materials": {
+			"dark_oak_planks": true
+		},
+
+		"breathability": "air",
+		"entity_collision": {
+			"origin": [-8, 0, -8],
+			"size": [16, 8, 16]
+		},
+		"pick_collision": {
+			"origin": [-8, 0, -8],
+			"size": [16, 16, 16]
+		},
+
+		"permutations": {
+			"": {
+				"geometry": "stairs",
+				"materials": {
+					"stone": true,
+					"smooth_stone": true
+				}
+			},
+			"winding": {
+				"export": true,
+				"title": "winding",
+				"permutations": {
+					"-": {
+						"materials": {
+							"stone": true,
+							"smooth_stone": true
+						},
+						"permutations": {
+							"left": {
+								"title": "left",
+								"geometry": "stairs_winding_left"
+							},
+							"right": {
+								"title": "right",
+								"geometry": "stairs_winding_right"
+							}
+						}
+					},
+					"handrail": {
+						"title": "with handrail",
+						"materials": {
+							"birch_and_wrought_iron": {
+								"*": "birch_planks",
+								"centre_column": "black",
+								"handrail": "black",
+								"banister": "black"
+							}
+						},
+
+						"permutations": {
+							"left": {
+								"title": "left",
+								"geometry": "stairs_winding_handrail_left"
+							},
+							"right": {
+								"title": "right",
+								"geometry": "stairs_winding_handrail_right"
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

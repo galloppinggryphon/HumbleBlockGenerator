@@ -1,0 +1,40 @@
+{
+	"vslab": {
+		"export": true,
+		"title": "Vertical slab",
+		"apply": {
+			"rotate": "y-axis"
+		},
+		"textures": [
+			"brick",
+			"cut_copper",
+			"birch_planks",
+			"dark_oak_planks",
+			"stonebrick"
+		],
+
+		"map_color": "#cccccc",
+		"entity_collision": {
+			"origin": [-8, 0, -8],
+			"size": [16, 16, 8]
+		},
+
+		"pick_collision": {
+			"origin": [-8, 0, -8],
+			"size": [16, 16, 8]
+		},
+
+		"permutations": {
+			"thin": {
+				"title": "width: thin",
+				"type": "size",
+				"geometry": "vslab_thin"
+			},
+			"medium": {
+				"title": "width: medium",
+				"type": "size",
+				"geometry": "vslab_medium"
+			}
+		}
+	}
+}
