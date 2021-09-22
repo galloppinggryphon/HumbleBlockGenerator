@@ -929,7 +929,9 @@ HUB should generate correct code, but it is not guaranteed to work in Minecraft.
 
 ## Future directions 🚀
 
-Possible improvements (maybe)
+More features will come based on personal needs and experience. This software is quite young, so it remains to be seen what features work and don't work, and what's useful and not so useful.
+
+Some improvements I could foresee:
 
 * [ ] Generate pretty titles from textures
 * [ ] Event system
