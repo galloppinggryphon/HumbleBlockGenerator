@@ -12,7 +12,7 @@ Bedrock affords powerful abilities to create custom blocks -- but manually creat
 | ----------- |
 | 🟩 Auto-generate block JSON definition files from declarative templates<br>🟩 Highly flexible template structures, from flat to deeply nested<br>🟩 Easily create block permutations from materials/textures<br>🟩 Create presets containing commonly used code, e.g. block rotation<br>🟩 Automatic block name and title string generator from permutations<br>🟩 Efficient code -- cuts down on boilerplate, add a dozen permutations in as little as a single line<br>🟩 Convenient editing -- multiple blocks can be defined in a single file |
 <br>
-*permutations means variations of statically generated bloc<span class="colour" style="color:rgb(220, 220, 170)">copyFileAsync</span>ks, not to be confused with the permutations property used by Minecraft in block definition files.
+*permutations means variations of statically generated blocks, not to be confused with the permutations property used by Minecraft in block definition files.
 
 - - -
 
@@ -32,7 +32,7 @@ Bedrock affords powerful abilities to create custom blocks -- but manually creat
 Download options:
     1. Download zip file from [Releases](https://github.com/galloppinggryphon/fluffy-doodle/releases) and unzip
     2. Download with git: `git clone https://github.com/galloppinggryphon/HumbleBlockGenerator.git`
-2. <span class="colour" style="color:var(--vscode-unotes-wysText)">Run `npm install` to initialize and download a few small dependencies</span>
+2. Run `npm install` to initialize and download a few small dependencies
 3. That's it.
 
 ### **Try it out** 🟧
