@@ -31,6 +31,12 @@ const appData = {}
 
 const generatorLog = GeneratorLog()
 
+/**
+ * Main process for generating blocks.
+ *
+ * @param {object} config
+ * @param {object} templateData
+ */
 function blockBuilder( config, templateData ) {
 	appData.templateData = templateData
 	appData.config = config
@@ -182,7 +188,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 			yield * blockGenerator( fileName, levelData, key, _data )
 		}
 	}
-	// Reached the deepest permutation of this branch
+	// ~ Reached the deepest permutation of this branch ~
 	// Process data and generate blocks
 	else {
 		// The final permutation cannot be a branch
@@ -191,7 +197,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 			return
 		}
 
-		// Apply presets -- translate keys to required minecraft props
+		// Apply presets with the apply directive -- translate keys to required minecraft props
 		if ( data.apply ) {
 			data = applyBlockPresets( data )
 		}
@@ -257,7 +263,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 			}
 		}
 
-		// ==================================
+		// ~ Split streams - with and without texture ~
 		if ( ! Object.keys( data.material_instances || {} ).length && ( data.materials || data.textures ) ) {
 			// Check the render directive
 			if ( data.render ) {
@@ -277,17 +283,13 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 			// yield doesn't work with forEach
 			for ( const [ key, material ] of Object.entries( data.materialData ) ) {
 				let _data = _.cloneDeep( data )
-
 				_data.permutationPath.push( `${ key }` ) // delineate texture from other permutations
-
 				_data.permutationData[ key ] = {
 					title: key,
 					type: 'material',
 				}
-
 				// Create material_instances for current permutation
 				_data.material_instances = material
-
 				_data = removeObjectKeys( _data, directives )
 
 				const block = prepareBlock( _data )
@@ -301,6 +303,12 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 	}
 }
 
+/**
+ * Generate block JSON from generator data. Called for every final permutation.
+ *
+ * @param data
+ * @return {object}
+ */
 function prepareBlock( data ) {
 	const { geometry, permutationPath, material_instances } = data
 	const { templateData, config } = appData
@@ -378,8 +386,6 @@ function processBlockMaterials( data ) {
 				return _materials
 			}
 
-			// log( { _materials: _materials[ name ] } )
-
 			validateMaterialInstanceMap( _materials[ name ], `materials->${ name }` )
 
 			return _materials
@@ -391,7 +397,9 @@ function processBlockMaterials( data ) {
 }
 
 /**
- * { array|object } materialInstance
+ * Create material instance object.
+ *
+ * @param {array|object} materialInstance
  */
 function prepareMaterialInstance( materialInstance, key, render = undefined ) {
 	let _materialInstance = materialInstance
@@ -422,6 +430,13 @@ function prepareMaterialInstance( materialInstance, key, render = undefined ) {
 	return _materialInstance
 }
 
+/**
+ * Check material instance render method.
+ *
+ * @param {object} materialInstance
+ * @param {string} key Key of the directive used to apply materials, for error conditions.
+ * @return {boolean}
+ */
 function validateRenderMethod( materialInstance, key ) {
 	const validRenderMethods = [ 'opaque', 'blend', 'alpha_test', 'double_sided' ]
 
@@ -435,11 +450,16 @@ function validateRenderMethod( materialInstance, key ) {
 	return true
 }
 
+/**
+ * Check that material instance object is correctly formatted.
+ *
+ * @param {object} materialInstance
+ * @param {string} key Key of the directive used to apply materials, for error conditions.
+ */
 function validateMaterialInstance( materialInstance, key ) {
 	const { texture } = materialInstance
 	if ( ! texture ) {
 		generatorLog.error( `The '${ key }' directive or key contains an invalid material instance: required key 'texture' is missing.` )
-
 		return {}
 	}
 
@@ -457,6 +477,11 @@ function validateMaterialInstance( materialInstance, key ) {
 	return true
 }
 
+/**
+ * Validate minecraft:material_instances.
+ * @param {object} materialInstances
+ * @param {string} key Key of the directive used to apply materials, for error conditions.
+ */
 function validateMaterialInstanceMap( materialInstances, key ) {
 	const miArray = Object.entries( materialInstances )
 
@@ -637,6 +662,8 @@ function addBlockGeneratorData( key, value, permutationKey, data, method ) {
 }
 
 /**
+ * Save block JSON to disk.
+ *
  * @param {string[]} componentPath
  * @param {Object<string, any>} data
  */
@@ -698,6 +725,12 @@ function getBlockFileInfo( permutationPath ) {
 	return fileInfo
 }
 
+/**
+ * Generate name from nested permutations.
+ *
+ * @param {object} data Block generator data
+ * @param {string} separator String to separate permutations
+ */
 function getPermutationName( data, separator = undefined ) {
 	const { nameSeparators } = appData.config.output
 
@@ -713,12 +746,25 @@ function getPermutationName( data, separator = undefined ) {
 	}
 }
 
+/**
+ * Generate name from title attribute in nested permutations.
+ *
+ * @param {object} data Block generator data
+ */
 function getPermutationTitle( data ) {
 	const { titleSeparators } = appData.config.output
 	const { permutationPath, permutationData } = data
 	return getPermutationStringFromTemplate( 'title', permutationPath, permutationData, titleSeparators )
 }
 
+/**
+ * Process permutation name according to template.
+ *
+ * @param {string} whichString
+ * @param {*} permutations
+ * @param {*} permutationData
+ * @param {*} separators
+ */
 function getPermutationStringFromTemplate( whichString, permutations, permutationData, separators ) {
 	const separator = separators[ '*' ]
 	return permutations
@@ -748,16 +794,29 @@ function getPermutationStringFromTemplate( whichString, permutations, permutatio
 		.join( '' )
 }
 
+/**
+ * Validate permutation name.
+ *
+ * @param {string} name
+ */
 function validatePermutationName( name ) {
 	const rxValidName = /[a-z][a-z0-9_\-.()]*/i
 	return rxValidName.test( name )
 }
 
+/**
+ * Check permutation segment name to check if it's an anonymous branch.
+ *
+ * @param {string} name
+ */
 function isPermutationBranch( name ) {
 	const rxAnonymous = /[-]+/
 	return rxAnonymous.test( name )
 }
 
+/**
+ * Logging factory.
+ */
 function GeneratorLog() {
 	const _log = {}
 	let context = { fileName: undefined, permutation: undefined, permutationPath: [] }
