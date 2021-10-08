@@ -4,3 +4,7 @@
 node_modules
 todo.md
 output/*
+blocks-*.json
+config.js
+presets.json
+scaffolding.json
