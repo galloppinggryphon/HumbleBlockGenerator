@@ -197,6 +197,21 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 			return
 		}
 
+		// Some minecraft keys require processing - remove prefix if present
+		Object.keys( data ).forEach( ( key ) => {
+			if ( key.substring( 0, 10 ) === 'minecraft:' ) {
+				data[ key.slice( 10 ) ] = data[ key ]
+				delete data[ key ]
+			}
+		} )
+
+		Object.keys( data ).filter( ( key ) => {
+			if ( specialMinecraftProps.includes( key ) && key.substring( 0, 10 ) === 'minecraft:' ) {
+				data[ key.slice( 10 ) ] = data[ key ]
+				delete data[ key ]
+			}
+		} )
+
 		// Apply presets with the apply directive -- translate keys to required minecraft props
 		if ( data.apply ) {
 			data = applyBlockPresets( data )
