@@ -920,7 +920,7 @@ function GeneratorLog() {
 	}
 
 	function formatLogItem( item ) {
-		const labels = { 'error': 'ERROR', 'warn': 'WARNING', 'NOTICE': 'Notice' }
+		const labels = { 'error': 'ERROR', 'warn': 'WARNING', 'notice': 'NOTICE' }
 
 		const contextString = item.permutation ? `[${ item.permutation }] ` : ''
 
