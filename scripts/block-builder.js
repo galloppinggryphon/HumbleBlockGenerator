@@ -328,8 +328,6 @@ function prepareBlock( data ) {
 	const { geometry, permutationPath, material_instances } = data
 	const { templateData, config } = appData
 
-	// log( { data } )
-
 	const permutationTitle = getPermutationTitle( data )
 	let identifier = getPermutationName( data )
 
@@ -338,7 +336,14 @@ function prepareBlock( data ) {
 	block.description.identifier = `${ config.prefix }:${ identifier }`
 
 	if ( geometry ) {
-		block.components.geometry = `geometry.${ geometry }`
+		let _geometry = geometry
+		if ( geometry.substring( 0, 9 ) === 'geometry.' ) {
+			generatorLog.notice( `Found 'geometry.' prefix in 'geometry' property. You can omit this prefix, it is added automatically.` )
+			_geometry = geometry.slice( 9 )
+		}
+
+		const geoPrefix = typeof config.geometryPrefix === 'string' ? config.geometryPrefix : ''
+		block.components.geometry = `geometry.${ geoPrefix + _geometry }`
 		block.components.material_instances = material_instances
 	}
 

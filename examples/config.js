@@ -5,6 +5,14 @@ exports.config = {
 	// The namespace must be unique, but short. Do not include a colon.
 	prefix: 'hubgen',
 
+	// = Namespace prefix for geometry models =
+	// Choose a prefix to automatically prepend to all geometry model names.
+	// Prevent model name conflicts with other addons.
+	// E.g. Prefix 'hubgen__' and geometry: 'model_name' ==> geometry: 'geometry.hubgen__model_name'
+	// Do not include the required 'geometry.' prefix, it is added automatically.
+	// Leave blank to skip prefix or to set it manually in the template files.
+	geometryPrefix: 'hubgen__',
+
 	// # Input options #
 	// Configure template file locations
 	// All template files can be relocated to a subfolder, e.g. presets: 'config/presets.json',

@@ -12,7 +12,7 @@ Bedrock affords powerful abilities to create custom blocks -- but manually creat
 | ----------- |
 | 🟩 Auto-generate block JSON definition files from declarative templates<br>🟩 Highly flexible template structures, from flat to deeply nested<br>🟩 Easily create block permutations from materials/textures<br>🟩 Create presets containing commonly used code, e.g. block rotation<br>🟩 Automatic block name and title string generator from permutations<br>🟩 Efficient code -- cuts down on boilerplate, add a dozen permutations in as little as a single line<br>🟩 Convenient editing -- multiple blocks can be defined in a single file |
 <br>
-*permutations means variations of statically generated blocks, not to be confused with the permutations property used by Minecraft in block definition files.
+`*` permutations means variations of statically generated blocks, not to be confused with the permutations property used by Minecraft in block definition files.
 
 - - -
 
@@ -800,10 +800,16 @@ See other sections:
 
 The `geometry` prefix can be omitted from the value; it is added automatically.
 
-Example:
+Use the <span class="colour" style="color:rgb(248, 248, 242)">`geometryPrefix` key in `config.js` to configure a name prefix to be added automatically.</span>
+
+**Example:**
 
 ```
-"geometry": "vslab" // ==> "geometry.vlab"
+//config.js
+geometryPrefix: 'hubgen__'
+
+//blocks-vslab.json
+"geometry": "vslab" // ==> "geometry.hubgen__vslab"
 ```
 
 #### identifier
@@ -863,15 +869,16 @@ Argument values containing spaces or special characters must be quoted, e.g. `"b
 
 ### Configuration 🟧
 
-HUB is configured in `config.json`. If missing, you can generate it using the command `npm run init` or by making a copy of `config-sample.json.`
+HUB is configured in `config.json`. If it is missing, run the command `npm run init` to generate a new one or make a copy of [examples/config.json](./examples/config.json).
 
 Settings
 
-* `prefix`: set block namespace
+* `prefix`: set block namespace (required)
+* `geometryPrefix`: set a geometry model name prefix (optional)
 * `input`: define JSON template files to use as inputs
 * `output`: define where and how to generate files
 
-Documentation on configuring input files is below. Further documentation for other options is located in `config.json`.
+Documentation on configuring input files is below. Documentation for other options is included in `config.json`.
 
 ### Input file configuration 🟧
 
