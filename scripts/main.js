@@ -12,26 +12,30 @@ async function main( config, scriptArgs ) {
 		config.input = {}
 	}
 
-	let templateData = {}
 	const { input = {}, output = {} } = config
+	//const { blockConfigDir = '' } = input
+
+	let templateData = {}
+
+	// Load universal JSON template files
+	const loadFiles = { presets: input.presets, scaffolding: input.scaffolding }
+	const jsonFiles = {}
+
+	Object.entries( loadFiles ).forEach( ( [ key, file ] ) => {
+		const _file = file // path.join( blockConfigDir, file )
+
+		if ( ! _file ) {
+			return
+		}
+		if ( pathExists( _file ) ) {
+			jsonFiles[ key ] = _file
+		}
+		else {
+			console.error( `Error: Couldn't find input file '${ path.relative( '.', _file ) }' ('config.input.${ key }').\n` )
+		}
+	} )
 
 	try {
-		// Load universal JSON template files
-		const loadFiles = { presets: input.presets, scaffolding: input.scaffolding }
-		const jsonFiles = {}
-
-		Object.entries( loadFiles ).forEach( ( [ key, file ] ) => {
-			if ( ! file ) {
-				return
-			}
-			if ( pathExists( file ) ) {
-				jsonFiles[ key ] = file
-			}
-			else {
-				console.error( `\nError: Couldn't find input file '${ path.relative( '.', file ) }' ('config.input.${ key }').\n` )
-			}
-		} )
-
 		if ( Object.keys( jsonFiles ).length ) {
 			templateData = loadJsonFiles( jsonFiles, true )
 		}
