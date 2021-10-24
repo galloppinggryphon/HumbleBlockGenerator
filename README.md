@@ -869,7 +869,9 @@ Argument values containing spaces or special characters must be quoted, e.g. `"b
 
 ### Configuration 🟧
 
-HUB is configured in `config.json`. If it is missing, run the command `npm run init` to generate a new one or make a copy of [examples/config.json](./examples/config.json).
+HUB is configured with `config.json`, located in the root directory. If it is missing, run the command `npm run init` to generate a new one or make a copy of [examples/config.json](./examples/config.json).
+
+Block configuration files are by default placed in the `./config` folder.
 
 Settings
 
@@ -882,8 +884,9 @@ Documentation on configuring input files is below. Documentation for other optio
 
 ### Input file configuration 🟧
 
-| Key | File name (default) | Contains | Details |
-| --- | ------------------- | -------- | ------- |
+| Key | Default value | Contains | Details |
+| --- | ------------- | -------- | ------- |
+| <span style="color: #f8f8f2;">`blockConfigDir`</span> | `config` | All block config files | Directory containing all the block config files. It's not recommended to store these in the root directory. |
 | `blocks` | `blocks-*.json` | Block templates (permutations) | By default, HUB will look for block templates in all JSON files beginning with `blocks-.` Enables splitting block templates by category (e.g. stairs, slabs, columns, etc). |
 | `scaffolding` | `scaffolding.json` | Block baseline | The root template of all generated block definition files, containing shared boilerplate and properties. |
 | `presets` | `presets.json` | Code snippets | Create presets/code snippets for commonly shared features like block mechanics (e.g. rotation), events or sets of properties. Presets can be injected at any nesting level of a block template. |

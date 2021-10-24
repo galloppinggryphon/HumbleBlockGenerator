@@ -51,13 +51,14 @@ else {
 }
 
 async function init() {
+	const sourceFolder = 'examples'
+	const destinationFolder = 'config'
 	const initFiles = {
 		'config.js': 'config.js',
 		'scaffolding.json': 'scaffolding.json',
 		'blocks-vslab.json': 'blocks-vslab.json',
 		'presets.json': 'presets.json',
 	}
-	const sourceFolder = 'examples'
 
 	log( '\n--- Initializing Humble Block Generator ---' )
 	log( '\nCreating default configuration files:\n' )
@@ -66,7 +67,24 @@ async function init() {
 		log( `[ERROR] Configuration template folder (${ sourceFolder }) is missing!` )
 		log( 'If this error is occurring during the initial installation of HUB, try again.' )
 		log( `If this error occurred during a re-initialization, run 'npm install' to redownload the missing files.` )
+		complete( false )
 		return
+	}
+
+	const result = await initializeFiles( Object.entries( initFiles ) )
+	complete( result )
+
+	function complete( success ){
+		log( '\n\n----------------------------------------------' )
+
+		if ( success ) {
+			log( 'Init complete!' )
+			log( `\nTo continue, run 'npm start'.` )
+		}
+		else {
+			log( 'Init failed!' )
+		}
+		log( '---------------------------------------------\n\n' )
 	}
 
 	async function initializeFiles( files ) {
@@ -76,7 +94,9 @@ async function init() {
 
 		const [ destinationFile, sourceFile ] = files.shift()
 		const source = nodePath.resolve( '.', sourceFolder, sourceFile )
-		const destination = nodePath.resolve( '.', destinationFile )
+		const destination = destinationFile === 'config.js'
+			? nodePath.resolve( '.', destinationFile )
+			: nodePath.resolve( '.', destinationFolder, destinationFile )
 
 		if ( pathExists( destination ) ) {
 			log( `${ sourceFile } [FAILURE] File already exists` )
@@ -85,10 +105,19 @@ async function init() {
 			log( `${ sourceFile } [FAILURE] Cannot find source` )
 		}
 		else {
-			const error = await fsAsync.copyFile( source, destination )
+			let fsOpResult
+			try {
+				fsOpResult = await fsAsync.mkdir( nodePath.dirname( destination ), { recursive: true } )
+				fsOpResult = await fsAsync.copyFile( source, destination )
+			}
+			catch ( err ) {
+				log( 'A failure occurred while copying files.\n\nError details:' )
+				log( err.message )
+				return false
+			}
 
-			if ( error ) {
-				log( `${ sourceFile } [FAILURE] Unknown error ==> `, error )
+			if ( fsOpResult ) {
+				log( `${ sourceFile } [FAILURE] Unknown error ==> `, fsOpResult )
 			}
 			else {
 				log( `${ sourceFile } [OK] File created` )
@@ -96,14 +125,8 @@ async function init() {
 		}
 
 		await initializeFiles( files )
+		return true
 	}
-
-	await initializeFiles( Object.entries( initFiles ) )
-
-	log( '\n\n----------------------------------------------' )
-	log( 'Init complete!' )
-	log( `\nTo continue, run 'npm start'.` )
-	log( '---------------------------------------------\n\n' )
 }
 
 function help() {
@@ -128,6 +151,14 @@ function header() {
 	log( '🔳  🔳  Generator\n' )
 }
 
+// use fs.access() instead?
 function pathExists( path ) {
-	return fs.existsSync( path )
+	try {
+		return fs.existsSync( path )
+	}
+	catch ( error ){
+		console.error( 'An error occurred while checking if this path exists: ', path )
+		console.error( error )
+		return null
+	}
 }

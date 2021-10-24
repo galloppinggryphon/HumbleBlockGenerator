@@ -17,6 +17,10 @@ exports.config = {
 	// Configure template file locations
 	// All template files can be relocated to a subfolder, e.g. presets: 'config/presets.json',
 	input: {
+		// = Location of block template files =
+		// It's recommended to use a sub-directory
+		blockConfigDir: 'config',
+
 		// = List of block permutation definition files (array). Can also be supplied with command line arguments =
 		// All template files must begin with 'blocks-'
 		// Use blocks-*.json to automatically include all files that begin with 'blocks-'. Other wildcards are not supported.

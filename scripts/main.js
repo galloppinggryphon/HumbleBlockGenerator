@@ -13,7 +13,7 @@ async function main( config, scriptArgs ) {
 	}
 
 	const { input = {}, output = {} } = config
-	//const { blockConfigDir = '' } = input
+	const { blockConfigDir = '' } = input
 
 	let templateData = {}
 
@@ -22,7 +22,9 @@ async function main( config, scriptArgs ) {
 	const jsonFiles = {}
 
 	Object.entries( loadFiles ).forEach( ( [ key, file ] ) => {
-		const _file = file // path.join( blockConfigDir, file )
+		const _file = path.join( blockConfigDir, file )
+
+		// log( { _file, blockConfigDir } )
 
 		if ( ! _file ) {
 			return
@@ -65,7 +67,7 @@ async function main( config, scriptArgs ) {
 		if ( fnErrors.length ) {
 			log( `Error! One or more block template files are invalid!\n\nFile names for block templates must begin with 'blocks-'.` )
 			log( '\nInvalid files names:' )
-			fnErrors.forEach( ( x ) => log( path.relative( '.', x ) ) )
+			fnErrors.forEach( ( x ) => log( path.relative( '.', blockConfigDir, x ) ) )
 			return
 		}
 	}
@@ -95,7 +97,7 @@ async function main( config, scriptArgs ) {
 
 		const wildcardFileNames = await wildcardElements.reduce( async ( _fileNames, el ) => {
 			_fileNames = await _fileNames
-			const files = await readDirAsync( '.', false, el )
+			const files = await readDirAsync( path.join( '.', blockConfigDir ), false, el )
 			_fileNames = _fileNames.concat( files )
 			return _fileNames
 		}, [] )
