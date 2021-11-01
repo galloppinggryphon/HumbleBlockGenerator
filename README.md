@@ -103,13 +103,9 @@ Too see the generated JSON block definition files, look in the [`examples/output
 * One Minecraft property is added to the block `components ` section: `geometry`. The `minecraft` prefix is added automatically during processing and can be omitted. Likewise, the `geometry` prefix is added automatically to the value
 * Each block is created on top of a scaffolding template of boilerplate shared by all blocks (see `scaffolding.json`)
 
-### A note on permutation proliferation 🟧
+### A note on permutation proliferation and data driven blocks 🟧
 
-HUB makes it possible to create staggering number of custom blocks, very quickly. Unfortunately, unresolved bugs in Bedrock prevent these from showing up in the block picker. The only way to get access to custom blocks is using the console to put blocks in the hotbar, one at a time, using the console (`/give @s prefix:my_custom_block`). Auto-complete helps, and there is even previews of blocks that partially match what you have typed, but it's still tedious.
-
-### A note on data driven blocks 🟧
-
-Traditionally, every permutation of a block you want to use has had to be statically generated. Bedrock is moving in the direction of data driven blocks -- making it possible to change block properties in-game. Vanilla blocks have long relied on internal block states to evince properties like different textures or open/closed states. Custom blocks can do this too now, to some extent. Block properties can be changed dynamically, including textures, but it still requires a lot of static code. Hopefully, Mojang will continue down the path of separating form and visual properties -- and perhaps one day, block shapes and textures can be dynamically combined rather than statically generated.
+HUB makes it possible to create staggering number of custom blocks very quickly, because every permutation of a block has to be statically generated. Fortunately, Bedrock is moving in the direction of data driven blocks -- making it possible to change block properties in-game. Vanilla blocks have long relied on internal block states to evince properties like different textures or open/closed states. Custom blocks can do this too now, to some extent. Block properties can be changed dynamically, including textures, but it still requires a lot of static code. Hopefully, Mojang will continue down the path of enabling dynamic properties so that,one day, block shapes and textures can be dynamically combined rather than statically generated.
 
 - - -
 
@@ -245,8 +241,7 @@ In `config.js`, use the `titleSeparators` and `nameSeparators` to configure `t
 
 ### Anonymous branches and default permutations 🟧
 
-In addition to creating permutations, it's possib
-It's possible to create unnamed and untitled permutation segments. It enables two useful options, described below.
+In addition to creating permutations, it's possible to create unnamed and untitled permutation segments. It enables two useful options, described below.
 
 1. Create a standard or default version of a block
 2. Create branches or collections of properties that are applied to descendant permutations without adding segments to the block name
@@ -789,6 +784,27 @@ All output files must specify a format\_version somewhere its template hierarch
 
 Unless you know what you are doing, I highly recommended you use the most recent format version, `1.16.100`. It is required by advanced features like material instances and events.
 
+#### creative\_category
+
+As of Bedrock `v1.17.40`, it's finally possible to use `creative_category` \- and access blocks through the block selector\! You'll have to add your block to a predefined category\. You must also specify the correct tab\.
+
+**Syntax**
+
+```
+"creative_category": {
+    // Major category (tab)
+    "category": "construction",
+
+    // Subcategory
+    // The prefix 'itemGroup.name.' is added automatically
+    // E.g. planks => itemGroup.name.planks
+    "group": "planks"
+}
+```
+<br>
+Here's a list of all the categories and groups:
+<span class="colour" style="color:rgb(98, 114, 164)">[https://wiki.bedrock.dev/documentation/creative-categories.html](https://wiki.bedrock.dev/documentation/creative-categories.html)</span>
+<br>
 #### material\_instances
 
 See other sections:
@@ -886,7 +902,7 @@ Documentation on configuring input files is below. Documentation for other optio
 
 | Key | Default value | Contains | Details |
 | --- | ------------- | -------- | ------- |
-| <span style="color: #f8f8f2;">`blockConfigDir`</span> | `config` | All block config files | Directory containing all the block config files. It's not recommended to store these in the root directory. |
+| <span class="colour" style="color:rgb(248, 248, 242)">`blockConfigDir`</span> | `config` | All block config files | Directory containing all the block config files. It's not recommended to store these in the root directory. |
 | `blocks` | `blocks-*.json` | Block templates (permutations) | By default, HUB will look for block templates in all JSON files beginning with `blocks-.` Enables splitting block templates by category (e.g. stairs, slabs, columns, etc). |
 | `scaffolding` | `scaffolding.json` | Block baseline | The root template of all generated block definition files, containing shared boilerplate and properties. |
 | `presets` | `presets.json` | Code snippets | Create presets/code snippets for commonly shared features like block mechanics (e.g. rotation), events or sets of properties. Presets can be injected at any nesting level of a block template. |

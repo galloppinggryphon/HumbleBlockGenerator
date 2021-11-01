@@ -10,7 +10,7 @@ const directives = [ 'apply', 'export', 'materials', 'render', 'texture', 'textu
 // Other keys used during processing
 const specialProcessingKeys = [ 'permutationData', 'permutationPath', 'materialData' ]
 
-const specialMinecraftProps = [ 'identifier', 'material_instances', 'geometry' ]
+const specialMinecraftProps = [ 'identifier', 'material_instances', 'geometry', 'creativeCategory' ]
 
 const dataAccumulatorMethods = {
 	apply: 'mergeObject',
@@ -325,7 +325,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
  * @return {object}
  */
 function prepareBlock( data ) {
-	const { geometry, permutationPath, material_instances } = data
+	const { creative_category, geometry, permutationPath, material_instances } = data
 	const { templateData, config } = appData
 
 	const permutationTitle = getPermutationTitle( data )
@@ -345,6 +345,20 @@ function prepareBlock( data ) {
 		const geoPrefix = typeof config.geometryPrefix === 'string' ? config.geometryPrefix : ''
 		block.components.geometry = `geometry.${ geoPrefix + _geometry }`
 		block.components.material_instances = material_instances
+	}
+
+	// https://wiki.bedrock.dev/documentation/creative-categories.html#top
+	if ( creative_category ) {
+		let category = creative_category
+		if ( category.group ){
+			if ( category.group.substring( 0, 15 ) === 'itemGroup.name.' ) {
+				generatorLog.notice( `Found 'itemGroup.name.' prefix in 'creative_category' property. You can omit this prefix, it is added automatically.` )
+			}
+			else {
+				category.group = `itemGroup.name.${ category.group }`
+			}
+		}
+		block.components.creative_category = category
 	}
 
 	// Add all other props without processing
