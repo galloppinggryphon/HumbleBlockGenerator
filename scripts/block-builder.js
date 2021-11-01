@@ -10,7 +10,7 @@ const directives = [ 'apply', 'export', 'materials', 'render', 'texture', 'textu
 // Other keys used during processing
 const specialProcessingKeys = [ 'permutationData', 'permutationPath', 'materialData' ]
 
-const specialMinecraftProps = [ 'identifier', 'material_instances', 'geometry', 'creativeCategory' ]
+const specialMinecraftProps = [ 'identifier', 'material_instances', 'geometry', 'creative_category' ]
 
 const dataAccumulatorMethods = {
 	apply: 'mergeObject',
