@@ -11,7 +11,7 @@ exports.config = {
 	// E.g. Prefix 'hubgen__' and geometry: 'model_name' ==> geometry: 'geometry.hubgen__model_name'
 	// Do not include the required 'geometry.' prefix, it is added automatically.
 	// Leave blank to skip prefix or to set it manually in the template files.
-	geometryPrefix: 'hubgen__',
+	geometryPrefix: 'hubgen.',
 
 	// # Input options #
 	// Configure template file locations
