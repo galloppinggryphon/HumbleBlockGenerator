@@ -158,12 +158,12 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 		}
 	}
 	// No empty key if it has children
-	if ( permutationKey === '' && blockData.permutations ) {
-		generatorLog.error( `Invalid permutation key: '${ permutationKey }'. An empty permutation key is only permitted for the deepest level, use '-' to create anonymous branches. Processing of this branch is skipped.` )
+	if ( permutationKey === '' && blockData.variations ) {
+		generatorLog.error( `Invalid variation key: '${ permutationKey }'. An empty variation key is only permitted for the deepest level, use '-' to create anonymous branches. Processing of this branch is skipped.` )
 
 	}
 	else if ( permutationKey && ! validatePermutationName( permutationKey ) && ! isPermutationBranch( permutationKey ) ) {
-		generatorLog.error( `Invalid permutation key: '${ permutationKey }'. Processing of this branch is skipped.` )
+		generatorLog.error( `Invalid variation key: '${ permutationKey }'. Processing of this branch is skipped.` )
 		return
 	}
 
@@ -174,15 +174,15 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 
 	// Process blockData properties
 	for ( const [ key, value ] of Object.entries( blockData ) ) {
-		if ( key !== 'permutations' ) {
+		if ( key !== 'variations' ) {
 			data = addBlockGeneratorData( key, value, permutationKey, data, dataAccumulatorMethods[ key ] )
 		}
 	}
 
 	// Recursively iterate through permutation branches
-	const { permutations } = blockData
-	if ( permutations ) {
-		for ( const [ key, levelData ] of Object.entries( permutations ) ) {
+	const { variations } = blockData
+	if ( variations ) {
+		for ( const [ key, levelData ] of Object.entries( variations ) ) {
 			// Each level inherits from its parent, but must not mutate its parent
 			const _data = _.cloneDeep( data )
 			yield * blockGenerator( fileName, levelData, key, _data )
@@ -193,7 +193,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 	else {
 		// The final permutation cannot be a branch
 		if ( isPermutationBranch( permutationKey ) ) {
-			generatorLog.error( `Invalid permutation key: '${ permutationKey }'. The deepest permutation cannot be an anonymous branch. Processing of this branch is skipped.` )
+			generatorLog.error( `Invalid variation key: '${ permutationKey }'. The deepest variation cannot be an anonymous branch. Processing of this branch is skipped.` )
 			return
 		}
 
@@ -218,7 +218,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 		}
 
 		if ( data.identifier ) {
-			generatorLog.notice( `Found the 'identifier' property, but this has has no effect. Block identifiers are compiled from permutation keys.` )
+			generatorLog.notice( `Found the 'identifier' property, but this has has no effect. Block identifiers are compiled from variation keys.` )
 		}
 
 		// Generate texture/material permutations
@@ -584,7 +584,7 @@ function applyBlockPresets( data ) {
  * Fill out necessary block definition sections and props.
  */
 function addMinecraftProps( block, data, section = 'components' ) {
-	const blockSections = [ 'components', 'description', 'events' ] // excl. 'permutations'
+	const blockSections = [ 'components', 'description', 'events' ] // excl. 'variations'
 
 	if ( section ) {
 		block[ section ] = section in block ? block[ section ] : {}
@@ -597,7 +597,7 @@ function addMinecraftProps( block, data, section = 'components' ) {
 		}
 
 		if ( Object( el ) === el ) {
-			if ( key === 'permutations' ) {
+			if ( key === 'variations' ) {
 				block[ key ] = key in block ? block[ key ] : []
 				block[ key ] = block[ key ].concat( el )
 			}
@@ -853,7 +853,7 @@ function isPermutationBranch( name ) {
  */
 function GeneratorLog() {
 	const _log = {}
-	let context = { fileName: undefined, permutation: undefined, permutationPath: [] }
+	let context = { fileName: undefined, variation: undefined, permutationPath: [] }
 
 	return {
 		error( message, ...errorData ){
@@ -905,10 +905,10 @@ function GeneratorLog() {
 			Object.assign( context, contextData )
 
 			if ( context.permutationPath && context.permutationPath.length ){
-				context.permutation = getPermutationName( context.permutationPath, '/' )
+				context.variation = getPermutationName( context.permutationPath, '/' )
 			}
 			else {
-				context.permutation = undefined
+				context.variation = undefined
 			}
 		},
 		write() {},
@@ -919,7 +919,7 @@ function GeneratorLog() {
 		_log[ store ] = _log[ store ] || []
 		_log[ store ].push( {
 			level,
-			permutation: context.permutation,
+			variation: context.variation,
 			msg,
 			errorData: prepErrorData( errorData ),
 		} )
@@ -941,7 +941,7 @@ function GeneratorLog() {
 	function formatLogItem( item ) {
 		const labels = { 'error': 'ERROR', 'warn': 'WARNING', 'notice': 'NOTICE' }
 
-		const contextString = item.permutation ? `[${ item.permutation }] ` : ''
+		const contextString = item.variation ? `[${ item.variation }] ` : ''
 
 		let _item = `${ contextString }${ labels[ item.level ] }: ${ item.msg }`
 		_item += item.errorData ? ` Error data: \n${ item.errorData }` : ''
