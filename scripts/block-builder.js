@@ -28,9 +28,13 @@ const defaultSeparators = {
 
 // make appData and json files available globally
 const appData = {
-	config: null,
-	templateData: null,
-	outputPath: null,
+	scriptArgs: {},
+	config: {},
+	outputPath: undefined,
+	outputDir: undefined,
+	blockInput: {},
+	templateData: {},
+	separators: {},
 }
 
 const generatorLog = GeneratorLog()
@@ -41,22 +45,27 @@ const generatorLog = GeneratorLog()
  * @param {object} config
  * @param {object} templateData
  */
-export function blockBuilder( config, templateData ) {
-	const { nameSeparators, titleSeparators, outputPath } = config.output
+export function blockBuilder( _appData ) {
+	Object.assign( appData, _appData )
 
-	appData.templateData = templateData
-	appData.outputPath = outputPath
-	appData.config = config
-	appData.config.nameSeparators = ( nameSeparators && Object( nameSeparators ) === nameSeparators && ! Array.isArray( nameSeparators ) ) ? nameSeparators : defaultSeparators.name
-	appData.config.titleSeparators = ( titleSeparators && Object( titleSeparators ) === titleSeparators && ! Array.isArray( titleSeparators ) ) ? titleSeparators : defaultSeparators.title
+	const { config, blockInput, outputPath, separators } = appData
+	const { nameSeparators, titleSeparators } = config.output
+
+	separators.names =
+		( Object( nameSeparators ) === nameSeparators && ! Array.isArray( nameSeparators ) )
+			? nameSeparators
+			: defaultSeparators.name
+
+	separators.titles =
+		( Object( titleSeparators ) === titleSeparators && ! Array.isArray( titleSeparators ) )
+			? titleSeparators
+			: defaultSeparators.title
 
 	const blockTitles = []
 	let blockCounter = 0
-	const { blocks } = config.input
-	const blocksArr = Array.isArray( blocks ) ? blocks : [ blocks ]
 
 	// Traverse all requested block template files
-	blocksArr.forEach( ( file ) => {
+	blockInput.forEach( ( file ) => {
 		const fileName = nodePath.basename( file )
 		log( `\n\n[${ fileName }]` )
 
@@ -724,8 +733,8 @@ function saveBlockToJson( identifier, fileInfo, data ) {
  * @param {string[]} componentPath
  */
 function getBlockFileInfo( permutationPath ) {
-	const { outputPath } = appData
-	const { outputDir, pathSegmentation } = appData.config.output
+	const { outputDir } = appData
+	const { pathSegmentation } = appData.config.output
 
 	// Create directories for permutation segments?
 	// Make copy of permutationPath first
@@ -769,17 +778,17 @@ function getBlockFileInfo( permutationPath ) {
  * @param {string} separator String to separate permutations
  */
 function getPermutationName( data, separator = undefined ) {
-	const { nameSeparators } = appData.config.output
+	const { separators } = appData
 
 	if ( Array.isArray( data ) ) {
-		separator = separator || nameSeparators[ '*' ]
+		separator = separator || separators.names[ '*' ]
 		return data
 			.filter( ( permutation ) => permutation && ! isPermutationBranch( permutation ) )
 			.join( separator )
 	}
 	else {
 		const { permutationPath, permutationData } = data
-		return getPermutationStringFromTemplate( 'name', permutationPath, permutationData, nameSeparators )
+		return getPermutationStringFromTemplate( 'name', permutationPath, permutationData, separators.names )
 	}
 }
 
@@ -789,9 +798,9 @@ function getPermutationName( data, separator = undefined ) {
  * @param {object} data Block generator data
  */
 function getPermutationTitle( data ) {
-	const { titleSeparators } = appData.config.output
+	const { separators } = appData
 	const { permutationPath, permutationData } = data
-	return getPermutationStringFromTemplate( 'title', permutationPath, permutationData, titleSeparators )
+	return getPermutationStringFromTemplate( 'title', permutationPath, permutationData, separators.titles )
 }
 
 /**
