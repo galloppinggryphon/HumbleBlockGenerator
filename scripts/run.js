@@ -5,7 +5,7 @@ import { arrayDeduplicate, extractArrayElements, log } from './lib/utils.js'
 import { eraseDirContentsAsync, loadJsonFiles, readDirAsync, pathExists } from './lib/fs-utils.js'
 import { getScriptArgs } from './lib/get-args.js'
 import { blockBuilder } from './block-builder.js'
-// import { runSync } from './sync.js'
+import { runSync } from './sync.js'
 
 const appData = {
 	scriptArgs: {},
@@ -23,7 +23,7 @@ async function main() {
 	}
 
 	const _scriptArgs = getScriptArgs()
-	const { build, init, ...scriptArgs } = _scriptArgs
+	const { build, init, sync, ...scriptArgs } = _scriptArgs
 	appData.scriptArgs = scriptArgs
 
 	printHeader()
@@ -50,10 +50,10 @@ async function main() {
 		return
 	}
 
-	// if ( sync ) {
-	// 	runSync( appData )
-	// 	return
-	// }
+	if ( sync ) {
+		runSync( appData )
+		return
+	}
 
 	if ( scriptArgs && Object.keys( scriptArgs ).length ) {
 		log( '\n⛔ ERROR! Invalid script argument(s): ', scriptArgs.join( ', ' ), '\n' )

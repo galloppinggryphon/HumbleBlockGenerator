@@ -75,4 +75,15 @@ function removeObjectKeys( obj, removeElements ) {
 	return obj
 }
 
-export { arrayDeduplicate, extractArrayElements, log, removeArrayElements, removeObjectKeys }
+function replaceTemplates( string, values, bracket = '%' ) {
+	const rx = new RegExp( `${ bracket }([\\w\\-_]*)${ bracket }`, 'gi' )
+	return string.replace( rx, ( expr, key ) => {
+		return values[ key ]
+	} )
+}
+
+function stringStartsWith( string, compare ) {
+	return string.slice( 0, compare.length ) === compare
+}
+
+export { arrayDeduplicate, extractArrayElements, log, removeArrayElements, removeObjectKeys, replaceTemplates, stringStartsWith }
