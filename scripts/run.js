@@ -1,7 +1,7 @@
 'use strict'
 import fs, { promises as fsAsync } from 'fs'
 import nodePath from 'path'
-import { getArgs, log, removeArrayElements } from './utils.js'
+import { getArgs, log, removeArrayElements } from './lib/utils.js'
 import { main } from './main.js'
 
 let scriptArgs = getScriptArgs()

@@ -1,8 +1,8 @@
 'use strict'
 import _ from 'lodash'
 import nodePath from 'path'
-import { arrayDeduplicate, log, removeArrayElements, removeObjectKeys } from './utils.js'
-import { saveFileAsync, loadJsonFiles } from './fs-utils.js'
+import { arrayDeduplicate, log, removeArrayElements, removeObjectKeys } from './lib/utils.js'
+import { saveFileAsync, loadJsonFiles } from './lib/fs-utils.js'
 
 // All template directives
 const directives = [ 'apply', 'export', 'materials', 'render', 'texture', 'textures', 'titl' ]

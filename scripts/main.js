@@ -1,7 +1,7 @@
 'use strict'
 import path from 'path'
-import { arrayDeduplicate, extractArrayElements, log } from './utils.js'
-import { eraseDirContentsAsync, loadJsonFiles, readDirAsync, pathExists } from './fs-utils.js'
+import { arrayDeduplicate, extractArrayElements, log } from './lib/utils.js'
+import { eraseDirContentsAsync, loadJsonFiles, readDirAsync, pathExists } from './lib/fs-utils.js'
 import { blockBuilder } from './block-builder.js'
 
 export async function main( config, scriptArgs ) {
