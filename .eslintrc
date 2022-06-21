@@ -86,6 +86,7 @@
 	"ignorePatterns": [
 		"*temp",
 		"**/build/*",
-		"**/*.ts"
+		"**/*.ts",
+		"**/*.json"
 	]
 }
