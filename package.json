@@ -3,12 +3,12 @@
   "version": "1.2.0",
   "description": "Tool for creating custom blocks for Minecraft Bedrock Edition based on templates",
   "type": "module",
-  "scripts": {
-    "start": "node scripts/run.js",
-    "build": "node scripts/run.js build",
-	"sync": "node scripts/run.js sync",
-    "init": "node scripts/run.js init",
-    "postinstall": "node scripts/run.js init"
+  "src": {
+    "start": "node src/run.js",
+    "build": "node src/run.js build",
+	"sync": "node src/run.js sync",
+    "init": "node src/run.js init",
+    "postinstall": "node src/run.js init"
   },
   "author": "Bjornar Egede-Nissen",
   "license": "MIT",
