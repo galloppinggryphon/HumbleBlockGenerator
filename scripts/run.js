@@ -1,10 +1,11 @@
 'use strict'
 import fs, { promises as fsAsync } from 'fs'
 import nodePath from 'path'
-import { getArgs, log, removeArrayElements } from './lib/utils.js'
+import { log, removeArrayElements } from './lib/utils.js'
+import { getScriptArgs } from './lib/get-args.js'
 import { main } from './main.js'
 
-let scriptArgs = getScriptArgs()
+const scriptArgs = getScriptArgs()
 
 async function run() {
 	const mode = scriptArgs ?
@@ -160,19 +161,6 @@ function pathExists( path ) {
 		console.error( error )
 		return null
 	}
-}
-
-function getScriptArgs() {
-	let _args
-	try {
-		_args = getArgs()
-	}
-	catch ( error ) {
-		console.error( error.message )
-		return
-	}
-
-	return _args || []
 }
 
 run()
