@@ -1,6 +1,6 @@
 {
   "name": "hubgen",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Tool for creating custom blocks for Minecraft Bedrock Edition based on templates",
   "scripts": {
     "start": "node scripts/run.js",
