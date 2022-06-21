@@ -14,7 +14,7 @@
 			"origin": [-8, 0, -8],
 			"size": [16, 8, 16]
 		},
-		"pick_collision": {
+		"aim_collision": {
 			"origin": [-8, 0, -8],
 			"size": [16, 16, 16]
 		},

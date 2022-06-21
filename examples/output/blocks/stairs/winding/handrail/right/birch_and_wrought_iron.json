@@ -44,7 +44,7 @@
                     16
                 ]
             },
-            "minecraft:pick_collision": {
+            "minecraft:aim_collision": {
                 "origin": [
                     -8,
                     0,

@@ -24,7 +24,7 @@ Bedrock affords powerful abilities to create custom blocks -- but manually creat
 * [ ] NPM >= `v6.x`
 * [ ] Git or a zip file extractor
 * [ ] A code editor (e.g. VSCode)
-* [ ] An up-to-date version of Minecraft Bedrock
+* [ ] Minecraft Bedrock 1.19.x (note: any MC update may break this software)
 
 ### **Installation** 🟧
 
@@ -39,10 +39,12 @@ Download options:
 
 **From the command line/terminal:**
 
-* Run `npm run build` to generate example blocks
+* Run `npm run build` to generate output from installed example blocks
 * For help, run `npm start`
 
-Output will (by default) be placed in `/output`.
+Output will (by default) be placed in `./output`.
+
+The block configuration files are (by default) placed in `./config`.
 
 For more detailed instructions, see section *Running and configuring HUB*.
 
@@ -50,7 +52,7 @@ For more detailed instructions, see section *Running and configuring HUB*.
 
 Find lots of example templates and output in the [`examples folder`](./examples).
 
-When HUB is installed, it sets up necessary configuration files with a few example blocks (see `scaffolding.json`, `blocks-vslab.json`, `presets.json`).
+When HUB is installed, it sets up necessary configuration files with a few example blocks (`scaffolding.json`, `blocks-vslab.json`, `presets.json`) in the `./config` folder.
 
 - - -
 

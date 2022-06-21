@@ -14,17 +14,14 @@
 			},
 			"events": {
 				"hubgen:on_place_rotate_y": {
-					"sequence": [
-						{
-							"set_block_property": {
-								"hubgen:rotate-y": "(query.cardinal_facing_2d)"
-							}
+					"sequence": [{
+						"set_block_property": {
+							"hubgen:rotate-y": "(query.cardinal_facing_2d)"
 						}
-					]
+					}]
 				}
 			},
-			"permutations": [
-				{
+			"permutations": [{
 					//North
 					"condition": "query.block_property('hubgen:rotate-y') == 2",
 					"components": {
