@@ -171,9 +171,4 @@ function removeObjectKeys( obj, removeElements ) {
 	return obj
 }
 
-exports.arrayDeduplicate = arrayDeduplicate
-exports.getArgs = getArgs
-exports.log = log
-exports.extractArrayElements = extractArrayElements
-exports.removeArrayElements = removeArrayElements
-exports.removeObjectKeys = removeObjectKeys
+export { arrayDeduplicate, extractArrayElements, getArgs, log, removeArrayElements, removeObjectKeys }

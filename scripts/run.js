@@ -1,53 +1,47 @@
 'use strict'
-const { getArgs, log, removeArrayElements } = require( './utils' )
-const fs = require( 'fs' )
-const fsAsync = fs.promises
-const nodePath = require( 'path' )
+import fs, { promises as fsAsync } from 'fs'
+import nodePath from 'path'
+import { getArgs, log, removeArrayElements } from './utils.js'
+import { main } from './main.js'
 
-let scriptArgs
-try {
-	scriptArgs = getArgs()
-}
-catch ( error ) {
-	console.error( error.message )
-	return
-}
+let scriptArgs = getScriptArgs()
 
-const mode = scriptArgs ?
-	( scriptArgs.build && 'build' )
+async function run() {
+	const mode = scriptArgs ?
+		( scriptArgs.build && 'build' )
 	|| ( scriptArgs.init && 'init' )
-	: undefined
+		: undefined
 
-const _scriptArgs = removeArrayElements( Object.keys( scriptArgs ), [ 'build', 'init' ] )
+	const _scriptArgs = removeArrayElements( Object.keys( scriptArgs ), [ 'build', 'init' ] )
 
-header()
+	header()
 
-if ( ! fs.existsSync( nodePath.resolve( '.', 'node_modules' ) ) ){
-	log( `\nHumble Block Generator has not been installed yet!\n\nRun 'npm install' first.` )
-}
-else if ( mode === 'init' ) {
-	init()
-}
-else if ( ! fs.existsSync( nodePath.resolve( '.', 'config.js' ) ) ) {
-	log( `\nFatal error: config.js not found!\n\nRun 'npm run init' to create.` )
-}
-else if ( mode === 'build' ) {
-	const buildArgs = removeArrayElements( Object.keys( scriptArgs ), [ 'build', 'blocks', 'output' ] )
+	if ( ! fs.existsSync( nodePath.resolve( '.', 'node_modules' ) ) ){
+		log( `\nHumble Block Generator has not been installed yet!\n\nRun 'npm install' first.` )
+	}
+	else if ( mode === 'init' ) {
+		init()
+	}
+	else if ( ! fs.existsSync( nodePath.resolve( '.', 'config.js' ) ) ) {
+		log( `\nFatal error: config.js not found!\n\nRun 'npm run init' to create.` )
+	}
+	else if ( mode === 'build' ) {
+		const buildArgs = removeArrayElements( Object.keys( scriptArgs ), [ 'build', 'blocks', 'output' ] )
 
-	if ( buildArgs && buildArgs.length ) {
-		log( 'Error! Invalid script argument(s):', buildArgs.join( ', ' ) )
+		if ( buildArgs && buildArgs.length ) {
+			log( 'Error! Invalid script argument(s):', buildArgs.join( ', ' ) )
+		}
+		else {
+			const config = await import( '../config.js' )
+			main( config.default, scriptArgs )
+		}
+	}
+	else if ( _scriptArgs && _scriptArgs.length ) {
+		log( 'Error! Invalid script argument(s): ', _scriptArgs.join( ', ' ) )
 	}
 	else {
-		const { config } = require( '../config' )
-		const { main } = require( './main' )
-		main( config, scriptArgs )
+		help()
 	}
-}
-else if ( _scriptArgs && _scriptArgs.length ) {
-	log( 'Error! Invalid script argument(s): ', _scriptArgs.join( ', ' ) )
-}
-else {
-	help()
 }
 
 async function init() {
@@ -60,11 +54,11 @@ async function init() {
 		'presets.json': 'presets.json',
 	}
 
-	log( '\n--- Initializing Humble Block Generator ---' )
+	log( '\n▒▒▒▒▒▒▒▒▒▒▒▒▒▒  🚩 Initializing Humble Block Generator 🚩  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒' )
 	log( '\nCreating default configuration files:\n' )
 
 	if ( ! pathExists( sourceFolder ) ) {
-		log( `[ERROR] Configuration template folder (${ sourceFolder }) is missing!` )
+		log( `⛔ ERROR: Configuration template folder (${ sourceFolder }) is missing!` )
 		log( 'If this error is occurring during the initial installation of HUB, try again.' )
 		log( `If this error occurred during a re-initialization, run 'npm install' to redownload the missing files.` )
 		complete( false )
@@ -75,16 +69,21 @@ async function init() {
 	complete( result )
 
 	function complete( success ){
-		log( '\n\n----------------------------------------------' )
+		log( '\n' )
+		log( '┌────────────────────────────────────────┐' )
+		log( '│                                        │' )
 
 		if ( success ) {
-			log( 'Init complete!' )
-			log( `\nTo continue, run 'npm start'.` )
+			log( '│   🏆 HUB installed and initialized!    │' )
+			log( `│   🛵 To continue, run ▶ 'npm start'.   │` )
 		}
 		else {
-			log( 'Init failed!' )
+			log( '│   ⛔ Init failed!                      │' )
 		}
-		log( '---------------------------------------------\n\n' )
+		log( '│                                        │' )
+		log( '└────────────────────────────────────────┘' )
+
+		log( '\nNPM install report below ↴ ↴ ↴\n' )
 	}
 
 	async function initializeFiles( files ) {
@@ -99,10 +98,10 @@ async function init() {
 			: nodePath.resolve( '.', destinationFolder, destinationFile )
 
 		if ( pathExists( destination ) ) {
-			log( `${ sourceFile } [FAILURE] File already exists` )
+			log( `${ sourceFile }   [🟡 SKIPPED]   File already exists` )
 		}
 		else if ( ! pathExists( source ) ) {
-			log( `${ sourceFile } [FAILURE] Cannot find source` )
+			log( `${ sourceFile }   [❌ ERROR]   Cannot find source` )
 		}
 		else {
 			let fsOpResult
@@ -117,10 +116,10 @@ async function init() {
 			}
 
 			if ( fsOpResult ) {
-				log( `${ sourceFile } [FAILURE] Unknown error ==> `, fsOpResult )
+				log( `${ sourceFile }   [❌ ERROR]   Unknown error ==> `, fsOpResult )
 			}
 			else {
-				log( `${ sourceFile } [OK] File created` )
+				log( `${ sourceFile }   [🟢 SUCCESS]   File created` )
 			}
 		}
 
@@ -162,3 +161,18 @@ function pathExists( path ) {
 		return null
 	}
 }
+
+function getScriptArgs() {
+	let _args
+	try {
+		_args = getArgs()
+	}
+	catch ( error ) {
+		console.error( error.message )
+		return
+	}
+
+	return _args || []
+}
+
+run()

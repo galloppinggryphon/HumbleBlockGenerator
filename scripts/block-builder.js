@@ -1,11 +1,11 @@
 'use strict'
-const _ = require( 'lodash' )
-const nodePath = require( 'path' )
-const { arrayDeduplicate, log, removeArrayElements, removeObjectKeys } = require( './utils.js' )
-const { saveFileAsync, loadJsonFiles } = require( './fs-utils.js' )
+import _ from 'lodash'
+import nodePath from 'path'
+import { arrayDeduplicate, log, removeArrayElements, removeObjectKeys } from './utils.js'
+import { saveFileAsync, loadJsonFiles } from './fs-utils.js'
 
 // All template directives
-const directives = [ 'apply', 'export', 'materials', 'render', 'texture', 'textures', 'title', 'type' ]
+const directives = [ 'apply', 'export', 'materials', 'render', 'texture', 'textures', 'titl' ]
 
 // Other keys used during processing
 const specialProcessingKeys = [ 'permutationData', 'permutationPath', 'materialData' ]
@@ -37,7 +37,7 @@ const generatorLog = GeneratorLog()
  * @param {object} config
  * @param {object} templateData
  */
-function blockBuilder( config, templateData ) {
+export function blockBuilder( config, templateData ) {
 	appData.templateData = templateData
 	appData.config = config
 	appData.outputPath = config.outputPath
@@ -948,5 +948,3 @@ function GeneratorLog() {
 		return _item
 	}
 }
-
-exports.blockBuilder = blockBuilder

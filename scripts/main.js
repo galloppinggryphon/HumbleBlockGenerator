@@ -1,17 +1,16 @@
 'use strict'
-const path = require( 'path' )
-const { arrayDeduplicate, extractArrayElements, log } = require( './utils' )
-const { eraseDirContentsAsync, loadJsonFiles, readDirAsync, pathExists } = require( './fs-utils.js' )
-const { blockBuilder } = require( './block-builder' )
+import path from 'path'
+import { arrayDeduplicate, extractArrayElements, log } from './utils.js'
+import { eraseDirContentsAsync, loadJsonFiles, readDirAsync, pathExists } from './fs-utils.js'
+import { blockBuilder } from './block-builder.js'
 
-async function main( config, scriptArgs ) {
+export async function main( config, scriptArgs ) {
 	if ( ! config.output ) {
 		config.output = {}
 	}
 	if ( ! config.input ) {
 		config.input = {}
 	}
-
 	const { input = {}, output = {} } = config
 	const { blockConfigDir = '' } = input
 
@@ -161,5 +160,3 @@ async function runBlockGenerator( config, templateData ) {
 		console.error( e )
 	}
 }
-
-exports.main = main

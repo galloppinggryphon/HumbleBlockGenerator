@@ -1,4 +1,4 @@
-exports.config = {
+export default {
 	// # Block namespace #
 	// All block names must begin with a prefix, e.g. myblock:stairs_granite
 	// Prevent block name conflicts with other addons.
