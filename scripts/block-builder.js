@@ -27,7 +27,11 @@ const defaultSeparators = {
 }
 
 // make appData and json files available globally
-const appData = {}
+const appData = {
+	config: null,
+	templateData: null,
+	outputPath: null,
+}
 
 const generatorLog = GeneratorLog()
 
@@ -38,14 +42,12 @@ const generatorLog = GeneratorLog()
  * @param {object} templateData
  */
 export function blockBuilder( config, templateData ) {
+	const { nameSeparators, titleSeparators, outputPath } = config.output
+
 	appData.templateData = templateData
+	appData.outputPath = outputPath
 	appData.config = config
-	appData.outputPath = config.outputPath
-
-	const { nameSeparators } = config.output
 	appData.config.nameSeparators = ( nameSeparators && Object( nameSeparators ) === nameSeparators && ! Array.isArray( nameSeparators ) ) ? nameSeparators : defaultSeparators.name
-
-	const { titleSeparators } = config.output
 	appData.config.titleSeparators = ( titleSeparators && Object( titleSeparators ) === titleSeparators && ! Array.isArray( titleSeparators ) ) ? titleSeparators : defaultSeparators.title
 
 	const blockTitles = []
@@ -99,9 +101,10 @@ export function blockBuilder( config, templateData ) {
 	} )
 
 	if ( blockCounter ) {
-		// save titles
-		const { language, outputDir } = config.output
-		saveFileAsync( outputDir, `${ language }.lang`, blockTitles.join( '\n' ) )
+		// Generate text file with block titles
+		const { language } = config.output
+		const textDir = nodePath.join( outputPath, 'RP', 'texts' )
+		saveFileAsync( textDir, `${ language }.lang`, blockTitles.join( '\n' ) )
 
 		log( `\n◽◽◽\nGenerated ${ blockCounter } block${ blockCounter > 1 ? 's' : '' }` )
 	}
@@ -721,6 +724,7 @@ function saveBlockToJson( identifier, fileInfo, data ) {
  * @param {string[]} componentPath
  */
 function getBlockFileInfo( permutationPath ) {
+	const { outputPath } = appData
 	const { outputDir, pathSegmentation } = appData.config.output
 
 	// Create directories for permutation segments?
@@ -744,17 +748,16 @@ function getBlockFileInfo( permutationPath ) {
 		fileName = permutationPath.join( '_' )
 	}
 
-	// #todo: Not all of these keys are necessary?
 	fileName = `${ fileName }.json`
-	const blockDir = nodePath.join( outputDir, 'blocks' )
+	const blockDir = nodePath.join( outputDir, 'BP', 'blocks' )
 	const fileInfo = {}
 	fileInfo.fileName = fileName
-	fileInfo.nodePath = nodePath.resolve( '.' )
-	fileInfo.blockDir = blockDir
-	fileInfo.outputPath = nodePath.resolve( '.', outputDir )
+	// fileInfo.nodePath = nodePath.resolve( '.' )
+	// fileInfo.blockDir = blockDir
+	// fileInfo.outputPath = nodePath.resolve( '.', outputDir )
 	fileInfo.dynamicFileName = nodePath.join( ...dirPath, fileInfo.fileName )
 	fileInfo.fullPath = nodePath.resolve( '.', blockDir, ...dirPath )
-	fileInfo.fullName = nodePath.resolve( fileInfo.fullPath, fileInfo.fileName )
+	// fileInfo.fullName = nodePath.resolve( fileInfo.fullPath, fileInfo.fileName )
 
 	return fileInfo
 }
