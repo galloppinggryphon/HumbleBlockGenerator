@@ -177,10 +177,6 @@ export async function eraseDirContentsAsync( directoryPath ) {
 		}
 	}
 
-	if ( ! isInsideCwd( directoryPath ) ) {
-		throw new Error( `Cannot use directory '${ directoryPath }': must be a descendant of the current working directory.` )
-	}
-
 	if ( ! isPathPermitted( directoryPath ) ) {
 		throw new Error( `Cannot use directory '${ directoryPath }': illegal path.` )
 	}

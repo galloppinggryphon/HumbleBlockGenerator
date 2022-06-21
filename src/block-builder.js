@@ -203,6 +203,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 	// ~ Reached the deepest permutation of this branch ~
 	// Process data and generate blocks
 	else {
+		// !! DOES THIS HAVE TO BE REMOVED?
 		// The final permutation cannot be a branch
 		if ( isPermutationBranch( permutationKey ) ) {
 			generatorLog.error( `Invalid permutation key: '${ permutationKey }'. The deepest permutation cannot be an anonymous branch. Processing of this branch is skipped.` )

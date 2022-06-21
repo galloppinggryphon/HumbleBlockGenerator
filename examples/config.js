@@ -40,6 +40,9 @@ export default {
 		// = Output directory, relative to root =
 		outputDir: 'output',
 
+		// = Allow outputDir to be outside current working directory =
+		allowOutputOutsideCwd: false,
+
 		// = Name and title separators =
 		// Configure separators between different permutation segments
 		// Define how permutation names and titles should be put together

@@ -2,7 +2,7 @@
 import fs, { promises as fsAsync } from 'fs'
 import nodePath from 'path'
 import { arrayDeduplicate, extractArrayElements, log } from './lib/utils.js'
-import { eraseDirContentsAsync, loadJsonFiles, readDirAsync, pathExists } from './lib/fs-utils.js'
+import { eraseDirContentsAsync, loadJsonFiles, readDirAsync, pathExists, isInsideCwd } from './lib/fs-utils.js'
 import { getScriptArgs } from './lib/get-args.js'
 import { blockBuilder } from './block-builder.js'
 import { runSync } from './sync.js'
@@ -170,6 +170,12 @@ async function runBlockGenerator( ) {
 	log( '\n📁 Output folder:\n  ', outputPath )
 
 	try {
+		const { allowOutputOutsideCwd } = config.output
+
+		if ( ! allowOutputOutsideCwd && ! isInsideCwd( outputPath ) ) {
+			throw new Error( `Cannot use directory '${ outputPath }': not allowed outside the current working directory or its descendants..` )
+		}
+
 		await eraseDirContentsAsync( outputPath )
 		blockBuilder( appData )
 	}
