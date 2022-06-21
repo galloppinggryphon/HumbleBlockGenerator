@@ -5,7 +5,7 @@ import { arrayDeduplicate, log, removeArrayElements, removeObjectKeys } from './
 import { saveFileAsync, loadJsonFiles } from './lib/fs-utils.js'
 
 // All template directives
-const directives = [ 'apply', 'export', 'materials', 'render', 'texture', 'textures', 'titl' ]
+const directives = [ 'apply', 'export', 'materials', 'render', 'texture', 'textures', 'title' ]
 
 // Other keys used during processing
 const specialProcessingKeys = [ 'permutationData', 'permutationPath', 'materialData' ]
