@@ -4,21 +4,21 @@ import nodePath from 'path'
 import { arrayDeduplicate, log, removeArrayElements, removeObjectKeys } from './lib/utils.js'
 import { saveFileAsync, loadJsonFiles } from './lib/fs-utils.js'
 
-// All template directives
+// All template directives, except 'variants'
 const directives = [ 'apply', 'export', 'materials', 'render', 'texture', 'textures', 'title' ]
 
 // Other keys used during processing
 const specialProcessingKeys = [ 'permutationData', 'permutationPath', 'materialData' ]
 
-const specialMinecraftProps = [ 'identifier', 'material_instances', 'geometry', 'creative_category' ]
+const specialMinecraftProps = [ 'identifier', 'material_instances', 'geometry', 'creative_category', 'permutations', 'events' ]
 
 const dataAccumulatorMethods = {
 	apply: 'mergeObject',
 	materials: 'mergeObject',
 	render: 'mergeObject',
 	textures: 'mergeArray',
-	title: 'permutation',
-	type: 'permutation',
+	title: 'variant',
+	type: 'variant',
 }
 
 const defaultSeparators = {
@@ -331,6 +331,44 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 	}
 }
 
+function MinecraftPropsParser( block, config, material_instances ) {
+	return {
+		// https://wiki.bedrock.dev/documentation/creative-categories.html#top
+		creative_category( creative_category ) {
+			const category = { ...creative_category }
+			if ( category.group ){
+				if ( category.group.substring( 0, 15 ) === 'itemGroup.name.' ) {
+					generatorLog.notice( `Found 'itemGroup.name.' prefix in 'creative_category' property. You can omit this prefix, it is added automatically.` )
+				}
+				else {
+					category.group = `itemGroup.name.${ category.group }`
+				}
+			}
+			block.components.creative_category = category
+		},
+
+		events( events ) {
+			block.events = events
+		},
+
+		geometry( geometry ) {
+			let _geometry = geometry
+			if ( geometry.substring( 0, 9 ) === 'geometry.' ) {
+				generatorLog.notice( `Found 'geometry.' prefix in 'geometry' property. You can omit this prefix, it is added automatically.` )
+				_geometry = geometry.slice( 9 )
+			}
+
+			const geoPrefix = typeof config.geometryPrefix === 'string' ? config.geometryPrefix : ''
+			block.components.geometry = `geometry.${ geoPrefix + _geometry }`
+			block.components.material_instances = material_instances
+		},
+
+		permutations( permutations ) {
+			block.permutations = permutations
+		},
+	}
+}
+
 /**
  * Generate block JSON from generator data. Called for every final permutation.
  *
@@ -338,7 +376,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
  * @return {object}
  */
 function prepareBlock( data ) {
-	const { creative_category, geometry, permutationPath, material_instances } = data
+	const { permutationPath, material_instances } = data
 	const { templateData, config } = appData
 
 	const permutationTitle = getPermutationTitle( data )
@@ -348,31 +386,9 @@ function prepareBlock( data ) {
 	let block = { components: {}, description: {} }
 	block.description.identifier = `${ config.prefix }:${ identifier }`
 
-	if ( geometry ) {
-		let _geometry = geometry
-		if ( geometry.substring( 0, 9 ) === 'geometry.' ) {
-			generatorLog.notice( `Found 'geometry.' prefix in 'geometry' property. You can omit this prefix, it is added automatically.` )
-			_geometry = geometry.slice( 9 )
-		}
-
-		const geoPrefix = typeof config.geometryPrefix === 'string' ? config.geometryPrefix : ''
-		block.components.geometry = `geometry.${ geoPrefix + _geometry }`
-		block.components.material_instances = material_instances
-	}
-
-	// https://wiki.bedrock.dev/documentation/creative-categories.html#top
-	if ( creative_category ) {
-		let category = creative_category
-		if ( category.group ){
-			if ( category.group.substring( 0, 15 ) === 'itemGroup.name.' ) {
-				generatorLog.notice( `Found 'itemGroup.name.' prefix in 'creative_category' property. You can omit this prefix, it is added automatically.` )
-			}
-			else {
-				category.group = `itemGroup.name.${ category.group }`
-			}
-		}
-		block.components.creative_category = category
-	}
+	// Parse special MC props
+	const mcPropsParser = MinecraftPropsParser( block, config, material_instances )
+	Object.entries( mcPropsParser ).forEach( ( [ key, fn ] ) => key in data && fn( data[ key ] ) )
 
 	// Add all other props without processing
 	block = addMinecraftProps( block, data )
@@ -657,7 +673,7 @@ function addMinecraftProps( block, data, section = 'components' ) {
  *
  * @param {string} key
  * @param {*} value
- * @param {'add', 'mergeArray'|'mergeObject'|'push'|'permutation'} method
+ * @param {'add', 'mergeArray'|'mergeObject'|'push'|'variant'} method
  */
 function addBlockGeneratorData( key, value, permutationKey, data, method ) {
 	const oldType = Object( data[ key ] ) === data[ key ] ? ( Array.isArray( data[ key ] ) ? 'array' : 'object' ) : null
@@ -698,7 +714,7 @@ function addBlockGeneratorData( key, value, permutationKey, data, method ) {
 			break
 
 		// Add key to permutationData object
-		case 'permutation':
+		case 'variant':
 			data.permutationData[ permutationKey ][ key ] = value
 			break
 
