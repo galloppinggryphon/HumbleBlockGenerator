@@ -205,10 +205,10 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 	else {
 		// !! DOES THIS HAVE TO BE REMOVED?
 		// The final permutation cannot be a branch
-		if ( isPermutationBranch( permutationKey ) ) {
-			generatorLog.error( `Invalid permutation key: '${ permutationKey }'. The deepest permutation cannot be an anonymous branch. Processing of this branch is skipped.` )
-			return
-		}
+		// if ( isPermutationBranch( permutationKey ) ) {
+		// 	generatorLog.error( `Invalid permutation key: '${ permutationKey }'. The deepest permutation cannot be an anonymous branch. Processing of this branch is skipped.` )
+		// 	return
+		// }
 
 		// Some minecraft keys require processing - remove prefix if present
 		Object.keys( data ).forEach( ( key ) => {
