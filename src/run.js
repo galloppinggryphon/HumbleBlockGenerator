@@ -11,6 +11,7 @@ const appData = {
 	scriptArgs: {},
 	config: {},
 	outputPath: undefined,
+	outputPaths: {},
 	outputDir: undefined,
 	blockInput: [],
 	templateData: {},
@@ -147,7 +148,7 @@ async function initalize() {
 }
 
 async function runBlockGenerator( ) {
-	const { scriptArgs, config, outputPath } = appData
+	const { scriptArgs, config, outputPath, outputPaths } = appData
 	const { blocks, outputDir, ...rest } = scriptArgs
 
 	if ( rest && Object.keys( rest ).length ) {
@@ -173,10 +174,12 @@ async function runBlockGenerator( ) {
 		const { allowOutputOutsideCwd } = config.output
 
 		if ( ! allowOutputOutsideCwd && ! isInsideCwd( outputPath ) ) {
-			throw new Error( `Cannot use directory '${ outputPath }': not allowed outside the current working directory or its descendants..` )
+			throw new Error( `Cannot use directory '${ outputPath }' -- not allowed outside the current working directory or its descendants.\n\n` )
 		}
 
-		await eraseDirContentsAsync( outputPath )
+		await eraseDirContentsAsync( outputPaths.BP )
+		await eraseDirContentsAsync( outputPaths.RP )
+
 		blockBuilder( appData )
 	}
 	catch ( e ) {
@@ -202,6 +205,12 @@ function parseInput( ) {
 	}
 
 	appData.outputPath = nodePath.resolve( appData.outputDir )
+	appData.outputPaths = {
+		base: nodePath.resolve( appData.outputDir ),
+		BP: nodePath.resolve( appData.outputDir, 'BP' ),
+		RP: nodePath.resolve( appData.outputDir, 'RP' ),
+	}
+
 	return !! appData.outputPath
 }
 
