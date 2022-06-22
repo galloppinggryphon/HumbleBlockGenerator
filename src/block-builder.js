@@ -170,7 +170,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 		}
 	}
 	// No empty key if it has children
-	if ( permutationKey === '' && blockData.permutations ) {
+	if ( permutationKey === '' && blockData.variants ) {
 		generatorLog.error( `Invalid permutation key: '${ permutationKey }'. An empty permutation key is only permitted for the deepest level, use '-' to create anonymous branches. Processing of this branch is skipped.` )
 
 	}
@@ -186,15 +186,15 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 
 	// Process blockData properties
 	for ( const [ key, value ] of Object.entries( blockData ) ) {
-		if ( key !== 'permutations' ) {
+		if ( key !== 'variants' ) {
 			data = addBlockGeneratorData( key, value, permutationKey, data, dataAccumulatorMethods[ key ] )
 		}
 	}
 
 	// Recursively iterate through permutation branches
-	const { permutations } = blockData
-	if ( permutations ) {
-		for ( const [ key, levelData ] of Object.entries( permutations ) ) {
+	const { variants } = blockData
+	if ( variants ) {
+		for ( const [ key, levelData ] of Object.entries( variants ) ) {
 			// Each level inherits from its parent, but must not mutate its parent
 			const _data = _.cloneDeep( data )
 			yield * blockGenerator( fileName, levelData, key, _data )
@@ -234,7 +234,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 			generatorLog.notice( `Found the 'identifier' property, but this has has no effect. Block identifiers are compiled from permutation keys.` )
 		}
 
-		// Generate texture/material permutations
+		// Generate texture/material permutations (variants)
 		const { geometry, material_instances, materials, texture, textures } = data
 
 		if ( material_instances ) {
@@ -307,11 +307,11 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 			// Process textures and materials
 			data = processBlockMaterials( data )
 
-			// Create property permutations based on materials
+			// Create property permutations (variants) based on materials
 			// yield doesn't work with forEach
 			for ( const [ key, material ] of Object.entries( data.materialData ) ) {
 				let _data = _.cloneDeep( data )
-				_data.permutationPath.push( `${ key }` ) // delineate texture from other permutations
+				_data.permutationPath.push( `${ key }` ) // delineate texture from other permutations (variants)
 				_data.permutationData[ key ] = {
 					title: key,
 					type: 'material',
@@ -597,7 +597,7 @@ function applyBlockPresets( data ) {
  * Fill out necessary block definition sections and props.
  */
 function addMinecraftProps( block, data, section = 'components' ) {
-	const blockSections = [ 'components', 'description', 'events' ] // excl. 'permutations'
+	const blockSections = [ 'components', 'description', 'events' ] // excl. 'variants'
 
 	if ( section ) {
 		block[ section ] = section in block ? block[ section ] : {}
@@ -610,7 +610,7 @@ function addMinecraftProps( block, data, section = 'components' ) {
 		}
 
 		if ( Object( el ) === el ) {
-			if ( key === 'permutations' ) {
+			if ( key === 'variants' ) {
 				block[ key ] = key in block ? block[ key ] : []
 				block[ key ] = block[ key ].concat( el )
 			}
@@ -773,7 +773,7 @@ function getBlockFileInfo( permutationPath ) {
 }
 
 /**
- * Generate name from nested permutations.
+ * Generate name from nested permutations (variants).
  *
  * @param {object} data Block generator data
  * @param {string} separator String to separate permutations
@@ -794,7 +794,7 @@ function getPermutationName( data, separator = undefined ) {
 }
 
 /**
- * Generate name from title attribute in nested permutations.
+ * Generate name from title attribute in nested permutations (variants).
  *
  * @param {object} data Block generator data
  */
