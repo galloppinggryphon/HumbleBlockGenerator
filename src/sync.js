@@ -7,8 +7,9 @@ import chalk from 'chalk'
 import { niceRelPath } from './lib/fs-utils.js'
 import { log, replaceTemplates } from './lib/utils.js'
 import { fileSyncWatcher } from './lib/file-sync.js'
+import appData from './app-data.js'
 
-export function runSync( appData ) {
+export function runSync() {
 	log( chalk.cyan( '≣≣≣≣≣≣≣≣≣≣≣≣≣≣ SYNCING FILES ≣≣≣≣≣≣≣≣≣≣≣≣≣≣\n' ) )
 
 	const { outputDir, config } = appData

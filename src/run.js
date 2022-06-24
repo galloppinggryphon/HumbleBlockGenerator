@@ -4,27 +4,22 @@ import nodePath from 'path'
 import { arrayDeduplicate, extractArrayElements, log } from './lib/utils.js'
 import { eraseDirContentsAsync, loadJsonFiles, readDirAsync, pathExists, isInsideCwd } from './lib/fs-utils.js'
 import { getScriptArgs } from './lib/get-args.js'
-import { blockBuilder } from './block-builder.js'
+import { blockBuilder } from './generator.js'
 import { runSync } from './sync.js'
-
-const appData = {
-	scriptArgs: {},
-	config: {},
-	outputPath: undefined,
-	outputPaths: {},
-	outputDir: undefined,
-	blockInput: [],
-	templateData: {},
-}
+// import { runUpdateSchemas } from './update.js'
+import appData from './app-data.js'
 
 async function main() {
-	if ( ! fs.existsSync( nodePath.resolve( '.', 'node_modules' ) ) ){
+	const rootPath = nodePath.resolve( '.' )
+	appData.rootPath = rootPath
+
+	if ( ! fs.existsSync( nodePath.join( rootPath, 'node_modules' ) ) ){
 		log( `\n🟠 Humble Block Generator has not been installed yet!\n\nRun 'npm install' first.` )
 		return
 	}
 
 	const _scriptArgs = getScriptArgs()
-	const { build, init, sync, ...scriptArgs } = _scriptArgs
+	const { build, init, sync, updateSchemas, ...scriptArgs } = _scriptArgs
 	appData.scriptArgs = scriptArgs
 
 	printHeader()
@@ -34,7 +29,7 @@ async function main() {
 		return
 	}
 
-	if ( ! fs.existsSync( nodePath.resolve( '.', 'config.js' ) ) ) {
+	if ( ! fs.existsSync( nodePath.join( rootPath, 'config.js' ) ) ) {
 		log( `\n⛔ FATAL ERROR: 'config.js' not found!\n\nRun 'npm run init' to create.` )
 		return
 	}
@@ -52,9 +47,14 @@ async function main() {
 	}
 
 	if ( sync ) {
-		runSync( appData )
+		runSync()
 		return
 	}
+
+	// if ( updateSchemas ) {
+	// 	runUpdateSchemas()
+	// 	return
+	// }
 
 	if ( scriptArgs && Object.keys( scriptArgs ).length ) {
 		log( '\n⛔ ERROR! Invalid script argument(s): ', scriptArgs.join( ', ' ), '\n' )
@@ -111,10 +111,11 @@ async function initalize() {
 		}
 
 		const [ destinationFile, sourceFile ] = files.shift()
-		const source = nodePath.resolve( '.', sourceFolder, sourceFile )
+		const { rootPath } = appData
+		const source = nodePath.join( rootPath, sourceFolder, sourceFile )
 		const destination = destinationFile === 'config.js'
-			? nodePath.resolve( '.', destinationFile )
-			: nodePath.resolve( '.', destinationFolder, destinationFile )
+			? nodePath.join( rootPath, destinationFile )
+			: nodePath.join( rootPath, destinationFolder, destinationFile )
 
 		if ( pathExists( destination ) ) {
 			log( `${ sourceFile }   [🟡 SKIPPED]   File already exists` )
@@ -149,6 +150,7 @@ async function initalize() {
 
 async function runBlockGenerator( ) {
 	const { scriptArgs, config, outputPath, outputPaths } = appData
+	// eslint-disable-next-line no-unused-vars
 	const { blocks, outputDir, ...rest } = scriptArgs
 
 	if ( rest && Object.keys( rest ).length ) {
@@ -180,7 +182,7 @@ async function runBlockGenerator( ) {
 		await eraseDirContentsAsync( outputPaths.BP )
 		await eraseDirContentsAsync( outputPaths.RP )
 
-		blockBuilder( appData )
+		blockBuilder()
 	}
 	catch ( e ) {
 		console.error( '\n⛔ Uh oh, errors occurred while generating blocks.\n' )
@@ -239,8 +241,6 @@ export async function getTemplateData( ) {
 	Object.entries( loadFiles ).forEach( ( [ key, file ] ) => {
 		const _file = nodePath.join( blockConfigDir, file )
 
-		// log( { _file, blockConfigDir } )
-
 		if ( ! _file ) {
 			return
 		}
@@ -267,7 +267,7 @@ export async function getTemplateData( ) {
 }
 
 async function getBlockTemplates() {
-	const { scriptArgs, config, outputPath, outputDir } = appData
+	const { scriptArgs, config, outputPath, outputDir, rootPath } = appData
 	const { input = {} } = config
 	const { blockConfigDir = '' } = input
 
@@ -296,18 +296,17 @@ async function getBlockTemplates() {
 	}
 
 	if ( blocks ) {
-		blocks = [ blocks ].flat()
-		const tmpBlocks = [ ...blocks ]
-		const wildcardElements = extractArrayElements( tmpBlocks, ( value ) => value && value.indexOf( '*' ) >= 0 )
+		const _blocks = [ ...[ blocks ].flat() ]
+		const wildcardElements = extractArrayElements( _blocks, ( value ) => value && value.indexOf( '*' ) >= 0 )
 
 		const foundTemplates = await wildcardElements.reduce( async ( _fileNames, el ) => {
 			_fileNames = await _fileNames
-			const files = await readDirAsync( nodePath.join( '.', blockConfigDir ), false, el )
+			const files = await readDirAsync( nodePath.join( rootPath, blockConfigDir ), false, el )
 			_fileNames = _fileNames.concat( files )
 			return _fileNames
 		}, [] )
 
-		const blockFiles = tmpBlocks.map( ( x ) => nodePath.resolve( x ) )
+		const blockFiles = _blocks.map( ( x ) =>nodePath.join( rootPath, blockConfigDir, x ) )
 
 		blocks = foundTemplates.length
 			? arrayDeduplicate( blockFiles, foundTemplates )

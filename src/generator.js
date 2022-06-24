@@ -1,43 +1,15 @@
 'use strict'
 import _ from 'lodash'
+import chalk from 'chalk'
 import nodePath from 'path'
 import { arrayDeduplicate, log, removeArrayElements, removeObjectKeys } from './lib/utils.js'
 import { saveFileAsync, loadJsonFiles } from './lib/fs-utils.js'
+import { saveBlockToJson, getBlockFileInfo, getPermutationName, getPermutationTitle, validatePermutationName, isPermutationBranch } from './generator-utils.js'
+import { directives, specialProcessingKeys, specialMinecraftProps, defaultSeparators } from './generator-config.js'
+import appData from './app-data.js'
+import GeneratorLog from './generator-log.js'
 
-// All template directives, except 'variants'
-const directives = [ 'apply', 'export', 'materials', 'render', 'texture', 'textures', 'title' ]
-
-// Other keys used during processing
-const specialProcessingKeys = [ 'permutationData', 'permutationPath', 'materialData' ]
-
-const specialMinecraftProps = [ 'identifier', 'material_instances', 'geometry', 'creative_category', 'permutations', 'events' ]
-
-const dataAccumulatorMethods = {
-	apply: 'mergeObject',
-	materials: 'mergeObject',
-	render: 'mergeObject',
-	textures: 'mergeArray',
-	title: 'variant',
-	type: 'variant',
-}
-
-const defaultSeparators = {
-	name: { '*': '.' },
-	title: { '*': ' - ' },
-}
-
-// make appData and json files available globally
-const appData = {
-	scriptArgs: {},
-	config: {},
-	outputPath: undefined,
-	outputDir: undefined,
-	blockInput: {},
-	templateData: {},
-	separators: {},
-}
-
-const generatorLog = GeneratorLog()
+const logger = GeneratorLog()
 
 /**
  * Main process for generating blocks.
@@ -45,21 +17,24 @@ const generatorLog = GeneratorLog()
  * @param {object} config
  * @param {object} templateData
  */
-export function blockBuilder( _appData ) {
-	Object.assign( appData, _appData )
-
-	const { config, blockInput, outputPath, separators } = appData
+export function blockBuilder() {
+	const { config, blockInput, outputPath } = appData
 	const { nameSeparators, titleSeparators } = config.output
 
-	separators.names =
-		( Object( nameSeparators ) === nameSeparators && ! Array.isArray( nameSeparators ) )
-			? nameSeparators
-			: defaultSeparators.name
+	appData.separators = {
+		names: (
+			( Object( nameSeparators ) === nameSeparators && ! Array.isArray( nameSeparators ) )
+				? nameSeparators
+				: defaultSeparators.name
+		),
 
-	separators.titles =
-		( Object( titleSeparators ) === titleSeparators && ! Array.isArray( titleSeparators ) )
-			? titleSeparators
-			: defaultSeparators.title
+		titles: (
+			( Object( titleSeparators ) === titleSeparators && ! Array.isArray( titleSeparators ) )
+				? titleSeparators
+				: defaultSeparators.title
+		),
+
+	}
 
 	const blockTitles = []
 	let blockCounter = 0
@@ -67,61 +42,88 @@ export function blockBuilder( _appData ) {
 	// Traverse all requested block template files
 	blockInput.forEach( ( file ) => {
 		const fileName = nodePath.basename( file )
-		log( `\n\n[${ fileName }]` )
+		log( '\n' )
+		logger.print.section( fileName )
 
-		generatorLog.setContext( { fileName } )
+		logger.setContext( { fileName } )
 
 		let blockData
 		try {
 			blockData = loadJsonFiles( file, true )
 
 			if ( blockData === false ) {
-				console.error( 'Error - file not found!' )
+				logger.print.error( 'File not found!', file )
 				return
 			}
 			if ( blockData === '' ) {
-				console.error( 'Error - invalid JSON!' )
+				logger.print.error( 'Cannot read file, invalid JSON.' )
 				return
 			}
 		}
 		catch ( error ) {
-			console.error( `An error occurred while trying to read or parse the file.` )
-			console.error( error )
+			logger.print.error( `Unable to read or parse file.`, file, error )
 			return
 		}
 
 		// Run blockGenerator on each root category
-		// generator requires 'for of'
+		// generator requires 'for of', can't use forEach or map
 		for ( const block of blockGenerator( fileName, blockData ) ) {
 			blockCounter++
 
 			const { identifier, permutationPath, title, data } = block
 			const fileInfo = getBlockFileInfo( permutationPath )
 
-			log( `${ identifier } ➡  ${ fileInfo.dynamicFileName }` )
+			// Log progress to screen
+			log( chalk.white( identifier ), chalk.cyan( ' ⇒  ' ), chalk.white( fileInfo.dynamicFileName ) ) //  ▶  ▸▸▸ ►►► ⇒
+			// log( `${ identifier } ➡  ${ fileInfo.dynamicFileName }` )
 
+			// Save to file
 			saveBlockToJson( getPermutationName( permutationPath ), fileInfo, data )
 
-			// keep title and save at the end
+			// Store titles to save in text file when processing is done
 			// tile.prefix:blockname.name=Block Title
 			const { prefix } = config
 			blockTitles.push( `tile.${ prefix }:${ identifier }.name=${ title }` )
 		}
 	} )
 
-	if ( blockCounter ) {
-		// Generate text file with block titles
-		const { language } = config.output
-		const textDir = nodePath.join( outputPath, 'RP', 'texts' )
-		saveFileAsync( textDir, `${ language }.lang`, blockTitles.join( '\n' ) )
+	// Generate text file with block titles
+	const { language } = config.output
+	const textDir = nodePath.join( outputPath, 'RP', 'texts' )
 
-		log( `\n◽◽◽\nGenerated ${ blockCounter } block${ blockCounter > 1 ? 's' : '' }` )
+	saveFileAsync( textDir, `${ language }.lang`, blockTitles.join( '\n' ) )
+
+	const marginLeft = 3
+	const line = 58
+	const result = []
+	let strLen = 0
+
+	if ( blockCounter ) {
+		const prefix = 'Generated'
+		const rawNumField = ` ${ blockCounter } `
+		const suffix = `block${ blockCounter > 1 ? 's' : '' }`
+		const numField = chalk.bgYellow( rawNumField )
+
+		strLen = prefix.length + rawNumField.length + suffix.length
+		result.push( prefix, numField, suffix )
 	}
 	else {
-		log( `\n◽◽◽\nUh-oh, no blocks were generated.` )
+		const rawMsg = 'Uh-oh, no blocks were generated.'
+		result.push( chalk.yellow( rawMsg ) )
+		strLen = rawMsg.length
 	}
 
-	generatorLog.display()
+	const spacePadding = ' '.repeat( line - marginLeft - strLen - result.length - 1 )
+
+	log( '\n' )
+	log( '╔══', chalk.bgCyanBright( chalk.bold( '  BLOCK GENERATOR COMPLETE  ' ) ), '══════════════════════════╗' ) // ╔ ═ ╗╚ ╝║
+	log( `║${ ' '.repeat( line ) }║` )
+	log( '║  ', ...result, spacePadding, '║' )
+	log( `║${ ' '.repeat( line ) }║` )
+	log( '╚══════════════════════════════════════════════════════════╝' ) // n = 50
+
+	log()
+	logger.display()
 }
 
 /**
@@ -156,7 +158,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 
 	// data.permutationData[ permutationKey ] = { type: blockData.type || '' }
 
-	generatorLog.setContext( { permutationPath: data.permutationPath } )
+	logger.setContext( { permutationPath: data.permutationPath } )
 
 	// log( { fileName, permutationKey, permutationPath: data.permutationPath } )
 	// log( { permutationKey, branch: isPermutationBranch( permutationKey ) } )
@@ -165,17 +167,18 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 	if ( data.permutationPath.length === 1 ) {
 		if ( ! validatePermutationName( permutationKey ) ) {
 
-			generatorLog.error( `Invalid root key: '${ permutationKey }'. Processing of this block is skipped.` )
+			logger.error( `Invalid root key: '${ permutationKey }'. Processing of this block is skipped.` )
 			return
 		}
 	}
 	// No empty key if it has children
 	if ( permutationKey === '' && blockData.variants ) {
-		generatorLog.error( `Invalid permutation key: '${ permutationKey }'. An empty permutation key is only permitted for the deepest level, use '-' to create anonymous branches. Processing of this branch is skipped.` )
+		logger.error( `Invalid permutation key: '${ permutationKey }'. An empty permutation key is only permitted for the deepest level, use '-' to create anonymous branches. Processing of this branch is skipped.` )
 
 	}
+	// No invalid permutation name
 	else if ( permutationKey && ! validatePermutationName( permutationKey ) && ! isPermutationBranch( permutationKey ) ) {
-		generatorLog.error( `Invalid permutation key: '${ permutationKey }'. Processing of this branch is skipped.` )
+		logger.error( `Invalid permutation key: '${ permutationKey }'. Processing of this branch is skipped.` )
 		return
 	}
 
@@ -184,14 +187,14 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 		blockData.title = permutationKey && ! isPermutationBranch( permutationKey ) ? permutationKey : ''
 	}
 
-	// Process blockData properties
+	// ~ Process blockData properties ~
 	for ( const [ key, value ] of Object.entries( blockData ) ) {
 		if ( key !== 'variants' ) {
-			data = addBlockGeneratorData( key, value, permutationKey, data, dataAccumulatorMethods[ key ] )
+			data = addBlockGeneratorData( key, value, permutationKey, data )
 		}
 	}
 
-	// Recursively iterate through permutation branches
+	// ~ Recursively iterate through permutation branches ~
 	const { variants } = blockData
 	if ( variants ) {
 		for ( const [ key, levelData ] of Object.entries( variants ) ) {
@@ -231,19 +234,19 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 		}
 
 		if ( data.identifier ) {
-			generatorLog.notice( `Found the 'identifier' property, but this has has no effect. Block identifiers are compiled from permutation keys.` )
+			logger.notice( `Found the 'identifier' property, but this has no effect. Block identifiers are compiled from permutation keys.` )
 		}
 
-		// Generate texture/material permutations (variants)
+		// ~ Generate texture/material permutations (variants) ~
 		const { geometry, material_instances, materials, texture, textures } = data
 
 		if ( material_instances ) {
 			if ( ! geometry ) {
-				generatorLog.error( `Found the 'material_instances' property, but missing required property 'geometry'.` )
+				logger.error( `Found the 'material_instances' property, but missing required property 'geometry'.` )
 			}
 
 			if ( texture ) {
-				generatorLog.warn( `Found both the 'material_instances' property and 'texture' directive, but these cannot be used together. Ignoring 'texture'.` )
+				logger.warn( `Found both the 'material_instances' property and 'texture' directive, but these cannot be used together. Ignoring 'texture'.` )
 			}
 
 			// !!Validate MIs here
@@ -253,7 +256,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 		}
 		else if ( texture ) {
 			if ( ! geometry ) {
-				generatorLog.error( `Found the 'texture' directive, but missing required property 'geometry'.` )
+				logger.error( `Found the 'texture' directive, but missing required property 'geometry'.` )
 			}
 			else {
 				data.material_instances = {
@@ -267,26 +270,26 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 		}
 		else if ( materials ) {
 			if ( ! geometry ) {
-				generatorLog.error( `Found the 'materials' directive, but missing required property 'geometry'.` )
+				logger.warn( `Found the 'materials' directive, but missing required property 'geometry'.` )
 			}
 
 			if ( textures ) {
-				generatorLog.warn( `Found both the 'materials' directive and the 'textures' directive, but these cannot be used together. Ignoring 'textures'.` )
+				logger.notice( `Found both the 'materials' directive and the 'textures' directive, but these cannot be used together. Ignoring 'textures'.` )
 				data.textures = undefined
 			}
 
 			if ( ! Object( materials ) === materials || Array.isArray( materials ) ) {
-				generatorLog.error( `The 'materials' directive is not configured correctly, expected an object (key-value pairs enclosed in {}).` )
+				logger.error( `The 'materials' directive is not configured correctly, expected an object (key-value pairs enclosed in {}).` )
 				data.materials = undefined
 			}
 		}
 		else if ( textures ) {
 			if ( ! geometry ) {
-				generatorLog.error( `Found the 'textures' directive, but missing required property 'geometry'.` )
+				logger.warn( `Found the 'textures' directive, but missing required property 'geometry'.` )
 			}
 
 			if ( ! Array.isArray( textures ) && ! textures.length ) {
-				generatorLog.error( `The 'textures' directive does not contain a valid array (list enclosed in []).` )
+				logger.error( `The 'textures' directive does not contain a valid array (list enclosed in []).` )
 				data.textures = undefined
 			}
 		}
@@ -296,7 +299,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 			// Check the render directive
 			if ( data.render ) {
 				if ( data.render.texture ) {
-					generatorLog.warn( `The 'render' directive contains invalid data: the 'texture' key cannot be used here.` )
+					logger.warn( `The 'render' directive contains invalid data: the 'texture' key cannot be used here.` )
 					delete data.render.texture
 				}
 
@@ -316,6 +319,7 @@ function * blockGenerator( fileName, blockData, permutationKey = undefined, data
 					title: key,
 					type: 'material',
 				}
+
 				// Create material_instances for current permutation
 				_data.material_instances = material
 				_data = removeObjectKeys( _data, directives )
@@ -338,7 +342,7 @@ function MinecraftPropsParser( block, config, material_instances ) {
 			const category = { ...creative_category }
 			if ( category.group ){
 				if ( category.group.substring( 0, 15 ) === 'itemGroup.name.' ) {
-					generatorLog.notice( `Found 'itemGroup.name.' prefix in 'creative_category' property. You can omit this prefix, it is added automatically.` )
+					logger.notice( `Found 'itemGroup.name.' prefix in 'creative_category' property. You can omit this prefix, it is added automatically.` )
 				}
 				else {
 					category.group = `itemGroup.name.${ category.group }`
@@ -354,7 +358,7 @@ function MinecraftPropsParser( block, config, material_instances ) {
 		geometry( geometry ) {
 			let _geometry = geometry
 			if ( geometry.substring( 0, 9 ) === 'geometry.' ) {
-				generatorLog.notice( `Found 'geometry.' prefix in 'geometry' property. You can omit this prefix, it is added automatically.` )
+				logger.notice( `Found 'geometry.' prefix in 'geometry' property. You can omit this prefix, it is added automatically.` )
 				_geometry = geometry.slice( 9 )
 			}
 
@@ -445,7 +449,7 @@ function processBlockMaterials( data ) {
 				}, {} )
 			}
 			else {
-				generatorLog.error( `The 'materials' directive contains invalid data.`, { key: name, data: materialData } )
+				logger.error( `The 'materials' directive contains invalid data.`, { key: name, data: materialData } )
 				return _materials
 			}
 
@@ -473,11 +477,11 @@ function prepareMaterialInstance( materialInstance, key, render = undefined ) {
 		}
 	}
 	else if ( Array.isArray( materialInstance ) ) {
-		generatorLog.error( `The '${ key }' directive or key cannot contain arrays, only strings or objects.`, { value: materialInstance } )
+		logger.error( `The '${ key }' directive or key cannot contain arrays, only strings or objects.`, { value: materialInstance } )
 		return {}
 	}
 	else if ( Object( materialInstance ) !== materialInstance ) {
-		generatorLog.error( `The '${ key }' directive or key must contain an object.`, { value: materialInstance } )
+		logger.error( `The '${ key }' directive or key must contain an object.`, { value: materialInstance } )
 		return {}
 	}
 
@@ -506,7 +510,7 @@ function validateRenderMethod( materialInstance, key ) {
 	const { render_method } = materialInstance
 
 	if ( render_method && ! validRenderMethods.includes( render_method ) ) {
-		generatorLog.error( `The '${ key }' directive or key contains bad data: invalid value for 'render_method' (render_method: ${ render_method })` )
+		logger.error( `The '${ key }' directive or key contains bad data: invalid value for 'render_method' (render_method: ${ render_method })` )
 		return false
 	}
 
@@ -522,7 +526,7 @@ function validateRenderMethod( materialInstance, key ) {
 function validateMaterialInstance( materialInstance, key ) {
 	const { texture } = materialInstance
 	if ( ! texture ) {
-		generatorLog.error( `The '${ key }' directive or key contains an invalid material instance: required key 'texture' is missing.` )
+		logger.error( `The '${ key }' directive or key contains an invalid material instance: required key 'texture' is missing.` )
 		return {}
 	}
 
@@ -530,7 +534,7 @@ function validateMaterialInstance( materialInstance, key ) {
 	const invalidKeys = removeArrayElements( Object.keys( materialInstance ), [ 'ambient_occlusion', 'face_dimming', 'render_method', 'texture' ] )
 
 	if ( invalidKeys.length ) {
-		generatorLog.warn( `The '${ key }' directive or key contains bad material instance data: the key(s) '${ invalidKeys.join( ', ' ) }' are not recognized'.` )
+		logger.warn( `The '${ key }' directive or key contains bad material instance data: the key(s) '${ invalidKeys.join( ', ' ) }' are not recognized'.` )
 	}
 
 	if ( validateRenderMethod( materialInstance, key ) ) {
@@ -551,7 +555,7 @@ function validateMaterialInstanceMap( materialInstances, key ) {
 	// Check that there is a default key
 	const hasDefault = miArray.some( ( [ _key ] ) => _key === '*' )
 	if ( ! hasDefault ) {
-		generatorLog.warn( `The '${ key }' directive or key contains a material instance map, but is missing the '*' key (a default material instance).` )
+		logger.warn( `The '${ key }' directive or key contains a material instance map, but is missing the '*' key (a default material instance).` )
 	}
 
 	// eslint-disable-next-line no-unused-vars
@@ -568,12 +572,12 @@ function applyBlockPresets( data ) {
 	for ( const [ preset, presetVariation ] of Object.entries( data.apply ) ) {
 		// Template is disabled
 		if ( presetVariation === false ) {
-			generatorLog.error( `Skipping disabled preset '${ preset }'.` )
+			logger.error( `Skipping disabled preset '${ preset }'.` )
 			continue
 		}
 
 		if ( ! templateData.presets ) {
-			generatorLog.error( `Cannot apply preset '${ preset }': no preset file is loaded.` )
+			logger.error( `Cannot apply preset '${ preset }': no preset file is loaded.` )
 			continue
 		}
 
@@ -593,7 +597,7 @@ function applyBlockPresets( data ) {
 					}
 				}
 				else {
-					generatorLog.error( `Invalid preset variation.`, { preset, variation: presetVariation } )
+					logger.error( `Invalid preset variation.`, { preset, variation: presetVariation } )
 				}
 			}
 			else {
@@ -601,7 +605,7 @@ function applyBlockPresets( data ) {
 			}
 		}
 		else {
-			generatorLog.error( `Invalid preset.`, { preset } )
+			logger.error( `Invalid preset.`, { preset } )
 
 		}
 	}
@@ -649,7 +653,7 @@ function addMinecraftProps( block, data, section = 'components' ) {
 			if ( Array.isArray( srcValue ) ) {
 				objValue = objValue === undefined ? [] : objValue
 				if ( ! Array.isArray( objValue ) ) {
-					generatorLog.error( `Type mismatch - cannot add data to block. Expected existing data to be array, not ${ typeof objValue }. Object path: ${ key }.${ propName }.` )
+					logger.error( `Type mismatch - cannot add data to block. Expected existing data to be array, not ${ typeof objValue }. Object path: ${ key }.${ propName }.` )
 					return objValue
 				}
 				// Concatenate events sequence
@@ -673,15 +677,15 @@ function addMinecraftProps( block, data, section = 'components' ) {
  *
  * @param {string} key
  * @param {*} value
- * @param {'add', 'mergeArray'|'mergeObject'|'push'|'variant'} method
+ * @param {'add', 'mergeArray'|'mergeObject'|'push'|'new-permutation'} method
  */
-function addBlockGeneratorData( key, value, permutationKey, data, method ) {
+function addBlockGeneratorData( key, value, permutationKey, data ) {
 	const oldType = Object( data[ key ] ) === data[ key ] ? ( Array.isArray( data[ key ] ) ? 'array' : 'object' ) : null
 	const newType = Object( value ) === value ? ( Array.isArray( value ) ? 'array' : 'object' ) : null
 	const permutationName = getPermutationName( data.permutationPath, '/' )
 
-	switch ( method ) {
-		case 'mergeArray':
+	const dataAccumulators = {
+		mergeArray() {
 			if ( newType !== 'array' ) {
 				throw new Error( `Unexpected value - expected an array.\nPermutation: ${ permutationName }\nKey: ${ key }\n` )
 			}
@@ -691,9 +695,10 @@ function addBlockGeneratorData( key, value, permutationKey, data, method ) {
 
 			data[ key ] = data[ key ] || []
 			data[ key ] = arrayDeduplicate( data[ key ], value )
-			break
+			return data
+		},
 
-		case 'mergeObject':
+		mergeObject() {
 			if ( newType !== 'object' ) {
 				throw new Error( `Unexpected value - expected an object.\nPermutation: ${ permutationName }\nKey: ${ key }\n` )
 			}
@@ -703,277 +708,40 @@ function addBlockGeneratorData( key, value, permutationKey, data, method ) {
 
 			data[ key ] = data[ key ] || {}
 			data[ key ] = _.merge( data[ key ], value )
-			break
+			return data
+		},
 
-		case 'push':
+		push() {
 			if ( data[ key ] && oldType !== 'array' ) {
 				throw new Error( `Cannot push value to this property, not an array.\nPermutation: ${ permutationName }\nKey: ${ key }\n` )
 			}
 			data[ key ] = data[ key ] || []
 			data[ key ].push( value )
-			break
+			return data
+		},
 
-		// Add key to permutationData object
-		case 'variant':
+		newPermutation() {
 			data.permutationData[ permutationKey ][ key ] = value
-			break
-
-		default: // replace
+			return data
+		},
+		default() {
 			data[ key ] = value
-	}
-	return data
-}
-
-/**
- * Save block JSON to disk.
- *
- * @param {string[]} componentPath
- * @param {Object<string, any>} data
- */
-function saveBlockToJson( identifier, fileInfo, data ) {
-	const { fullPath, fileName } = fileInfo
-	const json = JSON.stringify( data, null, 4 )
-	let result
-	try {
-		result = saveFileAsync( fullPath, fileName, json )
-	}
-	catch ( error ) {
-		console.error( error )
-		return
-	}
-	return result
-}
-
-/**
- * Generate path and fileName for behaviour pack block definition.
- *
- * @param {string[]} componentPath
- */
-function getBlockFileInfo( permutationPath ) {
-	const { outputDir } = appData
-	const { pathSegmentation } = appData.config.output
-
-	// Create directories for permutation segments?
-	// Make copy of permutationPath first
-	permutationPath = [ ...permutationPath ].filter( ( x ) => x && ! isPermutationBranch( x ) )
-
-	let _pathSegmentation = Number( pathSegmentation ) || 0
-	if ( _pathSegmentation ) {
-		if ( permutationPath.length <= _pathSegmentation ) {
-			_pathSegmentation = permutationPath.length - 1
-		}
-	}
-
-	let dirPath, fileName
-	if ( _pathSegmentation ) {
-		dirPath = permutationPath.slice( 0, _pathSegmentation )
-		fileName = permutationPath.slice( _pathSegmentation ).join( '_' )
-	}
-	else {
-		dirPath = []
-		fileName = permutationPath.join( '_' )
-	}
-
-	fileName = `${ fileName }.json`
-	const blockDir = nodePath.join( outputDir, 'BP', 'blocks' )
-	const fileInfo = {}
-	fileInfo.fileName = fileName
-	// fileInfo.nodePath = nodePath.resolve( '.' )
-	// fileInfo.blockDir = blockDir
-	// fileInfo.outputPath = nodePath.resolve( '.', outputDir )
-	fileInfo.dynamicFileName = nodePath.join( ...dirPath, fileInfo.fileName )
-	fileInfo.fullPath = nodePath.resolve( '.', blockDir, ...dirPath )
-	// fileInfo.fullName = nodePath.resolve( fileInfo.fullPath, fileInfo.fileName )
-
-	return fileInfo
-}
-
-/**
- * Generate name from nested permutations (variants).
- *
- * @param {object} data Block generator data
- * @param {string} separator String to separate permutations
- */
-function getPermutationName( data, separator = undefined ) {
-	const { separators } = appData
-
-	if ( Array.isArray( data ) ) {
-		separator = separator || separators.names[ '*' ]
-		return data
-			.filter( ( permutation ) => permutation && ! isPermutationBranch( permutation ) )
-			.join( separator )
-	}
-	else {
-		const { permutationPath, permutationData } = data
-		return getPermutationStringFromTemplate( 'name', permutationPath, permutationData, separators.names )
-	}
-}
-
-/**
- * Generate name from title attribute in nested permutations (variants).
- *
- * @param {object} data Block generator data
- */
-function getPermutationTitle( data ) {
-	const { separators } = appData
-	const { permutationPath, permutationData } = data
-	return getPermutationStringFromTemplate( 'title', permutationPath, permutationData, separators.titles )
-}
-
-/**
- * Process permutation name according to template.
- *
- * @param {string} whichString
- * @param {*} permutations
- * @param {*} permutationData
- * @param {*} separators
- */
-function getPermutationStringFromTemplate( whichString, permutations, permutationData, separators ) {
-	const separator = separators[ '*' ]
-	return permutations
-		.filter( ( permutation ) => permutation && ! isPermutationBranch( permutation ) )
-		.reduce( ( results, permutation, i ) => {
-			const string =
-				( whichString === 'name' && permutation )
-				|| ( whichString === 'title' && permutationData[ permutation ]?.title )
-
-			if ( ! i ) {
-				results.push( string )
-				return results
-			}
-
-			const type = permutationData[ permutation ]?.type
-			let sep = separators[ type ] || separator
-
-			if ( Array.isArray( sep ) ) {
-				results.push( sep[ 0 ], string )
-				sep[ 1 ] && results.push( sep[ 1 ] )
-			}
-			else {
-				results.push( sep, string )
-			}
-			return results
-		}, [] )
-		.join( '' )
-}
-
-/**
- * Validate permutation name.
- *
- * @param {string} name
- */
-function validatePermutationName( name ) {
-	const rxValidName = /[a-z][a-z0-9_\-.()]*/i
-	return rxValidName.test( name )
-}
-
-/**
- * Check permutation segment name to check if it's an anonymous branch.
- *
- * @param {string} name
- */
-function isPermutationBranch( name ) {
-	const rxAnonymous = /[-]+/
-	return rxAnonymous.test( name )
-}
-
-/**
- * Logging factory.
- */
-function GeneratorLog() {
-	const _log = {}
-	let context = { fileName: undefined, permutation: undefined, permutationPath: [] }
-
-	return {
-		error( message, ...errorData ){
-			return logItem( 'error', message, errorData )
+			return data
 		},
-		warn( message, ...errorData ){
-			return logItem( 'warn', message, errorData )
-		},
-		notice( message, ...errorData ) {
-			return logItem( 'notice', message, errorData )
-		},
-		display() {
-			const __log = Object.entries( _log )
-			if ( ! __log.length ) {
-				return
-			}
-
-			log( '\n===  Log messages ===' )
-
-			let errorFlag = false
-			let currentFile
-			__log.forEach( ( [ fileName, items ] ) => {
-				if ( ! items.length ) {
-					return
-				}
-
-				if ( fileName !== currentFile ) {
-					log( `\n[${ fileName }]` )
-					currentFile = fileName
-				}
-
-				items.forEach( ( item ) => {
-					if ( item.level === 'error' ) {
-						errorFlag = true
-					}
-					log( formatLogItem( item ) )
-				} )
-			} )
-
-			if ( errorFlag ) {
-				log( '\n~~~ WARNING! ~~~\nErrors were encountered during processing!\nOne or more blocks contain invalid syntax, are incomplete, or have not been exported.' )
-			}
-		},
-
-		/**
-		 * @param {Object} contextData { fileName = undefined, permutationPath = undefined }
-		 */
-		setContext( contextData ) {
-			Object.assign( context, contextData )
-
-			if ( context.permutationPath && context.permutationPath.length ){
-				context.permutation = getPermutationName( context.permutationPath, '/' )
-			}
-			else {
-				context.permutation = undefined
-			}
-		},
-		write() {},
 	}
 
-	function logItem( level, msg, errorData ) {
-		const store = context.fileName ? context.fileName : ''
-		_log[ store ] = _log[ store ] || []
-		_log[ store ].push( {
-			level,
-			permutation: context.permutation,
-			msg,
-			errorData: prepErrorData( errorData ),
-		} )
-		return _log[ store ][ _log[ store ].length - 1 ]
+	// Control how data handled when adding permutations
+	// Merge or concatenate
+	const accumulatorMap = {
+		apply: 'mergeObject',
+		materials: 'mergeObject',
+		render: 'mergeObject',
+		textures: 'mergeArray',
+		title: 'newPermutation',
+		type: 'newPermutation', // !! ????
 	}
 
-	function prepErrorData( errorData ) {
-		if ( ! errorData.length ) {
-			return
-		}
-		let _errorData = errorData
-		if ( errorData.length === 1 ) {
-			_errorData = errorData[ 0 ]
-		}
+	const method = key in accumulatorMap ? accumulatorMap[ key ] : 'default'
 
-		return JSON.stringify( _errorData, false, 2 )
-	}
-
-	function formatLogItem( item ) {
-		const labels = { 'error': 'ERROR', 'warn': 'WARNING', 'notice': 'NOTICE' }
-
-		const contextString = item.permutation ? `[${ item.permutation }] ` : ''
-
-		let _item = `${ contextString }${ labels[ item.level ] }: ${ item.msg }`
-		_item += item.errorData ? ` Error data: \n${ item.errorData }` : ''
-		return _item
-	}
+	return dataAccumulators[ method ]()
 }
