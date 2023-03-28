@@ -1,48 +1,42 @@
 'use strict'
-import fs, { promises as fsAsync } from 'fs'
+import { promises as fsAsync } from 'fs'
 import nodePath from 'path'
-import { arrayDeduplicate, extractArrayElements, log } from './lib/utils.js'
-import { eraseDirContentsAsync, loadJsonFiles, readDirAsync, pathExists, isInsideCwd } from './lib/fs-utils.js'
+import chalk from 'chalk'
+
+import { pathExists } from './lib/fs-utils.js'
 import { getScriptArgs } from './lib/get-args.js'
-import { blockBuilder } from './generator.js'
 import { runSync } from './sync.js'
-// import { runUpdateSchemas } from './update.js'
-import appData from './app-data.js'
+import appData, { initAppData } from './app-data.js'
+import display, { log } from './lib/display.js'
+import runBuilder from './builder/index.js'
+
+// import { runUpdateSchemas } from './update.js'\
 
 async function main() {
-	const rootPath = nodePath.resolve( '.' )
-	appData.rootPath = rootPath
+	printTitle()
 
-	if ( ! fs.existsSync( nodePath.join( rootPath, 'node_modules' ) ) ){
-		log( `\n🟠 Humble Block Generator has not been installed yet!\n\nRun 'npm install' first.` )
+	if ( ! await initAppData() ) {
 		return
 	}
 
 	const _scriptArgs = getScriptArgs()
-	const { build, init, sync, updateSchemas, ...scriptArgs } = _scriptArgs
+	const { build, init, sync, ...scriptArgs } = _scriptArgs
 	appData.scriptArgs = scriptArgs
 
-	printHeader()
-
 	if ( init ) {
-		initalize()
+		install()
 		return
 	}
 
-	if ( ! fs.existsSync( nodePath.join( rootPath, 'config.js' ) ) ) {
-		log( `\n⛔ FATAL ERROR: 'config.js' not found!\n\nRun 'npm run init' to create.` )
+	if ( build === 'models' ) {
+		display.header( ' PROCEDURAL MODEL GENERATOR ' )
+		runBuilder( { createModels: true, createBlocks: false } )
 		return
 	}
 
-	const { default: config } = await import( '../config.js' )
-	appData.config = config
-
-	if ( ! parseInput() ) {
-		return
-	}
-
-	if ( build ) {
-		runBlockGenerator()
+	if ( build === '' || build === 'blocks' ) {
+		display.header( ' GENERATING BLOCKS ' )
+		runBuilder( { createBlocks: true } )
 		return
 	}
 
@@ -63,9 +57,11 @@ async function main() {
 	showHelp()
 }
 
-async function initalize() {
-	const sourceFolder = 'examples'
-	const destinationFolder = 'config'
+async function install() {
+	const { paths } = appData
+
+	const sourceFolder = paths.templatePath
+
 	const initFiles = {
 		'config.js': 'config.js',
 		'scaffolding.json': 'scaffolding.json',
@@ -84,10 +80,10 @@ async function initalize() {
 		return
 	}
 
-	const result = await initializeFiles( Object.entries( initFiles ) )
+	const result = await copyFiles( Object.entries( initFiles ) )
 	complete( result )
 
-	function complete( success ){
+	function complete( success ) {
 		log( '\n' )
 		log( '┌────────────────────────────────────────┐' )
 		log( '│                                        │' )
@@ -104,236 +100,45 @@ async function initalize() {
 
 		log( '\nNPM install report below ↴ ↴ ↴\n' )
 	}
-
-	async function initializeFiles( files ) {
-		if ( ! files || ! files.length ) {
-			return
-		}
-
-		const [ destinationFile, sourceFile ] = files.shift()
-		const { rootPath } = appData
-		const source = nodePath.join( rootPath, sourceFolder, sourceFile )
-		const destination = destinationFile === 'config.js'
-			? nodePath.join( rootPath, destinationFile )
-			: nodePath.join( rootPath, destinationFolder, destinationFile )
-
-		if ( pathExists( destination ) ) {
-			log( `${ sourceFile }   [🟡 SKIPPED]   File already exists` )
-		}
-		else if ( ! pathExists( source ) ) {
-			log( `${ sourceFile }   [❌ ERROR]   Cannot find source` )
-		}
-		else {
-			let fsOpResult
-			try {
-				fsOpResult = await fsAsync.mkdir( nodePath.dirname( destination ), { recursive: true } )
-				fsOpResult = await fsAsync.copyFile( source, destination )
-			}
-			catch ( err ) {
-				log( 'A failure occurred while copying files.\n\nError details:' )
-				log( err.message )
-				return false
-			}
-
-			if ( fsOpResult ) {
-				log( `${ sourceFile }   [❌ ERROR]   Unknown error ==> `, fsOpResult )
-			}
-			else {
-				log( `${ sourceFile }   [🟢 SUCCESS]   File created` )
-			}
-		}
-
-		await initializeFiles( files )
-		return true
-	}
 }
 
-async function runBlockGenerator( ) {
-	const { scriptArgs, config, outputPath, outputPaths } = appData
-	// eslint-disable-next-line no-unused-vars
-	const { blocks, outputDir, ...rest } = scriptArgs
-
-	if ( rest && Object.keys( rest ).length ) {
-		console.error( '⛔ Error! Invalid script argument(s):\n', rest, '\n\n' )
+async function copyFiles( files ) {
+	if ( ! files || ! files.length ) {
 		return
 	}
 
-	appData.templateData = await getTemplateData()
+	const [ destinationFile, sourceFile ] = files.shift()
+	const { rootPath, templatePath: source, configPath } = appData.paths
 
-	if ( ! Object.keys( appData.templateData ).length ) {
-		return
+	const destination = nodePath.join( rootPath, destinationFile )
+
+	if ( pathExists( destination ) ) {
+		log( `${ sourceFile }   [🟡 SKIPPED]   File already exists` )
 	}
-
-	appData.blockInput = await getBlockTemplates()
-
-	if ( ! appData.blockInput.length ) {
-		return
-	}
-
-	log( '\n📁 Output folder:\n  ', outputPath )
-
-	try {
-		const { allowOutputOutsideCwd } = config.output
-
-		if ( ! allowOutputOutsideCwd && ! isInsideCwd( outputPath ) ) {
-			throw new Error( `Cannot use directory '${ outputPath }' -- not allowed outside the current working directory or its descendants.\n\n` )
-		}
-
-		await eraseDirContentsAsync( outputPaths.BP )
-		await eraseDirContentsAsync( outputPaths.RP )
-
-		blockBuilder()
-	}
-	catch ( e ) {
-		console.error( '\n⛔ Uh oh, errors occurred while generating blocks.\n' )
-		console.error( e )
-	}
-}
-
-function parseInput( ) {
-	const { config, scriptArgs } = appData
-	const { output } = config
-
-	if ( ! scriptArgs.outputDir && ! output.outputDir ) {
-		console.error( 'Error: No output directory is configured!\n\nUse config.js to define a directory or specify with argument.' )
-		return
-	}
-
-	appData.outputDir = scriptArgs.outputDir ? scriptArgs.outputDir : output.outputDir
-
-	if ( typeof appData.outputDir !== 'string' ) {
-		console.error( `\nError: output directory must be a string!\n\nConfigured or supplied output directory: ${ typeof appData.outputDir }).` )
-		return
-	}
-
-	appData.outputPath = nodePath.resolve( appData.outputDir )
-	appData.outputPaths = {
-		base: nodePath.resolve( appData.outputDir ),
-		BP: nodePath.resolve( appData.outputDir, 'BP' ),
-		RP: nodePath.resolve( appData.outputDir, 'RP' ),
-	}
-
-	return !! appData.outputPath
-}
-
-export async function getTemplateData( ) {
-	const { config } = appData
-
-	if ( ! config.output ) {
-		config.output = {}
-	}
-	if ( ! config.input ) {
-		config.input = {}
-	}
-
-	const { input = {} } = config
-	const { blockConfigDir = '' } = input
-
-	let templateData = {}
-
-	// Load universal JSON template files
-	const loadFiles = {
-		presets: input.presets,
-		scaffolding: input.scaffolding,
-	}
-	const jsonFiles = {}
-
-	Object.entries( loadFiles ).forEach( ( [ key, file ] ) => {
-		const _file = nodePath.join( blockConfigDir, file )
-
-		if ( ! _file ) {
-			return
-		}
-		if ( pathExists( _file ) ) {
-			jsonFiles[ key ] = _file
-		}
-		else {
-			console.error( `Error: Couldn't find input file '${ nodePath.relative( '.', _file ) }' ('config.input.${ key }').\n` )
-		}
-	} )
-
-	try {
-		if ( Object.keys( jsonFiles ).length ) {
-			templateData = loadJsonFiles( jsonFiles, true )
-		}
-	}
-	catch ( error ) {
-		console.error( 'Fatal error: Problems occurred while loading template files.' )
-		log( '\nError details:\n', error )
-		return
-	}
-
-	return templateData
-}
-
-async function getBlockTemplates() {
-	const { scriptArgs, config, outputPath, outputDir, rootPath } = appData
-	const { input = {} } = config
-	const { blockConfigDir = '' } = input
-
-	let blocks
-	if ( scriptArgs.blocks && scriptArgs.blocks.length ) {
-		blocks = scriptArgs.blocks
-	}
-	else if ( input.blocks ) {
-		blocks = input.blocks
-
-		// Constraint: all block template files must begin with 'blocks-'
-		const fnErrors = blocks.filter( ( file ) => {
-			const fileName = nodePath.basename( file )
-			if ( fileName.substring( 0, 7 ) !== 'blocks-' ) {
-				return true
-			}
-			return false
-		} )
-
-		if ( fnErrors.length ) {
-			console.error( `Error! One or more block template files are invalid!\n\nFile names for block templates must begin with 'blocks-'.` )
-			log( '\nInvalid files names:' )
-			fnErrors.forEach( ( x ) => log( nodePath.relative( '.', blockConfigDir, x ) ) )
-			return
-		}
-	}
-
-	if ( blocks ) {
-		const _blocks = [ ...[ blocks ].flat() ]
-		const wildcardElements = extractArrayElements( _blocks, ( value ) => value && value.indexOf( '*' ) >= 0 )
-
-		const foundTemplates = await wildcardElements.reduce( async ( _fileNames, el ) => {
-			_fileNames = await _fileNames
-			const files = await readDirAsync( nodePath.join( rootPath, blockConfigDir ), false, el )
-			_fileNames = _fileNames.concat( files )
-			return _fileNames
-		}, [] )
-
-		const blockFiles = _blocks.map( ( x ) =>nodePath.join( rootPath, blockConfigDir, x ) )
-
-		blocks = foundTemplates.length
-			? arrayDeduplicate( blockFiles, foundTemplates )
-			: blockFiles
+	else if ( ! pathExists( source ) ) {
+		log( `${ sourceFile }   [❌ ERROR]   Cannot find source` )
 	}
 	else {
-		console.error( 'Error: Nothing to process!\n\nNo block template files configured in config.js or specified in arguments.' )
-		return
+		let fsOpResult
+		try {
+			fsOpResult = await fsAsync.mkdir( nodePath.dirname( destination ), { recursive: true } )
+			fsOpResult = await fsAsync.copyFile( source, destination )
+		}
+		catch ( err ) {
+			log( 'A failure occurred while copying files.\n\nError details:' )
+			log( err.message )
+			return false
+		}
+
+		if ( fsOpResult ) {
+			log( `${ sourceFile }   [❌ ERROR]   Unknown error ==> `, fsOpResult )
+		}
+		else {
+			log( `${ sourceFile }   [🟢 SUCCESS]   File created` )
+		}
 	}
 
-	if ( ! blocks || ! blocks.length ) {
-		console.error( 'Error: No block template files found!\n\nCheck the configuration in config.js or specify with arguments.' )
-		log( '\nThe following files or wildcards were not found:' )
-		log( blocks.join( ', ' ) )
-		return
-	}
-
-	const inputEqualsOutput = blocks
-		.map( ( x ) => nodePath.relative( outputPath, nodePath.dirname( x ) ) )
-		.some( ( x ) => ! x )
-
-	if ( inputEqualsOutput ) {
-		console.error( `\nFatal error: one or more input files exist in the specified output directory (${ outputDir }). \nProgram stopped.` )
-		return
-	}
-
-	return blocks
+	return true
 }
 
 function showHelp() {
@@ -352,10 +157,34 @@ function showHelp() {
 	log( '\nFor more information, see readme.md.' )
 }
 
-function printHeader() {
-	log( '🔳  🔳  Humble' )
-	log( '🔳🔳🔳  Block' )
-	log( '🔳  🔳  Generator\n' )
+function printTitle() {
+	const Y = chalk.yellow
+	const bgY = chalk.bgYellow
+	const G = chalk.green
+	const bgG = chalk.bgGreen
+	const R = chalk.red
+	const bgR = chalk.bgRed
+	const B = chalk.blue
+	const bgB = chalk.bgBlue
+	const BD = chalk.bold
+
+	// ▥▦▮▬■≡≣⊞
+	const L1 = G( '▮' )
+	const L2 = Y( '▮' )
+	const L3 = B( '▮' )
+
+	log( '══════════════════════════════════════════════════════════' )
+
+	// eslint-disable-next-line prefer-template
+	log( L1, ' ', L1, ' ' + G( BD( ' HUMBLE              ' ) ) )
+
+	// eslint-disable-next-line prefer-template
+	log( L2, L2, L2, ' ' + Y( BD( ' BLOCK               ' ) ) )
+
+	// eslint-disable-next-line prefer-template
+	log( L3, ' ', L3, ' ' + B( BD( ' GENERATOR           ' ) ) )
+
+	log( '══════════════════════════════════════════════════════════' )
 }
 
 main()

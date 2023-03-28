@@ -8,7 +8,7 @@ export function getScriptArgs() {
 		return
 	}
 
-	return scriptArgs || []
+	return scriptArgs
 }
 
 /**

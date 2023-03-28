@@ -1,6 +1,7 @@
 {
-	"root": true,
-	"extends": "eslint:recommended",
+	// "root": true,
+	"extends": ["eslint:recommended","plugin:jest/recommended"],
+	"plugins": ["jest"],
 	"globals": {
 		"console": "readonly"
 	},
@@ -76,6 +77,7 @@
 		"template-curly-spacing": ["warn", "always"],
 		"template-tag-spacing": ["warn", "always"],
 		//==========
+		"camelcase": "off",
 		"no-case-declarations": "off",
 		"no-multiple-empty-lines": ["warn", { "max": 1 }],
 		"quotes": [

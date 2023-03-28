@@ -1,20 +1,29 @@
 {
 	"name": "hubgen",
-	"version": "1.2.0",
+	"version": "2.0.0-alpa",
 	"description": "Tool for creating custom blocks for Minecraft Bedrock Edition based on templates",
-
 	"type": "module",
 	"scripts": {
 		"start": "node src/run.js",
-		"build": "node src/run.js build",
+		"build blocks": "node src/run.js build:blocks",
+		"build models": "node src/run.js build:models",
 		"sync": "node src/run.js sync",
 		"init": "node src/run.js init",
-		"postinstall": "node src/run.js init"
+		"updateSchemas": "node src/run.js updateSchemas",
+		"postinstall": "node src/run.js init",
+		"test": "jest"
 	},
 	"dependencies": {
+		"@apidevtools/json-schema-ref-parser": "^9.0.9",
+		"@babel/core": "^7.18.10",
+		"@babel/preset-env": "^7.18.10",
+		"ajv": "^8.11.0",
+		"babel-jest": "^28.1.3",
 		"chalk": "^5.0.1",
 		"chokidar": "^3.5.3",
 		"glob": "^7.1.7",
+		"json-stringify-pretty-compact": "^4.0.0",
+		"json5": "^2.2.1",
 		"lodash": "^4.17.21",
 		"strip-json-comments": "^3.1.1"
 	},
@@ -24,5 +33,10 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/galloppinggryphon/HumbleBlockGenerator.git"
+	},
+	"devDependencies": {
+		"@types/jest": "^29.2.5",
+		"eslint-plugin-jest": "^26.8.3",
+		"jest": "^28.1.3"
 	}
 }

@@ -1,4 +1,4 @@
-# [HUB, the Humble Block Generator](https://github.com/galloppinggryphon/HumbleBlockGenerator)
+# [HUB, the Humble Block Generator v2.0.0-alpha](https://github.com/galloppinggryphon/HumbleBlockGenerator)
 
 🟥🟧🟨🟩
 
@@ -8,20 +8,24 @@
 
 Bedrock affords powerful abilities to create custom blocks -- but manually creating dozens or even hundreds of blocks can be tedious business, with each block definition requiring its own JSON file and lots of boilerplate. Blocks tend to use many of the same features, resulting in lots of copying and pasting. And when Minecraft is updated you may have to edit all of them. There are tools that can help with creating blocks, especially with validating JSON configurations, but not -- that I have found -- with templating. The Humble Block Generator, HUB, can help.
 
-| Features 💡 |
-| ----------- |
-| 🟩 Auto-generate block JSON definition files from declarative templates<br>🟩 Highly flexible template structures, from flat to deeply nested<br>🟩 Easily create block permutations from materials/textures<br>🟩 Create presets containing commonly used code, e.g. block rotation<br>🟩 Automatic block name and title string generator from permutations<br>🟩 Efficient code -- cuts down on boilerplate, add a dozen permutations in as little as a single line<br>🟩 Convenient editing -- multiple blocks can be defined in a single file |
-<br>
-`*` permutations means variations of statically generated blocks, not to be confused with the permutations property used by Minecraft in block definition files.
+| Features 💡                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🟩 Auto-generate block JSON definition files from declarative templates`<br>`🟩 Highly flexible template structures, from flat to deeply nested`<br>`🟩 Easily create block permutations from materials/textures`<br>`🟩 Create presets containing commonly used code, e.g. block rotation`<br>`🟩 Automatic block name and title string generator from permutations`<br>`🟩 Efficient code -- cuts down on boilerplate, add a dozen permutations in as little as a single line`<br>`🟩 Convenient editing -- multiple blocks can be defined in a single file |
+| `<br>`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `*` permutations means variations of statically generated blocks, not to be confused with the permutations property used by Minecraft in block definition files.                                                                                                                                                                                                                                                                                                                                                                                                       |
 
-- - -
+
+---
+## Documentation obsolete in v2 ##
+
+
 
 ## Getting started 🏃‍♀️
 
 ### **What you need** 🟧
 
-* [ ] node.js >= `v14.x`
-* [ ] NPM >= `v6.x`
+* [ ] node.js >=`v14.x`
+* [ ] NPM >=`v6.x`
 * [ ] Git or a zip file extractor
 * [ ] A code editor (e.g. VSCode)
 * [ ] Minecraft Bedrock 1.19.x (note: any MC update may break this software)
@@ -29,10 +33,10 @@ Bedrock affords powerful abilities to create custom blocks -- but manually creat
 ### **Installation** 🟧
 
 1. Download the project to an empty folder
-Download options:
-    1. Download zip file from [Releases](https://github.com/galloppinggryphon/fluffy-doodle/releases) and unzip
-    2. Download with git: `git clone https://github.com/galloppinggryphon/HumbleBlockGenerator.git`
-2. Run `npm install` to initialize and download a few small dependencies
+   Download options:
+   1. Download zip file from [Releases](https://github.com/galloppinggryphon/fluffy-doodle/releases) and unzip
+   2. Download with git: `git clone https://github.com/galloppinggryphon/HumbleBlockGenerator.git`
+2. Run`npm install` to initialize and download a few small dependencies
 3. That's it.
 
 ### **Try it out** 🟧
@@ -40,7 +44,7 @@ Download options:
 **From the command line/terminal:**
 
 * Run `npm run build` to generate output from installed example blocks
-* For help, run `npm start`
+* For help, run`npm start`
 
 Output will (by default) be placed in `./output`.
 
@@ -54,7 +58,7 @@ Find lots of example templates and output in the [`examples folder`](./examples)
 
 When HUB is installed, it sets up necessary configuration files with a few example blocks (`scaffolding.json`, `blocks-vslab.json`, `presets.json`) in the `./config` folder.
 
-- - -
+---
 
 ## Powerful permutations 🧬
 
@@ -71,9 +75,9 @@ Thus it becomes almost effortless to create nearly infinite variations of blocks
 
 Let's say we want to create a set of vertical slabs in different dimensions (thin, medium, thick) and with 5 different textures -- 1 category x 3 sub-categories x 5 texture variations. Using our math superpowers, 1x3x5 = 15 unique blocks, requiring 15 JSON files. Not an unreasonable number, but very tedious to create manually. If we wanted further sub-types of vertical slabs (e.g. alignments: centre, edge).
 
-| Category | x | Block type | x | Textures | = | Block permutations |
-| -------- | --- | ---------- | --- | -------- | --- | ------------------ |
-| Vertical slab (vslab) | x | thin<br>medium<br>thick | x | brick<br>birch\_planks<br>cut\_copper<br>dark\_oak\_planks<br>stonebrick | = | vslab\_thin\_brick<br>vslab\_thin\_birch\_planks<br>...<br>vslab\_medium\_brick<br>...<br>vslab\_thick\_\* |
+| Category              | x | Block type                      | x | Textures                                                                                 | = | Block permutations                                                                                                             |
+| --------------------- | - | ------------------------------- | - | ---------------------------------------------------------------------------------------- | - | ------------------------------------------------------------------------------------------------------------------------------ |
+| Vertical slab (vslab) | x | thin`<br>`medium`<br>`thick | x | brick`<br>`birch\_planks`<br>`cut\_copper`<br>`dark\_oak\_planks`<br>`stonebrick | = | vslab\_thin\_brick`<br>`vslab\_thin\_birch\_planks`<br>`...`<br>`vslab\_medium\_brick`<br>`...`<br>`vslab\_thick\_\* |
 
 The table above illustrates how nested variations and materials create different blocks. The code below shows a truncated example of what the actual JSON template looks like. The full example is in [examples/blocks-vslab.json](./examples/blocks-vslab.json).
 
@@ -99,17 +103,17 @@ Too see the generated JSON block definition files, look in the [`examples/output
 #### How it works
 
 * Permutations of the block are created based on both nesting -- two levels -- and an array of textures
-* Each texture is applied to each unique permutation -- it is a simple list of valid texture names as would be found in `terrain-textures.json`
-* Names are auto-generated based on the permutation key (e.g. `vslab + thin`);
-* Titles are generated from the `title ` property
-* One Minecraft property is added to the block `components ` section: `geometry`. The `minecraft` prefix is added automatically during processing and can be omitted. Likewise, the `geometry` prefix is added automatically to the value
-* Each block is created on top of a scaffolding template of boilerplate shared by all blocks (see `scaffolding.json`)
+* Each texture is applied to each unique permutation -- it is a simple list of valid texture names as would be found in`terrain-textures.json`
+* Names are auto-generated based on the permutation key (e.g.`vslab + thin`);
+* Titles are generated from the`title ` property
+* One Minecraft property is added to the block `components ` section: `geometry`. The`minecraft` prefix is added automatically during processing and can be omitted. Likewise, the`geometry` prefix is added automatically to the value
+* Each block is created on top of a scaffolding template of boilerplate shared by all blocks (see`scaffolding.json`)
 
 ### A note on permutation proliferation and data driven blocks 🟧
 
 HUB makes it possible to create staggering number of custom blocks very quickly, because every permutation of a block has to be statically generated. Fortunately, Bedrock is moving in the direction of data driven blocks -- making it possible to change block properties in-game. Vanilla blocks have long relied on internal block states to evince properties like different textures or open/closed states. Custom blocks can do this too now, to some extent. Block properties can be changed dynamically, including textures, but it still requires a lot of static code. Hopefully, Mojang will continue down the path of enabling dynamic properties so that,one day, block shapes and textures can be dynamically combined rather than statically generated.
 
-- - -
+---
 
 ## Creating block templates 🧩
 
@@ -123,17 +127,17 @@ Templates are created declaratively using JSON. Template code can consist of eit
 
 A number of directives are available, listed briefly below. In addition, some custom processing is done of the Minecraft properties `geometry` and `material_instances`.
 
-| Directive | Description |
-| --------- | ----------- |
-| `apply` | Inject presets into block |
-| `export` | Turn export of block or block permutation on/off |
-| `materials` | Generate permutations from sets of materials |
-| `permutations` | Create block variations from nested block templates |
-| `render` | Define advanced rendering options |
-| `texture` | Apply texture to single block permutation |
-| `textures` | Create permutatations from simple list of textures |
-| `title` | Define (part of) a block's pretty title |
-| `type` | Define how the permutation name/title will be generated |
+| Directive        | Description                                             |
+| ---------------- | ------------------------------------------------------- |
+| `apply`        | Inject presets into block                               |
+| `export`       | Turn export of block or block permutation on/off        |
+| `materials`    | Generate permutations from sets of materials            |
+| `permutations` | Create block variations from nested block templates     |
+| `render`       | Define advanced rendering options                       |
+| `texture`      | Apply texture to single block permutation               |
+| `textures`     | Create permutatations from simple list of textures      |
+| `title`        | Define (part of) a block's pretty title                 |
+| `type`         | Define how the permutation name/title will be generated |
 
 ### Nested block permutations 🟧
 
@@ -185,9 +189,9 @@ Block names (the `identifier` property) are generated from permutation object ke
 
 **Known constraints:**
 
-* Valid characters: `a-z`, `0-9`, `_-.()`
-* Illegal characters: `space,:;+`
-* The block `identifier` must begin with a letter -- and thus also the root permutation key
+* Valid characters: `a-z`,`0-9`, `_-.()`
+* Illegal characters:`space,:;+`
+* The block`identifier` must begin with a letter -- and thus also the root permutation key
 * *All permutation names must be unique*
 
 ### Block titles 🟧
@@ -220,6 +224,7 @@ Use `type` to define different kinds of permutations to differentiate, e.g. size
 
 // ==> column--doric
 ```
+
 <br>
 In `config.js`, use the `titleSeparators` and `nameSeparators` to configure `type` keywords and separators.
 
@@ -257,7 +262,7 @@ Another option is to omit the name (or permutation key) of the regular version, 
 **Note:**
 
 * The root key cannot be empty.
-* The `title` directive will be ignored if used in a branch.
+* The`title` directive will be ignored if used in a branch.
 
 <br>
 **Example:**
@@ -300,7 +305,7 @@ Branches are created by using one or more `-`, or `dashes`, in the permutation
 }
 ```
 
-- - -
+---
 
 ### Texture permutations 🟧
 
@@ -308,10 +313,10 @@ Each block generated by a template can have infinite texture variations -- no ne
 
 **There are two methods for creating texture permutations from blocks:**
 
-| Directive | `textures` | `materials` |
-| --------- | -------- | --------- |
-| **Complexity** | Simple | Advanced |
-| **Summary** | Quickly map textures to blocks with a simple list (array) of texture names.<br><br>Use this when each block takes just one texture, without transparency. | Use this to apply multiple textures per block, mapped to different block faces.<br><br>Configure advanced texture options (translucency and transparency) |
+| Directive            | `textures`                                                                                                                                                  | `materials`                                                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Complexity** | Simple                                                                                                                                                        | Advanced                                                                                                                                                       |
+| **Summary**    | Quickly map textures to blocks with a simple list (array) of texture names.`<br><br>`Use this when each block takes just one texture, without transparency. | Use this to apply multiple textures per block, mapped to different block faces.`<br><br>`Configure advanced texture options (translucency and transparency) |
 
 Some important things to note:
 
@@ -551,11 +556,11 @@ With material instances, it's possible to configure both transparency and how li
 
 **Options:**
 
-| Key | Options | Notes |
-| --- | ------- | ----- |
-| `render_method` | `opaque`\|`alpha_test`\| `blend`\|`double_sided` | `alpha_test`: for translucency<br>`blend`: for full transparency.<br>double\_sided: haven't discovered how this works<br><br>*Do not mix render methods for the same block.*<br><br>Both `blend` and `alpha_test` can handle `opaque` blocks, but use more processing power. |
-| `ambient_occlusion` | `true`\|`false` | Turn smooth lighting on/off.  Disabling `ambient_occlusion` seems to make shadows teensy-weensy less harsh (in combination with `block_light_absorption: 0`)<br><br>Defaults: opaque: true; alpha\_test: false, blend: false |
-| `face_dimming` | `true`\|`false` | Disabling creates very harsh light and shadows, weird floating effects. I have not found a use-case for this yet. |
+| Key                   | Options                                                  | Notes                                                                                                                                                                                                                                                                                                 |
+| --------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `render_method`     | `opaque`\|`alpha_test`\| `blend`\|`double_sided` | `alpha_test`: for translucency`<br>blend`: for full transparency.`<br>`double\_sided: haven't discovered how this works`<br><br>`*Do not mix render methods for the same block.*`<br><br>`Both `blend` and `alpha_test` can handle `opaque` blocks, but use more processing power. |
+| `ambient_occlusion` | `true`\|`false`                                      | Turn smooth lighting on/off.  Disabling `ambient_occlusion` seems to make shadows teensy-weensy less harsh (in combination with `block_light_absorption: 0`)`<br><br>`Defaults: opaque: true; alpha\_test: false, blend: false                                                                |
+| `face_dimming`      | `true`\|`false`                                      | Disabling creates very harsh light and shadows, weird floating effects. I have not found a use-case for this yet.                                                                                                                                                                                     |
 
 For more information on render methods and advanced keys, see [Block Materials @ bedrock.dev](https://wiki.bedrock.dev/blocks/block-materials.html) and [material\_instances@Microsoft](https://docs.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock_material_instances).
 
@@ -665,7 +670,7 @@ The syntax for `material_instances` is described above. For more details on `m
 }
 ```
 
-- - -
+---
 
 ### Adding features with presets 🟧
 
@@ -715,7 +720,7 @@ To inject or apply a template, add it with the `apply` directive to any level o
 
 ```
 ["block-permutation"]: {
-    "apply": {
+    "#apply": {
         ["template-1"]: true | false, // Set to true to enable simple variation
         ["template-2"]: "variation-name" // Inject a template variation
     }
@@ -730,7 +735,7 @@ Let's say we're adding the templates `bright_and_slippery` and `emit_particles
 // Add two templatse to the block 'crystal_block':
 // 'bright_and_slippery' and 'emit_particles_when_walked_on'
 "crystal_block": {
-    "apply": {
+    "#apply": {
         "bright_and_slippery": true,
         // Use a variation
         "emit_particles_when_walked_on": "totem"
@@ -742,13 +747,13 @@ Let's say we're adding the templates `bright_and_slippery` and `emit_particles
 
 HUB is bundled with a few example presets in [examples/presets.json](./examples/presets.json).
 
-| Template key | Description | Usage |
-| ------------ | ----------- | ----- |
-| `rotation` | Use the `rotation` key to enable rotating custom blocks when they are placed. Adds all the necessary boilerplate (properties, event triggers, event definitions and block state permutations). ~~The `rotation ` feature has three variations to let you select the axis of rotation (`x`, `y` or `z`).~~ Note: currently, only the y-axis variation is included. | "rotation": "y-axis" |
-| `bright_and_slippery` | Make blocks emit light and reduce their friction. Included for demonstration purposes. | "bright\_and\_slippery": true |
-| `emit_particles_-when_walked_on` | Make surface emit particles when walked on by an entity. Included for demonstration purposes. | "emit\_particles\_when\_walked\_on": "totem" |
+| Template key                       | Description                                                                                                                                                                                                                                                                                                                                                                    | Usage                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `rotation`                       | Use the `rotation` key to enable rotating custom blocks when they are placed. Adds all the necessary boilerplate (properties, event triggers, event definitions and block state permutations). ~~The `rotation ` feature has three variations to let you select the axis of rotation (`x`, `y` or `z`).~~ Note: currently, only the y-axis variation is included. | "rotation": "y-axis"                         |
+| `bright_and_slippery`            | Make blocks emit light and reduce their friction. Included for demonstration purposes.                                                                                                                                                                                                                                                                                         | "bright\_and\_slippery": true                |
+| `emit_particles_-when_walked_on` | Make surface emit particles when walked on by an entity. Included for demonstration purposes.                                                                                                                                                                                                                                                                                  | "emit\_particles\_when\_walked\_on": "totem" |
 
-- - -
+---
 
 ### Minecraft properties 🟧
 
@@ -803,6 +808,7 @@ As of Bedrock `v1.17.40`, it's finally possible to use `creative_category` \- an
     "group": "planks"
 }
 ```
+
 <br>
 Here's a list of all the categories and groups:
 <span class="colour" style="color:rgb(98, 114, 164)">[https://wiki.bedrock.dev/documentation/creative-categories.html](https://wiki.bedrock.dev/documentation/creative-categories.html)</span>
@@ -818,7 +824,7 @@ See other sections:
 
 The `geometry` prefix can be omitted from the value; it is added automatically.
 
-Use the <span class="colour" style="color:rgb(248, 248, 242)">`geometryPrefix` key in `config.js` to configure a name prefix to be added automatically.</span>
+Use the `<span class="colour" style="color:rgb(248, 248, 242)">geometryPrefix` key in `config.js` to configure a name prefix to be added automatically.
 
 **Example:**
 
@@ -834,7 +840,7 @@ geometryPrefix: 'hubgen__'
 
 Because block names are created from permutation keys, `identifier` is not used. If included, it will be disregarded.
 
-- - -
+---
 
 ### Other topics 🟧
 
@@ -855,7 +861,7 @@ All JSON files support adding inline comments to temporarily disable code or add
 //"friction": 0.1
 ```
 
-- - -
+---
 
 ## Running and configuring HUB 🧰
 
@@ -902,14 +908,14 @@ Documentation on configuring input files is below. Documentation for other optio
 
 ### Input file configuration 🟧
 
-| Key | Default value | Contains | Details |
-| --- | ------------- | -------- | ------- |
-| <span class="colour" style="color:rgb(248, 248, 242)">`blockConfigDir`</span> | `config` | All block config files | Directory containing all the block config files. It's not recommended to store these in the root directory. |
-| `blocks` | `blocks-*.json` | Block templates (permutations) | By default, HUB will look for block templates in all JSON files beginning with `blocks-.` Enables splitting block templates by category (e.g. stairs, slabs, columns, etc). |
-| `scaffolding` | `scaffolding.json` | Block baseline | The root template of all generated block definition files, containing shared boilerplate and properties. |
-| `presets` | `presets.json` | Code snippets | Create presets/code snippets for commonly shared features like block mechanics (e.g. rotation), events or sets of properties. Presets can be injected at any nesting level of a block template. |
+| Key                                                                      | Default value        | Contains                       | Details                                                                                                                                                                                         |
+| ------------------------------------------------------------------------ | -------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<span class="colour" style="color:rgb(248, 248, 242)">blockConfigDir` | `config`           | All block config files         | Directory containing all the block config files. It's not recommended to store these in the root directory.                                                                                     |
+| `blocks`                                                               | `blocks-*.json`    | Block templates (permutations) | By default, HUB will look for block templates in all JSON files beginning with `blocks-.` Enables splitting block templates by category (e.g. stairs, slabs, columns, etc).                  |
+| `scaffolding`                                                          | `scaffolding.json` | Block baseline                 | The root template of all generated block definition files, containing shared boilerplate and properties.                                                                                        |
+| `presets`                                                              | `presets.json`     | Code snippets                  | Create presets/code snippets for commonly shared features like block mechanics (e.g. rotation), events or sets of properties. Presets can be injected at any nesting level of a block template. |
 
-- - -
+---
 
 ## Output 📃
 
@@ -917,19 +923,19 @@ This software generates two types of output: block definitions and a text transl
 
 HUB will not help you create an addon -- see the Resources section for information on how to create one.
 
-| Output | File type | Default output location | Move to |
-| ------ | --------- | ----------------------- | ------- |
-| Block definition files | `.json` | `output/blocks` | `<behaviour_pack>/blocks` |
-| Text translatation files (block titles) | `.lang` | `output` | `<resource_pack>/texts` |
+| Output                                  | File type | Default output location | Move to                     |
+| --------------------------------------- | --------- | ----------------------- | --------------------------- |
+| Block definition files                  | `.json` | `output/blocks`       | `<behaviour_pack>/blocks` |
+| Text translatation files (block titles) | `.lang` | `output`              | `<resource_pack>/texts`   |
 
 #### Notes about translatation files
 
-* Use `config.js` to configure translation language
+* Use`config.js` to configure translation language
 * HUB can currently only handle a single language
-* Make sure you use the correct language code and that it's the same language as your game. The default is `en_US`
+* Make sure you use the correct language code and that it's the same language as your game. The default is`en_US`
 * The output of translation files will probably have to be merged manually with existing translation files.
 
-- - -
+---
 
 ## A few words of caution 💥
 
@@ -941,19 +947,19 @@ Here are some specific challenges to navigate:
 
 Be very careful when updating previously generated blocks inside a world. Test with a few files at a time. Validate block generator output.
 
-<b>*Always back up your world and previously generated block files.*</b>
+`<b>`*Always back up your world and previously generated block files.*`</b>`
 
 ### Incompatible combinations of permutations,m properties, presets, materials, events, etc 🟧
 
 Always validate the output of this software, especially where you use advanced features like events and Minecraft permutations. Presets and nested properties may overwrite each other or just generally not work well together. Typos and mistakes could sneak in and create havoc. Quicker block generation also enables you to make mistakes more quickly.
 
-<b>*Always back up your world and previously generated block files.*</b>
+`<b>`*Always back up your world and previously generated block files.*`</b>`
 
 ### Advanced block features are in beta 🟧
 
 HUB should generate correct code, but it is not guaranteed to work in Minecraft. Many of the advanced fetures used by example HUB block templates (e.g. material instances, events) rely on the most recent block format version, `1.16.100`, which is still in beta, and are afflicted by a lot of bugs.
 
-- - -
+---
 
 ## Future directions 🚀
 
@@ -967,23 +973,23 @@ Some improvements I could foresee:
 * [ ] More presets
 * [ ] Include Minecraft add-on for block testing
 
-- - -
+---
 
 ## Resources for creating add-ons and custom blocks 📙
 
 A few useful places to look for information on creating blocks and addons:
 
-| Website | Resource | URLs |
-| ------- | -------- | ---- |
-| Minecraft Wiki | Add-on documentation | [https://minecraft.fandom.com/wiki/Bedrock\_Edition\_add-on\_documentation](https://minecraft.fandom.com/wiki/Bedrock_Edition_add-on_documentation) |
-| bedrock.dev | Add-on reference | [https://bedrock.dev/](https://bedrock.dev/) |
-| " | Wiki | [https://wiki.bedrock.dev/](https://wiki.bedrock.dev/) |
-| " | Add-on tutorials | [https://wiki.bedrock.dev/guide/introduction.html](https://wiki.bedrock.dev/guide/introduction.html) |
-| Microsoft Minecraft documentation | Offical documentation | [https://docs.microsoft.com/en-us/minecraft/creator/](https://docs.microsoft.com/en-us/minecraft/creator/) |
-| " | Block reference | [https://docs.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock\_material\_instances](https://docs.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock_material_instances) |
-| Minecraft 'vanilla' addons | Game data and reference (zip files) | [https://aka.ms/resourcepacktemplate](https://aka.ms/resourcepacktemplate)<br>[https://aka.ms/behaviorpacktemplate](https://aka.ms/behaviorpacktemplate) |
+| Website                           | Resource                            | URLs                                                                                                                                                                                                                                                                                            |
+| --------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Minecraft Wiki                    | Add-on documentation                | [https://minecraft.fandom.com/wiki/Bedrock\_Edition\_add-on\_documentation](https://minecraft.fandom.com/wiki/Bedrock_Edition_add-on_documentation)                                                                                                                                                |
+| bedrock.dev                       | Add-on reference                    | [https://bedrock.dev/](https://bedrock.dev/)                                                                                                                                                                                                                                                       |
+| "                                 | Wiki                                | [https://wiki.bedrock.dev/](https://wiki.bedrock.dev/)                                                                                                                                                                                                                                             |
+| "                                 | Add-on tutorials                    | [https://wiki.bedrock.dev/guide/introduction.html](https://wiki.bedrock.dev/guide/introduction.html)                                                                                                                                                                                               |
+| Microsoft Minecraft documentation | Offical documentation               | [https://docs.microsoft.com/en-us/minecraft/creator/](https://docs.microsoft.com/en-us/minecraft/creator/)                                                                                                                                                                                         |
+| "                                 | Block reference                     | [https://docs.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock\_material\_instances](https://docs.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock_material_instances) |
+| Minecraft 'vanilla' addons        | Game data and reference (zip files) | [https://aka.ms/resourcepacktemplate](https://aka.ms/resourcepacktemplate)`<br>`[https://aka.ms/behaviorpacktemplate](https://aka.ms/behaviorpacktemplate)                                                                                                                                          |
 
-- - -
+---
 
 ## Software compatibility 🚩
 
@@ -997,13 +1003,13 @@ Format version `1.16.100` introduces advanced features that are still consider
 
 **Note:** HUB should generate correct code, but some features are extremely buggy in Minecraft and cannot be guaranteed to work.
 
-- - -
+---
 
 ## Known issues 🐛
 
 Failure to empty output directory: HUB may sometimes fail to clear the output directory because some files are locked. This problem is likely temporary: just run HUB again.
 
-- - -
+---
 
 ## License 🚦
 

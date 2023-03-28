@@ -3,23 +3,29 @@
 /**
  * Async promise queue manager.
  *
+ * @version 1.2
+ *
  * @param {function} watchHandler
  * @param {function} errorHandler
  * @param {function} waitHandler
  * @param {number} waitDelay
  */
-export function AsyncQueue( watchHandler, errorHandler, waitHandler, waitDelay = 2000 ) {
+export default function AsyncQueue( watchHandler, errorHandler, waitHandler, waitDelay = 2000 ) {
 	let queue = []
 	let pendingPromise = false
 	let stopped = false
 	let waitTimer
 
-	function waitMsg() {
-		waitTimer = setTimeout( () => {
-			if ( ! queue.length ) {
-				waitHandler()
-			}
-		}, waitDelay )
+	function startTimeoutTimer() {
+		clearTimeout( waitTimer )
+
+		if ( waitHandler ) {
+			waitTimer = setTimeout( () => {
+				if ( ! queue.length ) {
+					waitHandler()
+				}
+			}, waitDelay )
+		}
 	}
 
 	async function dequeue() {
@@ -40,6 +46,7 @@ export function AsyncQueue( watchHandler, errorHandler, waitHandler, waitDelay =
 		}
 		try {
 			pendingPromise = true
+
 			const value = await item.promise()
 				.then( ( v ) => v )
 				.catch( ( err ) => new Error( err ) )
@@ -52,8 +59,7 @@ export function AsyncQueue( watchHandler, errorHandler, waitHandler, waitDelay =
 				item.resolve( value )
 			}
 
-			clearTimeout( waitTimer )
-			waitMsg( queue.length, value )
+			startTimeoutTimer()
 
 			pendingPromise = false
 
@@ -67,14 +73,34 @@ export function AsyncQueue( watchHandler, errorHandler, waitHandler, waitDelay =
 		return true
 	}
 
-	return ( ...args ) => {
-		return new Promise( ( resolve, reject ) => {
-			queue.push( {
-				promise: () => watchHandler( ...args ),
-				resolve,
-				reject,
+	return {
+		asyncHandler( ...args ) {
+			return new Promise( ( resolve, reject ) => {
+				queue.push( {
+					promise: () => watchHandler( ...args ),
+					resolve,
+					reject,
+				} )
+				dequeue()
 			} )
-			dequeue()
-		} )
+		},
+		async queueComplete( callback = undefined ) {
+			while ( true ) {
+				const queueResolved = await Promise.allSettled( queue )
+
+				await delay( waitDelay )
+
+				if ( typeof callback === 'function' ) {
+					return queueResolved.then( () => {
+						callback()
+					} )
+				}
+				return queueResolved
+			}
+		},
 	}
+}
+
+async function delay( ms ) {
+	return new Promise( ( r ) => setTimeout( r, ms ) )
 }

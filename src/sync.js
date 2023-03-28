@@ -3,17 +3,19 @@
 import fs from 'fs'
 import nodePath from 'path'
 import chalk from 'chalk'
-// import config from '../config.js'
 import { niceRelPath } from './lib/fs-utils.js'
-import { log, replaceTemplates } from './lib/utils.js'
-import { fileSyncWatcher } from './lib/file-sync.js'
+import { log, resolveTemplateStrings } from './lib/utils.js'
 import appData from './app-data.js'
+import { fsWatcher } from './lib/fs-watcher.js'
 
 export function runSync() {
 	log( chalk.cyan( '≣≣≣≣≣≣≣≣≣≣≣≣≣≣ SYNCING FILES ≣≣≣≣≣≣≣≣≣≣≣≣≣≣\n' ) )
 
-	const { outputDir, config } = appData
-	const { sync } = config
+	log( 'SYNC DISABLED!' )
+	return
+
+	const { outputDir, settings } = appData
+	const { sync } = settings
 	const { BPDirName, RPDirName, minecraftPath } = sync
 
 	const paths = getPaths( { outputDir, BPDirName, RPDirName, minecraftPath } )
@@ -28,7 +30,7 @@ export function runSync() {
 
 	log()
 
-	fileSyncWatcher( {
+	fsWatcher( {
 		config: {
 			runOnce: true,
 			waitMsg: `${ chalk.redBright( '\nDone.' ) }`,
@@ -46,7 +48,7 @@ export function runSync() {
 				destination: paths.remoteRP,
 			},
 		],
-		ignoreFiles: config.ignoreFiles,
+		ignoreFiles: settings.ignoreFiles,
 	} )
 }
 
@@ -56,7 +58,7 @@ function getPaths( { outputDir, BPDirName, RPDirName } ) {
 	const localBP = nodePath.resolve( outputDir, 'BP' )// relative to root
 	const localRP = nodePath.resolve( outputDir, 'RP' )
 
-	const gamePath = nodePath.resolve( replaceTemplates( minecraftPath, process.env ) )
+	const gamePath = nodePath.resolve( resolveTemplateStrings( minecraftPath, process.env ) )
 	const remoteBP = nodePath.join( gamePath, 'development_behavior_packs', BPDirName )
 	const remoteRP = nodePath.join( gamePath, 'development_resource_packs', RPDirName )
 

@@ -1,11 +1,11 @@
 {
 	"stairs": {
-		"export": true,
-		"title": "Stairs",
-		"apply": {
+		"#export": true,
+		"#title": "Stairs",
+		"#apply": {
 			"rotate": "y-axis"
 		},
-		"materials": {
+		"#materials": {
 			"dark_oak_planks": true
 		},
 
@@ -22,34 +22,34 @@
 		"permutations": {
 			"": {
 				"geometry": "stairs",
-				"materials": {
+				"#materials": {
 					"stone": true,
 					"smooth_stone": true
 				}
 			},
 			"winding": {
-				"export": true,
-				"title": "winding",
+				"#export": true,
+				"#title": "winding",
 				"permutations": {
 					"-": {
-						"materials": {
+						"#materials": {
 							"stone": true,
 							"smooth_stone": true
 						},
 						"permutations": {
 							"left": {
-								"title": "left",
+								"#title": "left",
 								"geometry": "stairs_winding_left"
 							},
 							"right": {
-								"title": "right",
+								"#title": "right",
 								"geometry": "stairs_winding_right"
 							}
 						}
 					},
 					"handrail": {
-						"title": "with handrail",
-						"materials": {
+						"#title": "with handrail",
+						"#materials": {
 							"birch_and_wrought_iron": {
 								"*": "birch_planks",
 								"centre_column": "black",
@@ -60,11 +60,11 @@
 
 						"permutations": {
 							"left": {
-								"title": "left",
+								"#title": "left",
 								"geometry": "stairs_winding_handrail_left"
 							},
 							"right": {
-								"title": "right",
+								"#title": "right",
 								"geometry": "stairs_winding_handrail_right"
 							}
 						}

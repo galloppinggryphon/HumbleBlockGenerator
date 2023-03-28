@@ -1,0 +1,39 @@
+{
+	"sub_variants": {
+		"handler": { "presets.js": "subVariants" },
+		"required": [
+			"event",
+			"variant_props",
+			"permutation_condition",
+			"variants_max"
+		],
+		"params": {
+			//Name of property (custom state)
+			"property": "variant",
+
+			//Event that triggers state change
+			"event": "on_interact",
+
+			//Item that must be used to trigger state change
+			"transform_trigger_item": "{{prefix}}:transform",
+
+			//Condition for activating permutations
+			"permutation_condition": "query.block_property('{{prefix}}:{{property}}') == %property_value%"
+		},
+		"templates": {
+			"events": {
+				"{{event}}": {
+					"action": [
+						{
+							"set_block_property": {
+								"{{prefix}}:{{property}}": "query.block_property('{{prefix}}:{{property}}') == {{variants_max}} ? 1 : ( query.block_property('{{prefix}}:{{property}}') + 1 )"
+							}
+						}
+					],
+					"target": "self",
+					"condition": "query.is_item_name_any('slot.weapon.mainhand', 0, '{{transform_trigger_item}}')"
+				}
+			}
+		}
+	}
+}

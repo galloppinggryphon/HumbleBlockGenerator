@@ -1,11 +1,11 @@
 {
 	"vslab": {
-		"export": true,
-		"title": "Vertical slab",
-		"apply": {
+		"#export": true,
+		"#title": "Vertical slab",
+		"#apply": {
 			"rotate": "y-axis"
 		},
-		"textures": [
+		"#textures": [
 			"brick",
 			"cut_copper",
 			"birch_planks",
@@ -26,12 +26,12 @@
 
 		"permutations": {
 			"thin": {
-				"title": "width: thin",
+				"#title": "width: thin",
 				"type": "size",
 				"geometry": "vslab_thin"
 			},
 			"medium": {
-				"title": "width: medium",
+				"#title": "width: medium",
 				"type": "size",
 				"geometry": "vslab_medium"
 			}

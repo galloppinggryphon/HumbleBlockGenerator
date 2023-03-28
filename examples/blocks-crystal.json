@@ -1,12 +1,12 @@
 {
 	"crystal_block": {
-		"export": true,
-		"title": "Crystal Block",
-		"apply": {
+		"#export": true,
+		"#title": "Crystal Block",
+		"#apply": {
 			"bright_and_slippery": true,
 			"emit_particles_when_walked_on": "totem_particle"
 		},
 		"geometry": "custom_block",
-		"texture": "crystal"
+		"#texture": "crystal"
 	}
 }

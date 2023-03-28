@@ -3,7 +3,34 @@
 import fs, { promises as fsAsync } from 'fs'
 import glob from 'glob'
 import nodePath from 'path'
-import stripJsonComments from 'strip-json-comments'
+
+const log = console.log.bind( console )
+
+async function delay( ms ) {
+	return new Promise( ( r ) => setTimeout( r, ms ) )
+}
+
+async function timeOut( fn, attempts, interval = [ 100, 100, 100, 100, 100, 200, 300, 500, 1000, 2000, 5000 ] ) {
+	let i = 0
+	while ( ++i ) {
+		try {
+			const res = await fn( i )
+
+			if ( res === true ) {
+				return true
+			}
+
+			if ( i === attempts ) {
+				return res
+			}
+		}
+		catch ( e ) {
+			return e
+		}
+
+		await delay( interval[ i ] )
+	}
+}
 
 export function niceRelPath( path, ignore ) {
 	return nodePath.join( '...', nodePath.relative( ignore, path ) )
@@ -39,15 +66,24 @@ export function readFile( filename, onError = 'skip' ) {
  * @param {string} filePath
  * @param {string} fileName
  * @param {string} contents
+ * @return {Promise<void | Error>}
  */
-export async function saveFileAsync( filePath, fileName, contents ) {
+export async function saveFileAsync( filePath, fileName = undefined, contents ) {
+	let file
+	if ( fileName ) {
+		file = nodePath.join( filePath, fileName )
+	}
+	else {
+		file = filePath
+		filePath = nodePath.dirname( file )
+	}
+
 	await fsAsync.mkdir( filePath, { recursive: true } )
-	const fullFilename = nodePath.join( filePath, fileName )
 
 	// write file asynchronously, but do not block
-	fs.writeFile( fullFilename, contents, function( err ) {
+	fs.writeFile( file, contents, function( err ) {
 		if ( err ) {
-			throw new Error( err )
+			throw new Error( err.message )
 		}
 	} )
 }
@@ -58,14 +94,13 @@ export async function saveFileAsync( filePath, fileName, contents ) {
  * @param {string} source
  * @param {string} destination
  * @param {boolean} overwrite
- * @return {string|undefined} Returns undefined on success, error message on failure.
+ * @return {Promise<string|undefined>} Returns undefined on success, error message on failure.
  */
 export async function copyFileAsync( source, destination, overwrite = false ) {
 	const mode = overwrite ? 0 : fs.constants.COPYFILE_EXCL
 
 	try {
 		await fsAsync.copyFile( source, destination, mode )
-		return
 	}
 	catch ( error ) {
 		if ( error.errno === -4058 ) {
@@ -78,8 +113,29 @@ export async function copyFileAsync( source, destination, overwrite = false ) {
 	}
 }
 
+export async function mergeTextFiles( { sources, target = undefined, overwriteTarget = false, addNewLine = true } ) {
+	const left = target ?? sources.shift()
+	const right = sources.shift()
+
+	if ( overwriteTarget ) {
+		saveFileAsync( left, null, '' )
+	}
+
+	let data = readFile( right, 'skip' )
+
+	if ( data ) {
+		data = ( ! overwriteTarget && addNewLine ? '\n' : '' ) + data
+		await fsAsync.mkdir( nodePath.dirname( left ), { recursive: true } )
+		fs.appendFileSync( left, data )
+	}
+
+	if ( sources.length ) {
+		mergeTextFiles( { target: left, sources } )
+	}
+}
+
 /**
- * Check if a file or folder exists.
+ * Synchronously check if a file or folder exists.
  *
  * @param {string} path
  */
@@ -141,40 +197,27 @@ export function isInsideCwd( directoryPath ) {
  *
  * Illegal directories: node_modules|scripts|src|assets|examples
  *
+ * !! INCOMPLETE !!
+ *
  * @param {string} directoryPath
  * @param {string[]} illegalDirectories Custom list of directories to eschew
- * @returns
  */
 export function isPathPermitted( directoryPath, illegalDirectories = undefined ) {
 	const defaultIllegalPaths = /^(node_modules|scripts|src|assets|examples)/i
-	illegalDirectories = illegalDirectories || defaultIllegalPaths
-	return ! illegalDirectories.test( nodePath.relative( process.cwd(), directoryPath ) )
+	// const rx = illegalDirectories || defaultIllegalPaths
+	return ! defaultIllegalPaths.test( nodePath.relative( process.cwd(), directoryPath ) )
 }
 
 /**
  * Delete all files and folders at a given path.
  *
- * Todo: Fix rare rmdir -4048 error (EPERM: operation not permitted). Related to Onedrive?
+ * Todo: Fix rmdir -4048 error (EPERM: operation not permitted). Means files are locked.
  *
  * @param {string} directoryPath
  */
-export async function eraseDirContentsAsync( directoryPath ) {
-	async function _deleteFsObjectAsync( file, recursive = false ) {
-		try {
-			await fsAsync.rm( file, { recursive } )
-		}
-		catch ( error ) {
-			// EPERM: operation not permitted (probably because  of file lock or permission error)
-			// Error occurs even when files are successfully deleted
-			// Treat as harmless in this context?
-			if ( error.errno === -4048 ) {
-				console.warn( `\nA possible error occurred while deleting files in '${ directoryPath }'.\nError: [EPERM: operation not permitted (-4048)].\n\nIf no other errors are reported, this is probably harmless.` )
-				// throw ( error )
-			}
-			else {
-				throw ( error )
-			}
-		}
+export async function eraseDirContentsAsync( directoryPath, { attempts = 5, restrictPathsToCwd = true, verboseErrors = true, throwErrors = true } = {} ) {
+	if ( restrictPathsToCwd && ! isInsideCwd( directoryPath ) ) {
+		throw new Error( `Cannot use directory '${ directoryPath }': must be a descendant of the current working directory.` )
 	}
 
 	if ( ! isPathPermitted( directoryPath ) ) {
@@ -184,68 +227,135 @@ export async function eraseDirContentsAsync( directoryPath ) {
 	const files = await readDirAsync( directoryPath, true )
 
 	// Delete folder contents recursively
-	const results = files.reverse().map( async( file ) => {
-		return await _deleteFsObjectAsync( file, true )
+	const resultsPromises = files.reverse().map( async( file ) => {
+		const res = await timeOut( async( attempt ) => {
+			try {
+				await fsAsync.rm( file, { recursive: true } )
+				return true
+			}
+			catch ( error ) {
+				// File not found (already deleted)
+				log( 'error.code ', error.code )
+
+				if ( error.code === 'ENOENT' ) {
+					return true
+				}
+
+				if ( verboseErrors && attempt < attempts ) {
+					log( '\nUnabled to delete file: ', file )
+					log( `\nTrying again, attempt (${ attempt })...` )
+				}
+
+				// log( error )
+
+				return verboseErrors ? error : false
+
+				// EPERM: operation not permitted (probably because  of file lock or permission error)
+				// Error occurs even when files are successfully deleted
+				// Treat as harmless in this context?
+				if ( error.errno === -4048 ) {
+					console.warn( `\nA possible error occurred while deleting files in '${ directoryPath }'.\nError: [EPERM: operation not permitted (-4048)].\n\nIf no other errors are reported, this is probably harmless.` )
+					// throw ( error )
+				}
+				else {
+					throw ( error )
+				}
+			}
+		}, attempts )
+
+		if ( res !== true ) {
+			log( `\nFailed to delete file: ${ file }.\n` )
+			log( res )
+			log()
+		}
+
+		return res
 	} )
 
-	await Promise.all( results )
+	const results = await Promise.all( resultsPromises )
+	const success = results.every( ( value ) => value === true )
 
 	// Check if successful
-	const residual = await readDirAsync( directoryPath, true )
-	if ( residual.length ) {
-		throw new Error( `Could not delete all files in '${ directoryPath }'.` )
-	}
-}
-
-/**
- * Parse JSON. With comment stripping.
- *
- * @param {string} data Stringified JSON
- * @param {boolean} [true] tolerateError
- * @return {Record<string, any>} JSON object
- */
-export function parseJson( data, tolerateError = true ) {
-	let json
-	try {
-		json = JSON.parse( stripJsonComments( data ) )
-	}
-	catch ( error ) {
-		if ( ! tolerateError ) {
-			throw error
+	if ( ! success ) {
+		const residual = await readDirAsync( directoryPath, true )
+		if ( ! residual.length ) {
+			return true
 		}
-		return ''
+
+		const e = new Error( `Could not delete all files in '${ directoryPath }'.` )
+
+		if ( throwErrors ) {
+			throw e
+		}
+		return e
 	}
-	return json
+
+	return true
 }
 
-/**
- * Read and parse multiple JSON files.
- *
- * @param {string|string[]} files
- * @param {boolean} tolerateErrors
- * @return {Object<string, any>|boolean|''} Returns false on read failure, empty string on parse failure
- */
-export function loadJsonFiles( files, tolerateErrors = false ) {
-	const onError = tolerateErrors ? 'skip' : 'warn'
-	let exports
+export async function syncFilesRecursive( source, target, options = { forceOverwrite: true, removeOrphaned: false }, fileQueue = undefined ) {
+	const { forceOverwrite, removeOrphaned } = options
+	const isRoot = !! fileQueue
+	fileQueue = fileQueue ?? []
 
-	if ( files && typeof files === 'string' ) {
-		let file = readFile( files, onError )
-		return file && parseJson( file, false )
-	}
+	const sourceFiles = await readDirAsync( source, true )
+	const targetFiles = await readDirAsync( target, true )
 
-	exports = Object.entries( files ).reduce( ( results, [ key, filename ] ) => {
-		if ( filename ) {
-			let file = readFile( filename, onError )
+	const copiedFiles = await sourceFiles.map( async( file ) => {
+		const fsItem = await fsAsync.lstat( file )
+		const relPath = nodePath.relative( source, file )
+		const targetItem = nodePath.resolve( target, relPath )
+		const existsInTarget = fs.existsSync( targetItem )
 
-			if ( file ) {
-				results[ key ] = parseJson( file )
+		if ( fsItem.isDirectory() ) {
+			if ( ! existsInTarget ) {
+				fs.mkdirSync( targetItem, { recursive: true } )
+				log( `[D] ${ file }` )
+				await syncFilesRecursive( file, targetItem, options, fileQueue )
 			}
 		}
 		else {
-			results[ key ] = false
+			// if ( existsInTarget ) {
+			return copyFileAsync( file, targetItem )
+			// }
 		}
-		return results
-	}, {} )
-	return exports
+	} )
+
+	const removedFiles = ! removeOrphaned ? [] : await targetFiles.map( async( file ) => {
+		const fsItem = await fsAsync.lstat( file )
+		const relPath = nodePath.relative( source, file )
+		const sourceItem = nodePath.resolve( target, relPath )
+
+		log( file )
+
+		if ( ! fs.existsSync( sourceItem ) ) {
+			log( file )
+
+			return fsAsync.rm( file, { recursive: true } )
+		}
+	} )
+
+	fileQueue.push( ...copiedFiles, ...removedFiles )
+
+	return isRoot ? Promise.all( fileQueue ) : fileQueue
+	// return fileQueue.concat( fQueue )
 }
+
+export function rmDirRecursiveSync( path ) {
+	if ( fs.existsSync( path ) ) {
+		fs.rmSync( path, {
+			recursive: true,
+			force: true,
+			maxRetries: 10,
+		} )
+	}
+}
+
+// exports.readFile = readFile
+// exports.copyFileAsync = copyFileAsync
+// exports.parseJson = parseJson
+// exports.loadJsonFiles = loadJsonFiles
+// exports.saveFileAsync = saveFileAsync
+// exports.readDirAsync = readDirAsync
+// exports.eraseDirContentsAsync = eraseDirContentsAsync
+// exports.pathExists = pathExists
