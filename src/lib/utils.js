@@ -1,13 +1,17 @@
 'use strict'
 
-import _ from 'lodash'
-
 function log( ...msg ) {
 	console.log( ...msg )
 }
 
 const delay = ( ms ) => new Promise( ( r ) => setTimeout( r, ms ) )
 
+/**
+ * Object literal check with type guard.
+ *
+ * @param {*} obj
+ * @return { obj is JSO<unknown> & JSO<any>} Return both `JSO<unknown>` & `JSO<any>`, because TS can't distinguish between `JSO<any>` and `any[]`
+ */
 function isObj( obj ) {
 	return obj && Object( obj ) === obj && ! Array.isArray( obj )
 }
@@ -246,17 +250,17 @@ function resolveNestedVariables( src, vars = undefined ) {
 /**
  * Resolve variables/references in object values.
  *
- * @param {*} source
- * @param {*} variables
- * @param {*} param2
+ * @param {JSO} source An object literal
+ * @param {JSO<string>} values Object literal mapping variables to values
+ * @param {{ removeMissing?: boolean, flattenArrays?: boolean, mutateSource?: boolean, resolveNestedVars?: boolean, variablePrefix?: string }} options
  */
-function resolveRefsRecursively( source, variables, { removeMissing = false, flattenArrays = true, mutateSource = false, resolveNestedVars = false, variablePrefix = '$' } = {} ) {
+function resolveRefsRecursively( source, values, { removeMissing = false, flattenArrays = true, mutateSource = false, resolveNestedVars = false, variablePrefix = '$' } = {} ) {
 	if ( Object( source ) !== source ) {
 		return source
 	}
 
 	if ( resolveNestedVars ) {
-		resolveNestedVariables( variables )
+		resolveNestedVariables( values )
 	}
 
 	if ( Array.isArray( source ) ) {
@@ -265,11 +269,11 @@ function resolveRefsRecursively( source, variables, { removeMissing = false, fla
 
 			if ( Object( value ) === value ) {
 				// Recurse
-				result.push( resolveRefsRecursively( value, variables, { removeMissing } ) )
+				result.push( resolveRefsRecursively( value, values, { removeMissing } ) )
 			}
 			else {
 				// Replacement happens here
-				const newValue = replaceValue( value, variables )
+				const newValue = replaceValue( value, values )
 
 				// If replacement happened
 				if ( newValue && 'value' in newValue ) {
@@ -304,11 +308,11 @@ function resolveRefsRecursively( source, variables, { removeMissing = false, fla
 	const target = mutateSource ? source : {}
 	return entries.reduce( ( result, [ key, value ] ) => {
 		if ( Object( value ) === value ) {
-			result[ key ] = resolveRefsRecursively( value, variables, { removeMissing, mutateSource: true } )
+			result[ key ] = resolveRefsRecursively( value, values, { removeMissing, mutateSource: true } )
 			return result
 		}
 
-		const _value = replaceValue( value, variables )
+		const _value = replaceValue( value, values )
 
 		if ( _value && 'value' in _value ) {
 			result[ key ] = _value.value
