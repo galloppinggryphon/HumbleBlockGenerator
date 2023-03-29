@@ -13,7 +13,7 @@ import display from '../../../lib/display.js'
  * @param {PresetHandler} props.presetData
  *
  */
-export function subvariantsAdvanced( { block, presetData } ) {
+export function basePreset( { block, presetData } ) {
 	const { permutations, permutation_templates, events, event_templates, properties, part_visibility } = presetData.params
 
 	// ~ Generate custom state values
@@ -29,7 +29,7 @@ export function subvariantsAdvanced( { block, presetData } ) {
 		block.addProperty( property, values )
 	} )
 
-	// ~ Add event that triggers transform
+	// ~ Add events based on @events, @event_templates and @properties
 	if ( events && Object.keys( events ) ) {
 		presetData.createEvents( { events, eventTemplates: event_templates, properties } )
 	}

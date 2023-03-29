@@ -62,21 +62,21 @@ export function CreateBlock( gData ) {
 		 * Add event to events directive in source.
 		 */
 		addEvent( {
-			event,
+			eventTrigger,
 			handler,
 			action = [],
 			condition = undefined,
 		} ) {
-			this.data.eventTriggers[ event ].handler = handler
+			this.data.eventTriggers[ eventTrigger ].handler = handler
 
 			if ( condition ) {
-				this.data.eventTriggers[ event ].condition ??= []
-				this.data.eventTriggers[ event ].condition.push( condition )
+				this.data.eventTriggers[ eventTrigger ].condition ??= []
+				this.data.eventTriggers[ eventTrigger ].condition.push( condition )
 			}
 
 			this.data.eventHandlers[ handler ] = {
 				sequence: [
-					...( this.data.eventHandlers[ event ]?.sequence ?? [] ),
+					...( this.data.eventHandlers[ eventTrigger ]?.sequence ?? [] ),
 					...action,
 				],
 			}

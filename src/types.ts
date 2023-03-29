@@ -54,26 +54,6 @@ declare namespace CreateBlock {
 	type MCPermutationTemplate = Pick<McPermutationTemplate, "block_props"|"condition">
 }
 
-
-interface EventTrigger { condition: string[], handler: string, target?: string }
-
-interface EventTemplate {
-	action: JSO[],
-	event?: string,
-	handler?: string
-	target?: string,
-	condition?: string
-	// trigger_items?: string[]
-	// properties?: string[]
-}
-
-
-interface EventData {
-	handler: string
-	trigger_items?: string[]
-	properties?: string[]
-}
-
 interface GeneratedBlockData {
 	source: BlockTemplateData;
 	block: JSO; // Props( data.props ),
@@ -215,7 +195,8 @@ interface PermutationBuilderProxy extends PermutationBuilderPublicProxyInterface
 interface PresetHandlerData {
 	params: Partial<PresetTemplate>
 	presetName: string
-	presetData: Partial<PresetTemplate>;
+	/** Configuration data from block template */
+	presetConfig: Partial<PresetTemplate>;
 	presetVars: JSO,
 	customVars: JSO;
 	actionHooks: JSO;
@@ -246,30 +227,89 @@ interface PresetHandler {
 	createPermutation( permutation: McPermutationTemplate ): void;
 	createPartVisibilityRules( partVisibilityConfig: JSO ): void
 	createPartVisibilityRule( materialInstanceName: string, conditions: string[], property: string ): void;
+
+	/**
+	 * Create events. Receives preset directives `@events`, `@event_templates` and `@properties`.
+	 */
 	createEvents( {
 		events,
 		eventTemplates,
 		properties
 	}: {
+		/** `@events`preset directive */
 		events: PresetTemplate['events']
+		/** `@event_templates` preset directive */
 		eventTemplates: PresetTemplate['event_templates']
+		/** `@properties` preset directive */
 		properties?: JSO;
 	} ): void
 	createEvent( {
-		event,
+		eventTrigger,
 		handler,
-		properties,
+		propertyNames,
 		triggerItems,
 		eventTemplate,
 	}: {
-		event: string;
+		/**
+		 * Minecraft event trigger.
+		 *
+		 * @see https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blocktriggers/blocktriggerlist
+		 */
+		eventTrigger: string;
+		/** Create event handler */
 		handler: string;
-		properties?: JSO;
+		/** List of properties to use with event */
+		propertyNames?: string[];
+		/** Items that can trigger this event {Key: ItemName} */
 		triggerItems?: JSO;
+		/** Name of event template to use  */
 		eventTemplate?: EventTemplate;
 	} ): void;
 	checkRequiredParams(): void;
 }
+
+interface EventTrigger {
+	/** Molang condition */
+	condition: string[],
+	/** Name of event handler */
+	handler: string,
+	/** Event target, e.g. `self` or `player` */
+	target?: string
+}
+
+interface EventTemplate {
+	/**
+	 * Event actions
+	 *
+	 * @see Valid event types: https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockevents/blockeventlist
+	 */
+	action: JSO[],
+	/**
+	 * Minecraft event trigger.
+	 *
+	 * @see https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blocktriggers/blocktriggerlist
+	 */
+	eventTrigger?: string,
+	/** Name of event handler */
+	handler?: string
+	/** Event target, e.g. `self` or `player` */
+	target?: string,
+	/** Molang condition */
+	condition?: string
+	// trigger_items?: string[]
+	// properties?: string[]
+}
+
+
+interface PresetEventData {
+	eventTrigger: string,
+	handler: string
+	triggerItems?: JSO<string>// string[]
+	propertyNames?: string | string[]
+}
+
+type PresetEventTemplate = {action: JSO[]}
+
 
 interface McPermutationTemplate {
 	block_props: JSO;
@@ -281,12 +321,9 @@ interface McPermutationTemplate {
 interface PresetTemplate {
 	[x: string]: any
 	properties: JSO<number[] | false>
-	events: JSO<string | string[]>
-	event_templates: {
-		[x: string]: {
-			action: JSO[]
-		}
-	}
+	/** e.g. { event: { "on_interact.handler": "...", "on_interact.trigger_items": { [string]: "..." } } } */
+	events: JSO<string | string[] | JSO<string>>
+	event_templates: JSO<PresetEventTemplate>,
 	permutation_templates: McPermutationTemplate[]
 	part_visibility_template: string
 	permutations: JSO

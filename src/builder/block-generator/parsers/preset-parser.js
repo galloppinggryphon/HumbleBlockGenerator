@@ -32,15 +32,15 @@ export function parsePresets( block ) {
 	}
 
 	// Walk through presets collection
-	dir.apply.forEach( ( presetConfig ) => {
-		if ( ! presetConfig ) {
+	dir.apply.forEach( ( presetTemplateData ) => {
+		if ( ! presetTemplateData ) {
 			return
 		}
 
-		const presetName = presetConfig.preset
+		const presetName = presetTemplateData.preset
 
 		// Template is disabled
-		if ( presetConfig === false || presetConfig?.disabled ) {
+		if ( presetTemplateData === false || presetTemplateData?.disabled ) {
 			logger.error( `Skipping disabled preset '${ presetName }'.` )
 			return
 		}
@@ -58,7 +58,7 @@ export function parsePresets( block ) {
 		}
 
 		// Check if the preset should be disabled
-		if ( presetConfig.config.disabled === true ) {
+		if ( presetTemplateData.config.disabled === true ) {
 			return
 		}
 
@@ -92,9 +92,9 @@ export function parsePresets( block ) {
 			// }, { handler: parent.handler, '__parent__': template.value[ 'parent' ] } )
 		}
 
-		else if ( typeof presetConfig.config === 'string' ) {
+		else if ( typeof presetTemplateData.config === 'string' ) {
 			// Check if a feature variation is requested - and if it exists
-			const { config } = presetConfig
+			const { config } = presetTemplateData
 			if ( config ) {
 				if ( ! ( config in template.data ) ) {
 					logger.error(
@@ -119,7 +119,7 @@ export function parsePresets( block ) {
 			}
 
 			const presetTemplate = _.cloneDeep( template.data )
-			const presetData = PresetDataHandler( block, { presetName, presetTemplate, presetData: presetConfig.config } )
+			const presetData = PresetDataHandler( block, { presetName, presetTemplate, presetConfig: presetTemplateData.config } )
 
 			presetScripts[ handler ]( {
 				block,
@@ -137,16 +137,17 @@ export function parsePresets( block ) {
 }
 
 /**
+ * Preset builder.
  *
- * @param {CreateBlock.Block} block
+ * @param {CreateBlock.Block} block - Block data
  * @param {Object} props
  * @param {string} [props.presetName]
- * @param {Partial<PresetTemplate>} props.presetData
- * @param {Partial<PresetTemplate>} props.presetTemplate
+ * @param {Partial<PresetTemplate>} props.presetConfig Configuration data from block template
+ * @param {Partial<PresetTemplate>} props.presetTemplate Preset template
  * @param {JSO} [props.customVars]
  * @param {any} [props.actionHooks]
  */
-export function PresetDataHandler( block, { presetName = undefined, presetData, presetTemplate, customVars = undefined, actionHooks = undefined } ) {
+export function PresetDataHandler( block, { presetName = undefined, presetConfig, presetTemplate, customVars = undefined, actionHooks = undefined } ) {
 	const { source } = block.data
 
 	const defaultCustomVars = {
@@ -168,7 +169,7 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 	const presetHandlerData = {
 		params: undefined,
 		presetName,
-		presetData,
+		presetConfig,
 		presetVars: undefined,
 		customVars: customVars ?? defaultCustomVars,
 		actionHooks: actionHooks ?? defaultActionHooks,
@@ -186,12 +187,18 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 		},
 
 		/**
-		 * Get preset params (combined from data and template)
+		 * Get preset data (combined from block preset configuration and template)
 		 */
 		get params() {
 			if ( ! this.data.params ) {
-				// @ts-ignore
-				this.data.params = mergePresetData( this.data.presetTemplate, this.data.presetData )
+				// Merging of event templates is a special case
+
+				const { event_templates: eventTemplateConfig, ...presetConfigData } = this.data.presetConfig
+
+				const { event_templates: eventTemplates, ...presetTemplateData } = this.data.presetTemplate
+
+				this.data.params = mergePresetData( presetTemplateData, presetConfigData )
+				this.data.params.event_templates = mergeEventTemplates( eventTemplates, eventTemplateConfig )
 			}
 
 			return this.data.params
@@ -282,7 +289,7 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 		},
 
 		/**
-		 * Property meta data.
+		 * Custom property meta data.
 		 *
 		 * @param {string} property
 		 */
@@ -425,24 +432,55 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 			block.addPartVisibility( partVisibility.bone, partVisibility.conditions )
 		},
 
+		/**
+		 * Create events. Receives preset directives `@events`, `@event_templates` and `@properties`.
+		 */
 		createEvents( { events, eventTemplates, properties } ) {
-			/** @type {{config: JSO<EventData>, triggerItems: string[], properties: string[] }} */
-			const eventData = { config: {}, triggerItems: [], properties: [] }
+			/** @type {string[]} */
+			const triggerItemList = []
 
-			reducer( events, ( result, [ key, value ] ) => {
-				const [ event, property ] = key.split( '.' )
-				result.config[ event ] ??= {}
-				result.config[ event ][ property ] = value
+			/** @type {JSO<Partial<PresetEventData>>} */
+			const eventList = {}
 
-				if ( property === 'trigger_items' && isObj( value ) ) {
-					result.triggerItems.push( ...Object.values( value ) )
+			// Create array of trigger items
+			// reducer( events, ( result, [ key, value ] ) => {
+			// 	const [ event, property ] = key.split( '.' )
+			// 	result.config[ event ] ??= {}
+			// 	result.config[ event ][ property ] = value
+
+			// 	if ( property === 'trigger_items' && isObj( value ) ) {
+			// 		result.triggerItems.push( ...Object.values( value ) )
+			// 	}
+
+			// 	return result
+			// }, eventList )
+
+			for ( const [ key, value ] of Object.entries( events ) ) {
+				const [ eventTrigger, property ] = key.split( '.' )
+
+				eventList[ eventTrigger ] = eventList[ eventTrigger ] ?? { eventTrigger }
+				const eventData = eventList[ eventTrigger ]
+
+				// Normalize JSON key names (to camel-case)
+				const normalizedProperty =
+					( property === 'property_names' && 'propertyNames' )
+					|| ( property === 'trigger_items' && 'triggerItems' )
+					|| property
+
+				if ( property === 'trigger_items' ) {
+					if ( isObj( value ) ) {
+						eventData[ normalizedProperty ] = value
+						triggerItemList.push( ...Object.values( value ) )
+					}
 				}
+				else if ( property ) {
+					eventData[ normalizedProperty ] = value
+				}
+			}
 
-				return result
-			}, eventData )
-
-			if ( eventData.triggerItems.length ) {
-				const items = Array.from( new Set( eventData.triggerItems ) )
+			// Resolve computed properties %trigger_items.* (used in event_templates) with values from trigger items array
+			if ( triggerItemList.length ) {
+				const items = Array.from( new Set( triggerItemList ) )
 
 				this.setCustomVar(
 					computedProp( `trigger_items.list` ),
@@ -457,6 +495,7 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 				)
 			}
 
+			// Resolve computed property %properties.array = list of custom block properties
 			if ( properties ) {
 				this.setCustomVar(
 					computedProp( `properties.array` ),
@@ -464,18 +503,19 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 				)
 			}
 
-			Object.entries( eventData.config ).forEach( ( [ event, config ] ) => {
-				const { handler, properties: props, trigger_items } = config
+			// Create events from prepared data
+			Object.values( eventList ).forEach( ( event ) => {
+				const { eventTrigger, handler, propertyNames, triggerItems } = event
 				if ( ! handler ) {
 					return
 				}
 
 				const eventTemplate = eventTemplates[ handler ]
-				this.createEvent( { event, handler, eventTemplate, properties: props, triggerItems: trigger_items } )
+				this.createEvent( { eventTrigger, handler, eventTemplate, propertyNames, triggerItems } )
 			} )
 		},
 
-		createEvent( { event, handler, properties = undefined, triggerItems = undefined, eventTemplate = undefined } ) {
+		createEvent( { eventTrigger, handler, propertyNames = undefined, triggerItems = undefined, eventTemplate = undefined } ) {
 			if ( eventTemplate && ! ( 'action' in eventTemplate ) ) {
 				logger.error( `Problems were found in preset '${ presetName }'. Missing required key in event template: 'action'.` )
 				return
@@ -488,10 +528,8 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 				action: [],
 			}
 
-			eventData.event = event
+			eventData.eventTrigger = eventTrigger
 			eventData.handler = handler
-
-			const { params } = this
 
 			const vars = {
 				// ...block.data.extraVars,
@@ -521,9 +559,12 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 				}
 			}
 
-			// Create event actions for each event
-			// trigger_items are mapped to properties
-			const generateEventAction = ( { action, triggerItem = undefined, propData } ) => {
+			/**
+			 * Resolve variables in action definitions.
+			 *
+			 * @param {{ action: JSO, triggerItem?: string, propData: JSO }} props
+			 */
+			const resolveActionVariables = ( { action, triggerItem = undefined, propData } ) => {
 				const eVars = {
 					[ computedProp( `trigger_item` ) ]: triggerItem && resolveTemplateStrings( triggerItem, vars ),
 
@@ -540,22 +581,29 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 				return resolveTemplateStringsRecursively( action, eVars, { restrictChars: false } )
 			}
 
+			/**
+			 * Action generator
+			 * @param {*} param0
+			 */
 			const generateAction = ( { property, triggerItem = undefined } ) => {
 				const propData = this.getPresetPropertyData( property )
 
 				// Generate actions for multiple trigger items, if defined
 				const template = _.cloneDeep( eventTemplate )
 				const actions = template?.action.map( ( action ) => {
-					return generateEventAction( { propData, action, triggerItem } )
+					return resolveActionVariables( { propData, action, triggerItem } )
 				} )
 				return actions
 			}
 
-			// Create event actions in two ways
-			// [1] Generate froms 'properties', OR
-			// [2] Generate from 'trigger_items'
+			/**
+			 * ~ Create event actions in one of three ways
+			 * [1] Generate from event 'trigger_items'
+			 * [2] Generate from event 'propertyList' list
+			 * [3] Add actions without processing
+			 */
 			if ( triggerItems ) {
-				reducer( params.properties, ( result, [ property ] ) => {
+				reducer( this.params.properties, ( result, [ property ] ) => {
 					const triggerItem = triggerItems[ property ]
 					if ( ! triggerItem ) {
 						return result
@@ -565,11 +613,14 @@ export function PresetDataHandler( block, { presetName = undefined, presetData, 
 					return result
 				}, eventData.action )
 			}
-			else if ( properties ) {
-				const { properties: resolvedProps } = resolveRefsRecursively( { properties }, this.customVars, { mutateSource: true } )
-				const propsArr = [ resolvedProps ].flat()
-				const actions = propsArr.map( ( property ) => generateAction( { property } ) )
+			else if ( propertyNames ) {
+				const { resolvedPropertyNames } = resolveRefsRecursively( { resolvedPropertyNames: propertyNames }, this.customVars, { mutateSource: true } )
+
+				const actions = [ resolvedPropertyNames ].flat().map( ( property ) => generateAction( { property } ) )
 				eventData.action.push( ...actions[ 0 ] )
+			}
+			else {
+				eventData.action = eventTemplate?.action
 			}
 
 			block.addEvent( eventData )
@@ -640,4 +691,30 @@ function mergePresetData( source, target ) {
 
 		return result
 	}, _target )
+}
+
+/**
+ * Merging of event templates is a special case
+ * - If source == array: merge
+ * - If source == object: overwrite
+ *
+ * @param {JSO<PresetEventTemplate>} target
+ * @param {JSO<PresetEventTemplate>} source
+ */
+function mergeEventTemplates( target, source ) {
+	if ( ! source ) {
+		return target
+	}
+	if ( ! target || ! Array.isArray( source ) ) {
+		return source
+	}
+
+	const eventTemplates = source.reduce( ( result, obj ) => {
+		for ( const [ eventTrigger, props ] of Object.entries( obj ) ) {
+			result[ eventTrigger ] = props
+		}
+		return result
+	}, target )
+
+	return eventTemplates
 }
