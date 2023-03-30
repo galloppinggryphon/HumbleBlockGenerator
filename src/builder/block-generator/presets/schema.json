@@ -1,0 +1,162 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://example.com/preset.schema.json",
+	"title": "Preset schema",
+	"type": "object",
+	"required": ["base_preset"],
+	"patternProperties": {
+		"^[\\w\\d_-]+$": {
+			"description": "Preset name",
+			"type": "object",
+			"properties": {
+				"handler": {
+					"type": "string",
+					"description": "Name of the JS preset parser."
+				},
+
+				"parent": {
+					"type": "string",
+					"description": "Declare the parent preset."
+				},
+
+				"events": {
+					"type": "object",
+					"description": "Configure events - define triggers, handlers, items and properties.",
+					"patternProperties": {
+						"^[\\w\\d_-]+$": {
+							"oneOf": [
+								{
+									"type": "string",
+									"description": "Custom block property with reference to a variable containing values.",
+									"pattern": "^[$][\\w\\d_.-]+$"
+								},
+								{
+									"type": "array",
+									"description": "Custom block property array.",
+									"uniqueItems": true,
+									"minProperties": 1,
+									"maxProperties": 17,
+									"items": {
+										"type": "number"
+									}
+								}
+							]
+						}
+					}
+				},
+
+				"event_templates": {
+					"description": "Dynamic event handler templates.",
+					"type": "object",
+					"patternProperties": {
+						"^[\\w\\d_-]+$": {
+							"description": "Event handler",
+							"type": "object",
+							"properties": {
+								"trigger_condition": {
+									"description": "Condition for event trigger (Molang expression).",
+									"type": "string"
+								},
+
+								"action": {
+									"description": "Set of actions to perform.",
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"condition": {
+												"description": "Action execution filter (Molang expression).",
+												"type": "string"
+											}
+										},
+										"patternProperties": {
+											"^[\\w\\d_-]+$": {
+												"type": "object",
+												"description": "Action item. The key must be one of a set of predefined Minecraft actions."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+
+				"properties": {
+					"description": "Custom block properties.",
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "object",
+							"patternProperties": {
+								"^[\\w\\d_-]+$": {
+									"oneOf": [
+										{
+											"type": "string",
+											"description": "Custom block property with reference to a variable containing values.",
+											"pattern": "^[$][\\w\\d_.-]+$"
+										},
+										{
+											"type": "array",
+											"description": "Custom block property array.",
+											"uniqueItems": true,
+											"minProperties": 1,
+											"maxProperties": 17,
+											"items": {
+												"type": "number"
+											}
+										}
+									]
+								}
+							}
+						}
+					]
+				}
+			},
+
+			"patternProperties": {
+				"^[$][\\w\\d_.-]+$": {
+					"description": "Custom variable.",
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
+						},
+						{
+							"type": "number"
+						},
+						{
+							"type": "array"
+						},
+						{
+							"type": "object",
+							"additionalProperties": {
+								"oneOf": [
+									{
+										"type": "null"
+									},
+									{
+										"type": "string"
+									},
+									{
+										"type": "number"
+									},
+									{
+										"type": "array"
+									},
+									{
+										"type": "object"
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		}
+	}
+}
