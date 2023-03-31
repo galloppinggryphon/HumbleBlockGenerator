@@ -180,25 +180,30 @@ function resolveTemplateStrings( inputString, variables, { brackets = [ '{{', '}
 /**
  * Replace all placeholders surrounded by brackets in both keys and string values. Works on objects and arrays.
  *
- * !NOTE: **not proxy safe!**
+ * ! NOTE: **not proxy safe!**
  *
  * ---
- *
- * @param {*} source
- * @param {*} variables Object containing placeholders and replacement values.
- * @param {*} brackets Symbol surrounging placeholders.
+ * @template {JSO} Source
+ * @param {Source} source
+ * @param {JSO} variables Object containing placeholders and replacement values.
+ * @param {Object} props Options
+ * @param {string | string[] } [props.brackets] - Single start/stop bracket ("%") or different start and stop brackets (["{{", "}}"])
+ * @param {boolean} [props.restrictChars] - Use limited set of characters
+ * @param {boolean} [props.mutateSource] - Mutate source object?
+ * @param {boolean} [props.removeUnmatched] - Remove unmatched placeholders, or leave alone
+ * @return {Source}
  */
-function resolveTemplateStringsRecursively( source, variables, { brackets = [ '{{', '}}' ], restrictChars = true, mutateSource = false } = {} ) {
+function resolveTemplateStringsRecursively( source, variables, { brackets = [ '{{', '}}' ], restrictChars = true, mutateSource = false, removeUnmatched = false } = {} ) {
 	if ( Array.isArray( source ) ) {
 		const target = mutateSource ? source : []
 
 		return source.reduce( ( result, value, key ) => {
 			if ( Object( value ) === value ) {
-				result[ key ] = resolveTemplateStringsRecursively( value, variables, { brackets, restrictChars } )
+				result[ key ] = resolveTemplateStringsRecursively( value, variables, { brackets, removeUnmatched, restrictChars } )
 			}
 			else {
 				// result.splice( key, 1 )
-				result[ key ] = resolveTemplateStrings( value, variables, { brackets, restrictChars } )
+				result[ key ] = resolveTemplateStrings( value, variables, { brackets, removeUnmatched, restrictChars } )
 			}
 
 			return result
@@ -211,17 +216,18 @@ function resolveTemplateStringsRecursively( source, variables, { brackets = [ '{
 		return source
 	}
 
-	const target = mutateSource ? source : {}
+	const target = mutateSource ? source : /** @type {Source} */ ( {} )
 	return entries.reduce( ( result, [ key, value ] ) => {
-		const _key = resolveTemplateStrings( key, variables, { brackets, restrictChars } )
+		/** @type {keyof Source} */
+		const _key = resolveTemplateStrings( key, variables, { brackets, removeUnmatched, restrictChars } )
 
 		if ( _key !== key ) {
 			delete result[ key ]
 		}
 
 		const _value = Object( value ) === value
-			? resolveTemplateStringsRecursively( value, variables, { brackets, restrictChars, mutateSource: true } )
-			: resolveTemplateStrings( value, variables, { brackets, restrictChars } )
+			? resolveTemplateStringsRecursively( value, variables, { brackets, removeUnmatched, restrictChars, mutateSource: true } )
+			: resolveTemplateStrings( value, variables, { brackets, removeUnmatched, restrictChars } )
 
 		result[ _key ] = _value
 		return result
