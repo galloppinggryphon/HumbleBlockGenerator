@@ -493,43 +493,6 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 			}
 
 			/**
-			 * Resolve variables in action definitions.
-			 *
-			 * @param {{ action: JSO, triggerItem?: string, propData: JSO }} props
-			 */
-			const resolveActionVariables = ( { action, triggerItem = undefined, propData } ) => {
-				const eVars = {
-					[ computedProp( `trigger_item` ) ]: triggerItem && resolveTemplateStrings( triggerItem, vars ),
-
-					...propData
-						? {
-							[ computedProp( `property` ) ]: propData.property,
-							[ computedProp( `property.query` ) ]: propData.query,
-							[ computedProp( `property.max` ) ]: propData.max,
-							[ computedProp( `property.min` ) ]: propData.min,
-						}
-						: {},
-				}
-
-				return resolveTemplateStringsRecursively( action, eVars, { restrictChars: false } )
-			}
-
-			/**
-			 * Action generator
-			 * @param {*} param0
-			 */
-			const generateAction = ( { property, triggerItem = undefined } ) => {
-				const propData = this.getPresetPropertyData( property )
-
-				// Generate actions for multiple trigger items, if defined
-				const template = _.cloneDeep( eventTemplate )
-				const actions = template?.action.map( ( action ) => {
-					return resolveActionVariables( { propData, action, triggerItem } )
-				} )
-				return actions
-			}
-
-			/**
 			 * ~ Create event actions in one of three ways
 			 * [1] Generate from event 'trigger_items'
 			 * [2] Generate from event 'propertyList' list
@@ -541,7 +504,8 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 					if ( ! triggerItem ) {
 						return result
 					}
-					const actions = generateAction( { property, triggerItem } )
+
+					const actions = eventActionParser( { action, property, triggerItem } )
 					result.push( ...actions )
 					return result
 				}, eventData.action )
@@ -549,7 +513,10 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 			else if ( propertyNames ) {
 				const { resolvedPropertyNames } = resolveRefsRecursively( { resolvedPropertyNames: propertyNames }, this.customVars, { mutateSource: true } )
 
-				const actions = [ resolvedPropertyNames ].flat().map( ( property ) => generateAction( { property } ) )
+				const actions = [ resolvedPropertyNames ].flat().map(
+					( property ) => eventActionParser( { action, property } ),
+				)
+
 				eventData.action.push( ...actions[ 0 ] )
 			}
 			else {
