@@ -617,6 +617,72 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 		// resolveRefsRecursively( this.data.presetTemplate, vars, { removeMissing: false, mutateSource: true } )
 		// resolveTemplateStringsRecursively( this.data.presetTemplate, vars, { mutateSource: true } )
 	}
+
+	/**
+	 * Resolve variables in event action definitions.
+	 *
+	 * @param {{ action: JSO, triggerItem?: string, propData: JSO }} props
+	 */
+	function resolveEventActionVariables( { action, propData, triggerItem = undefined } ) {
+		const eVars = {
+			[ computedProp( `trigger_item` ) ]: triggerItem && resolveTemplateStrings( triggerItem, presetHandler.customVars ),
+
+			...propData
+				? {
+					[ computedProp( `property` ) ]: propData.property,
+					[ computedProp( `property.query` ) ]: propData.query,
+					[ computedProp( `properties.max` ) ]: propData.max,
+					[ computedProp( `properties.min` ) ]: propData.min,
+				}
+				: {},
+		}
+
+		return resolveTemplateStringsRecursively( action, eVars, { restrictChars: false } )
+	}
+
+	/**
+	 * Action generator
+	 * @param {{action: Events.ActionItem[], property: string, triggerItem?: string}} param0
+	 */
+	function eventActionParser( { action, property, triggerItem = undefined } ) {
+		const propData = getPresetPropertyMeta( property )
+
+		let actionArray = []
+
+		// Generate actions for multiple trigger items, if defined
+		actionArray = _.cloneDeep( action )
+		const resolvedActions = actionArray.map( ( item ) => {
+			return resolveEventActionVariables( { propData, action: item, triggerItem } )
+		} )
+		return resolvedActions
+	}
+
+	/**
+	 * Parse meta data for a custom property.
+	 *
+	 * @param {string} property
+	 */
+	function getPresetPropertyMeta( property ) {
+		const values = presetHandler.params.properties[ property ]
+		if ( ! values ) {
+			logger.error( `Invalid values for property '${ property }' in preset '${ presetName }'.` )
+			return
+		}
+
+		const data = {
+			key: property,
+			property: `{{prefix}}:${ property }`,
+			query: `query.block_property('{{prefix}}:${ property }')`,
+			get max() {
+				return Math.max( ...values )
+			},
+			get min() {
+				return Math.min( ...values )
+			},
+		}
+
+		return data
+	}
 }
 
 /**
