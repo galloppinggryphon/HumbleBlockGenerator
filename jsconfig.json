@@ -6,7 +6,7 @@
        "target":"es6",
        "moduleResolution":"node",
        "module":"es2020",
-       "lib": ["es2020", "dom"],
+       "lib": ["es2021", "dom"],
 	   "esModuleInterop": true,
 	   "strictNullChecks": false,
 	   "noErrorTruncation": true,
