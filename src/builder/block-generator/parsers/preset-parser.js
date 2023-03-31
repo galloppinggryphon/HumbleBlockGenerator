@@ -8,6 +8,7 @@ import {
 	resolveNestedVariables,
 	reducer,
 	isObj,
+	kebabToCamelCase,
 } from '../../../lib/utils.js'
 import {
 	logger, variablePrefix,
@@ -142,8 +143,8 @@ export function parsePresets( block ) {
  * @param {CreateBlock.Block} block - Block data
  * @param {Object} props
  * @param {string} [props.presetName]
- * @param {Partial<PresetTemplate>} props.presetConfig Configuration data from block template
- * @param {Partial<PresetTemplate>} props.presetTemplate Preset template
+ * @param {Partial<PresetTemplate.TemplateData>} props.presetConfig Configuration data from block template
+ * @param {Partial<PresetTemplate.TemplateData>} props.presetTemplate Preset template
  * @param {JSO} [props.customVars]
  * @param {any} [props.actionHooks]
  */
@@ -164,7 +165,7 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 	}
 
 	/**
-	 * @type {PresetHandlerData}
+	 * @type {Presets.PresetHandlerData}
 	 */
 	const presetHandlerData = {
 		params: undefined,
@@ -177,7 +178,7 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 	}
 
 	/**
-	 * @type {PresetHandler}
+	 * @type {Presets.PresetHandler}
 	 */
 	const presetHandler = {
 		data: presetHandlerData,
@@ -193,12 +194,12 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 			if ( ! this.data.params ) {
 				// Merging of event templates is a special case
 
-				const { event_templates: eventTemplateConfig, ...presetConfigData } = this.data.presetConfig
+				const { event_handler_templates: eventHandlerConfig, ...presetConfigData } = this.data.presetConfig
 
-				const { event_templates: eventTemplates, ...presetTemplateData } = this.data.presetTemplate
+				const { event_handler_templates: eventHandlerTemplates, ...presetTemplateData } = this.data.presetTemplate
 
 				this.data.params = mergePresetData( presetTemplateData, presetConfigData )
-				this.data.params.event_templates = mergeEventTemplates( eventTemplates, eventTemplateConfig )
+				this.data.params.event_handler_templates = mergeEventHandlerTemplates( eventHandlerTemplates, eventHandlerConfig )
 			}
 
 			return this.data.params
@@ -366,56 +367,53 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 		},
 
 		/**
-		 * Create events. Receives preset directives `@events`, `@event_templates` and `@properties`.
+		 * Create events. Receives preset directives `@events`, `@event_handler_templates` and `@properties`.
 		 */
-		createEvents( { events, eventTemplates, properties } ) {
+		createEvents( { events, eventHandlers, properties } ) {
 			/** @type {string[]} */
 			const triggerItemList = []
 
-			/** @type {JSO<Partial<PresetEventData>>} */
-			const eventList = {}
+			/** @type {JSO<Partial<Events.EventData>>} */
+			const eventData = {}
 
-			// Create array of trigger items
-			// reducer( events, ( result, [ key, value ] ) => {
-			// 	const [ event, property ] = key.split( '.' )
-			// 	result.config[ event ] ??= {}
-			// 	result.config[ event ][ property ] = value
+			// Parse @events
+			for ( const [ eventTrigger, props ] of Object.entries( events ) ) {
+				eventData[ eventTrigger ] = eventData[ eventTrigger ] ?? { eventTrigger }
+				const eventItem = eventData[ eventTrigger ]
 
-			// 	if ( property === 'trigger_items' && isObj( value ) ) {
-			// 		result.triggerItems.push( ...Object.values( value ) )
-			// 	}
+				for ( const [ rawProperty, value ] of Object.entries( props ) ) {
+					// Normalize JSON key names
+					const property = kebabToCamelCase( rawProperty )
 
-			// 	return result
-			// }, eventList )
-
-			for ( const [ key, value ] of Object.entries( events ) ) {
-				const [ eventTrigger, property ] = key.split( '.' )
-
-				eventList[ eventTrigger ] = eventList[ eventTrigger ] ?? { eventTrigger }
-				const eventData = eventList[ eventTrigger ]
-
-				// Normalize JSON key names (to camel-case)
-				const normalizedProperty =
-					( property === 'property_names' && 'propertyNames' )
-					|| ( property === 'trigger_items' && 'triggerItems' )
-					|| property
-
-				if ( property === 'trigger_items' ) {
-					if ( isObj( value ) ) {
-						eventData[ normalizedProperty ] = value
-						triggerItemList.push( ...Object.values( value ) )
+					if ( property === 'triggerItems' ) {
+						if ( isObj( value ) ) {
+							eventItem[ property ] = value
+							triggerItemList.push( ...Object.values( value ) )
+						}
 					}
-				}
-				else if ( property ) {
-					eventData[ normalizedProperty ] = value
+					else {
+						eventItem[ property ] = value
+					}
 				}
 			}
 
-			// Resolve computed properties %trigger_items.* (used in event_templates) with values from trigger items array
+			// Normalize eventHandlers
+			Object.entries( eventHandlers ).reduce( ( result, [ key, value ] ) => {
+				for ( const property of Object.keys( value ) ) {
+					const _prop = kebabToCamelCase( property )
+					if ( _prop !== property ) {
+						result[ key ][ _prop ] = value[ property ]
+						delete result[ key ][ property ]
+					}
+				}
+				return result
+			}, eventHandlers )
+
+			// Resolve computed properties %trigger_items.* (used in event_handler_templates and events.condition) with values from trigger items array
 			if ( triggerItemList.length ) {
 				const items = Array.from( new Set( triggerItemList ) )
-
 				this.setCustomVar(
+					// Comma-separated string
 					computedProp( `trigger_items.list` ),
 					items
 						.map( ( val ) => `'${ val }'` )
@@ -437,25 +435,26 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 			}
 
 			// Create events from prepared data
-			Object.values( eventList ).forEach( ( event ) => {
-				const { eventTrigger, handler, propertyNames, triggerItems } = event
+			Object.values( eventData ).forEach( ( event ) => {
+				const { eventTrigger, handler, propertyNames, triggerItems, condition } = event
 				if ( ! handler ) {
 					return
 				}
 
-				const eventTemplate = eventTemplates[ handler ]
-				this.createEvent( { eventTrigger, handler, eventTemplate, propertyNames, triggerItems } )
+				const { triggerCondition, action } = eventHandlers[ handler ] ?? {}
+
+				if ( ! action ) {
+					logger.error( `Problems were found in preset '${ presetName }'. Missing required key in event template: 'action'.` )
+					return
+				}
+
+				this.createEvent( { triggerCondition: condition ?? triggerCondition, action, eventTrigger, handler, propertyNames, triggerItems } )
 			} )
 		},
 
-		createEvent( { eventTrigger, handler, propertyNames = undefined, triggerItems = undefined, eventTemplate = undefined } ) {
-			if ( eventTemplate && ! ( 'action' in eventTemplate ) ) {
-				logger.error( `Problems were found in preset '${ presetName }'. Missing required key in event template: 'action'.` )
-				return
-			}
-
+		createEvent( { action, eventTrigger, handler, triggerCondition = undefined, propertyNames = undefined, triggerItems = undefined } ) {
 			/**
-			 * @type {EventTemplate}
+			 * @type {Events.EventData}
 			 */
 			const eventData = {
 				action: [],
@@ -471,15 +470,15 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 			}
 
 			// Process variables
-			if ( eventTemplate.condition ) {
+			if ( triggerCondition ) {
 				if ( ! triggerItems ) {
-					logger.error( `Error parsing event data: missing 'trigger_items'.`, { presetName, condition: eventTemplate.condition } )
+					logger.error( `Error parsing event data: missing 'trigger_items'.`, { presetName, triggerCondition } )
 				}
 				else if ( stringContainsUnresolvedRef( triggerItems ) ) {
-					logger.error( `Error parsing event data: unresolved variable in 'trigger_items'.`, { presetName, triggerItems, condition: eventTemplate.condition } )
+					logger.error( `Error parsing event data: unresolved variable in 'trigger_items'.`, { presetName, triggerItems, triggerCondition } )
 				}
 				else {
-					eventData.condition = resolveTemplateStrings( eventTemplate.condition, vars, { restrictChars: false } )
+					eventData.condition = resolveTemplateStrings( triggerCondition, vars, { restrictChars: false } )
 
 					// const eVars = {
 					// 	...vars,
@@ -520,7 +519,7 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 				eventData.action.push( ...actions[ 0 ] )
 			}
 			else {
-				eventData.action = eventTemplate?.action
+				eventData.action = action
 			}
 
 			block.addEvent( eventData )
@@ -704,14 +703,14 @@ function mergePresetData( source, target ) {
 }
 
 /**
- * Merging of event templates is a special case
+ * Merging of event handler templates is a special case
  * - If source == array: merge
  * - If source == object: overwrite
  *
- * @param {JSO<PresetEventTemplate>} target
- * @param {JSO<PresetEventTemplate>} source
+ * @param {JSO<Events.EventHandlerItemTemplate>} target
+ * @param {JSO<Events.EventHandlerItemTemplate>} source
  */
-function mergeEventTemplates( target, source ) {
+function mergeEventHandlerTemplates( target, source ) {
 	if ( ! source ) {
 		return target
 	}
@@ -719,12 +718,12 @@ function mergeEventTemplates( target, source ) {
 		return source
 	}
 
-	const eventTemplates = source.reduce( ( result, obj ) => {
+	const eventHandlers = source.reduce( ( result, obj ) => {
 		for ( const [ eventTrigger, props ] of Object.entries( obj ) ) {
 			result[ eventTrigger ] = props
 		}
 		return result
 	}, target )
 
-	return eventTemplates
+	return eventHandlers
 }

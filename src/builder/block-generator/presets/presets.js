@@ -10,11 +10,11 @@ import display from '../../../lib/display.js'
  *
  * @param {Object} props
  * @param {CreateBlock.Block} props.block
- * @param {PresetHandler} props.presetData
+ * @param {Presets.PresetHandler} props.presetData
  *
  */
 export function basePreset( { block, presetData } ) {
-	const { permutations, permutation_templates, events, event_templates, properties, part_visibility } = presetData.params
+	const { permutations, permutation_templates, events, event_handler_templates, properties, part_visibility } = presetData.params
 
 	// ~ Generate custom state values
 	Object.entries( properties ).forEach( ( [ property, values ] ) => {
@@ -29,9 +29,9 @@ export function basePreset( { block, presetData } ) {
 		block.addProperty( property, values )
 	} )
 
-	// ~ Add events based on @events, @event_templates and @properties
+	// ~ Add events based on @events, @event_handler_templates and @properties
 	if ( events && Object.keys( events ) ) {
-		presetData.createEvents( { events, eventTemplates: event_templates, properties } )
+		presetData.createEvents( { events, eventHandlers: event_handler_templates, properties } )
 	}
 
 	// ~ Parse permutation templates

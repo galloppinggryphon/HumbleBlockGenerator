@@ -1,11 +1,21 @@
 type JSO<T extends any = any> = Record<string, T>;
 
-type Coordinates = [x: number, y: number, z: number]
+type CombineTwo<A, B> = A & B;
+
+type Coordinates = [x: number, y: number, z: number];
 
 /**
  * e: east, w: west, n: north, s: south, t: top, bottom: bottom
  */
-type UnitCubeTransformAnchors = 'wbs' | 'wbn' | 'wts' | 'wtn' | 'ebs' | 'ebn' | 'etn' | 'ets'
+type UnitCubeTransformAnchors =
+	| "wbs"
+	| "wbn"
+	| "wts"
+	| "wtn"
+	| "ebs"
+	| "ebn"
+	| "etn"
+	| "ets";
 
 interface Props {
 	[x: string]: any;
@@ -16,42 +26,211 @@ interface Props {
 }
 
 type PropsProxy<Props> = Props & {
-	filterEmpty(): Props,
-	export(): Props
+	filterEmpty(): Props;
+	export(): Props;
+};
+
+declare namespace PresetTemplate {
+	type EventHandlerTemplates = {
+		[eventHandlerName: string]: Events.EventHandlerItemTemplate;
+	};
+
+	type EventTriggers = {
+		[eventTriggerName: string]: Events.EventTriggerItemTemplate;
+	};
+
+	interface TemplateData {
+		[x: string]: any;
+		properties: JSO<number[] | false>;
+		/**
+		 * e.g. { event: { "on_interact.handler": "...", "on_interact.trigger_items": { [string]: "..." } } }
+		 */
+		events: JSO<Events.EventTriggerItemTemplate>;
+		event_handler_templates: EventHandlerTemplates;
+		permutation_templates: McPermutationTemplate[];
+		part_visibility_template: string;
+		permutations: JSO;
+		part_visibility: JSO;
+	}
+}
+
+declare namespace Events {
+	// interface EventsDirectiveItem extends Pick<EventData, "condition"|"handler"|"target"|"action"|"eventTrigger"> {}
+
+
+	interface EventData {
+		/**
+		 * Event handler actions
+		 *
+		 * @see Valid event types: https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockevents/blockeventlist
+		 */
+		action?: Events.ActionItem[]; // | Events.ActionSequence;
+		/** Action execution filter (Molang expression) */
+		condition?: string;
+		/**
+		 * Minecraft event trigger.
+		 *
+		 * @see https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blocktriggers/blocktriggerlist
+		 */
+		eventTrigger?: string;
+		/** Name of event handler */
+		handler?: string;
+		/** List of properties to use with event */
+		propertyNames?: string | string[];
+		/** Event target, e.g. `self` or `player` */
+		target?: string;
+		/** Condition to use with event trigger */
+		triggerCondition?: string;
+		/** Items that can trigger this event {Key: ItemName} */
+		triggerItems?: JSO<string>;
+	}
+
+	/** Event handler item used in preset event_handler_templates key */
+	interface EventHandlerItemTemplate extends Pick<Events.EventData, "action" | "triggerCondition"> {}
+
+	/** Event trigger item used in preset events key: condition, handler, target, propertyNames, triggerItems */
+	interface EventTriggerItemTemplate extends Pick<Events.EventData, "action" | "condition" | "handler" | "propertyNames" | "triggerItems" | "target"> {}
+
+	/** Event trigger data used in block component */
+	interface EventTriggerComponent
+		extends Pick<Events.EventData, "condition" | "handler" | "target"> {}
+
+	/** Used by block templates */
+	interface EventDirectiveItem
+		extends CombineTwo<
+			EventHandlerItemTemplate,
+			Pick<
+				Events.EventData,
+				"eventTrigger" | "handler" | "target" | "action"
+			>
+		> {}
+
+	/** Used by block templates */
+	interface EventDirectives {
+		[eventHandlerName: string]: EventDirectiveItem | Events.ActionItem[];
+	}
+
+	type ActionSequence = {
+		sequence: Events.ActionItem[];
+	};
+
+	interface ActionItem {
+		[action: string]: string;
+		condition?: string;
+	}
+
 }
 
 declare namespace CreateBlock {
 	interface Block {
 		readonly data: CreateBlock.Data;
-		readonly permutationInfo: PermutationInfoHandler;
-		addEvent( eventTemplate: EventTemplate ): void;
-		addMinecraftPermutation( condition: string, props: JSO ): void;
-		addMaterialInstances( newInstances: any ): void;
-		addPartVisibility( materialInstanceName: string, conditions: string[] ): void;
-		addProperty( key: string, values: any ): void;
+		readonly permutationInfo: PermutationTreeData;
+		addEvent(eventTemplate: Events.EventData): void;
+		addMinecraftPermutation(condition: string, props: JSO): void;
+		addMaterialInstances(newInstances: any): void;
+		addPartVisibility(
+			materialInstanceName: string,
+			conditions: string[]
+		): void;
+		addProperty(key: string, values: any): void;
 		make(): GeneratedBlockData;
 	}
 
 	interface Data {
-		blockInfo: {
-			key: string,
-			name: string,
-			fullName: string
-			finalPermutation: string
-		}
+		blockInfo: BlockInfo;
 		source: BlockTemplateData;
 		extraVars: ExtraVars;
 		props: JSO;
-		permutations: PermutationRegistry;
-		eventTriggers: JSO<EventTrigger>;
-		eventHandlers: JSO<{ sequence: JSO[] }>
+		permutations: MinecraftPermutationStore;
+		eventTriggers: JSO<Events.EventTriggerComponent>;
+		eventHandlers: JSO<Events.ActionSequence>;
 	}
 
-	type PermutationRegistry= {
-		[condition: string]: any
+	type BlockInfo = {
+		key: string;
+		name: string;
+		fullName: string;
+		finalPermutation: string;
+	};
+
+	type MinecraftPermutationStore = {
+		[condition: string]: any;
+	};
+
+	type MCPermutationTemplate = Pick<
+		McPermutationTemplate,
+		"block_props" | "condition"
+	>;
+}
+
+declare namespace Presets {
+	interface PresetHandlerData {
+		params: Partial<PresetTemplate.TemplateData>;
+		presetName: string;
+		/** Configuration data from block template */
+		presetConfig: Partial<PresetTemplate.TemplateData>;
+		presetVars: JSO;
+		customVars: JSO;
+		actionHooks: JSO;
+		presetTemplate: Partial<PresetTemplate.TemplateData>;
 	}
 
-	type MCPermutationTemplate = Pick<McPermutationTemplate, "block_props"|"condition">
+	interface PresetHandler {
+		readonly data: Presets.PresetHandlerData;
+		readonly name: string;
+		readonly params: Partial<PresetTemplate.TemplateData>;
+		readonly presetVars: JSO;
+		readonly customVars: JSO;
+		readonly presetPropertyVars: {};
+
+
+		applyActionHook<Params>(hook: string, params: Params): void;
+		clone(): Presets.PresetHandler;
+		setCustomVar(key: string, value: string | number | any[] | JSO): void;
+		setActionHook(hookName: string, func: Function): void;
+		createPermutations(
+			permutations: McPermutationTemplate | McPermutationTemplate[]
+		): void;
+		createPermutation(permutation: McPermutationTemplate): void;
+		createPartVisibilityRules(partVisibilityConfig: JSO): void;
+		createPartVisibilityRule(
+			materialInstanceName: string,
+			conditions: string[],
+			property: string
+		): void;
+
+		/**
+		 * Create events. Receives preset directives `@events`, `@event_handler_templates` and `@properties`.
+		 */
+		createEvents({
+			events,
+			eventHandlers,
+			properties,
+		}: {
+			/** `@events`preset directive */
+			events: PresetTemplate.EventTriggers;
+			/** `@event_handler_templates` preset directive */
+			eventHandlers: PresetTemplate.EventHandlerTemplates;
+			/** `@properties` preset directive */
+			properties?: JSO;
+		}): void;
+
+		createEvent({
+			action,
+			eventTrigger,
+			handler,
+			propertyNames,
+			triggerItems,
+			triggerCondition,
+		}: Presets.CreateEventProps): void;
+
+		checkRequiredParams(): void;
+	}
+
+	/**
+	 * Props for presetParser->createEvent().
+	 */
+	interface CreateEventProps extends Omit<Events.EventData, "condition"> {}
 }
 
 interface GeneratedBlockData {
@@ -75,16 +254,20 @@ interface BlockTemplateData {
 	vars?: JSO;
 }
 
-interface PermutationInfoHandler {
+interface PropParsers {
+	[propName: string]: (block: CreateBlock.Block) => CreateBlock.Block;
+}
+
+interface PermutationTreeData {
 	readonly data: PermutationInfo[];
 	readonly path: string[];
-	getFinalPermution( includeMaterialPermutations?: boolean ): string
+	getFinalPermution(includeMaterialPermutations?: boolean): string;
 }
 
 interface PermutationInfo {
 	key: string;
 	title?: string;
-	type?: 'material' | 'default'
+	type?: "material" | "default";
 }
 
 /**
@@ -113,7 +296,7 @@ interface PermutationData {
 		isValid: boolean;
 		key: string;
 		name: string;
-		fullName: string
+		fullName: string;
 	};
 }
 
@@ -121,20 +304,16 @@ interface PermutationData {
  * Block parser methods.
  */
 interface PermutationBuilderHandlers {
-	readonly permutations: PermutationInfoHandler;
+	readonly permutations: PermutationTreeData;
 
 	/**
 	 * Reference to the proxy MaterialBuilder
 	 */
-	materials: MaterialBuilder,
+	materials: MaterialBuilder;
 
-	mergeProps( obj: JSO ): void;
+	mergeProps(obj: JSO): void;
 	isValid(): boolean;
-	setPermutationData( {
-		key,
-		title,
-		type,
-	}: PermutationInfo ): void;
+	setPermutationData({ key, title, type }: PermutationInfo): void;
 	hasPermutations(): boolean;
 	getPermutations(): [string, JSO][];
 	newPermutation(
@@ -147,8 +326,8 @@ interface PermutationBuilderHandlers {
 		materials: BlockTemplateData
 	): PermutationBuilder;
 	disablePermutation(): void;
-	mergeTemplateData( templateData: BlockTemplateData ): void;
-	mergePresetSettings( dir: JSO ): void
+	mergeTemplateData(templateData: BlockTemplateData): void;
+	mergePresetSettings(dir: JSO): void;
 	eachMaterialPermutation(): PermutationBuilder[];
 	parseMaterials(): void;
 }
@@ -166,18 +345,20 @@ interface PermutationBuilderPublicProxyInterface {
 /**
  * Block parser.
  */
-type PermutationBuilder = PermutationBuilderPublicProxyInterface & PermutationBuilderHandlers
+type PermutationBuilder = PermutationBuilderPublicProxyInterface &
+	PermutationBuilderHandlers;
 
-interface PermutationBuilderProxy extends PermutationBuilderPublicProxyInterface {
+interface PermutationBuilderProxy
+	extends PermutationBuilderPublicProxyInterface {
 	/**
 	 * Permutation methods
 	 */
-	handlers: PermutationBuilderHandlers
+	handlers: PermutationBuilderHandlers;
 
 	/**
 	 * MaterialBuilder factory
 	 */
-	materials: MaterialBuilder
+	materials: MaterialBuilder;
 }
 
 // interface CreateBlock.Block {
@@ -191,221 +372,86 @@ interface PermutationBuilderProxy extends PermutationBuilderPublicProxyInterface
 // 	make(): GeneratedBlockData;
 // }
 
-
-interface PresetHandlerData {
-	params: Partial<PresetTemplate>
-	presetName: string
-	/** Configuration data from block template */
-	presetConfig: Partial<PresetTemplate>;
-	presetVars: JSO,
-	customVars: JSO;
-	actionHooks: JSO;
-	presetTemplate: Partial<PresetTemplate>;
-};
-
-interface PresetHandler {
-	readonly data: PresetHandlerData
-	readonly name: string;
-	readonly params: Partial<PresetTemplate>;
-	readonly presetVars: JSO;
-	readonly customVars: JSO;
-	readonly presetPropertyVars: {};
-
-	getPresetPropertyData( property: string ): {
-		key: string;
-		property: string;
-		query: string;
-		readonly max: number;
-		readonly min: number;
-	};
-	applyActionHook<Params>( hook: string, params: Params ): void
-	clone(): PresetHandler;
-	setCustomVar( key: string, value: string | number | any[] | JSO ): void;
-	setActionHook( hookName: string, func: Function ): void;
-	resolvePresetVars(): void;
-	createPermutations( permutations: McPermutationTemplate | McPermutationTemplate[] ): void
-	createPermutation( permutation: McPermutationTemplate ): void;
-	createPartVisibilityRules( partVisibilityConfig: JSO ): void
-	createPartVisibilityRule( materialInstanceName: string, conditions: string[], property: string ): void;
-
-	/**
-	 * Create events. Receives preset directives `@events`, `@event_templates` and `@properties`.
-	 */
-	createEvents( {
-		events,
-		eventTemplates,
-		properties
-	}: {
-		/** `@events`preset directive */
-		events: PresetTemplate['events']
-		/** `@event_templates` preset directive */
-		eventTemplates: PresetTemplate['event_templates']
-		/** `@properties` preset directive */
-		properties?: JSO;
-	} ): void
-	createEvent( {
-		eventTrigger,
-		handler,
-		propertyNames,
-		triggerItems,
-		eventTemplate,
-	}: {
-		/**
-		 * Minecraft event trigger.
-		 *
-		 * @see https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blocktriggers/blocktriggerlist
-		 */
-		eventTrigger: string;
-		/** Create event handler */
-		handler: string;
-		/** List of properties to use with event */
-		propertyNames?: string[];
-		/** Items that can trigger this event {Key: ItemName} */
-		triggerItems?: JSO;
-		/** Name of event template to use  */
-		eventTemplate?: EventTemplate;
-	} ): void;
-	checkRequiredParams(): void;
-}
-
-interface EventTrigger {
-	/** Molang condition */
-	condition: string[],
-	/** Name of event handler */
-	handler: string,
-	/** Event target, e.g. `self` or `player` */
-	target?: string
-}
-
-interface EventTemplate {
-	/**
-	 * Event actions
-	 *
-	 * @see Valid event types: https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockevents/blockeventlist
-	 */
-	action: JSO[],
-	/**
-	 * Minecraft event trigger.
-	 *
-	 * @see https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blocktriggers/blocktriggerlist
-	 */
-	eventTrigger?: string,
-	/** Name of event handler */
-	handler?: string
-	/** Event target, e.g. `self` or `player` */
-	target?: string,
-	/** Molang condition */
-	condition?: string
-	// trigger_items?: string[]
-	// properties?: string[]
-}
-
-
-interface PresetEventData {
-	eventTrigger: string,
-	handler: string
-	triggerItems?: JSO<string>// string[]
-	propertyNames?: string | string[]
-}
-
-type PresetEventTemplate = {action: JSO[]}
-
-
 interface McPermutationTemplate {
 	block_props: JSO;
-	properties?: string[]
+	properties?: string[];
 	condition?: string;
 	key?: string;
 }
 
-interface PresetTemplate {
-	[x: string]: any
-	properties: JSO<number[] | false>
-	/** e.g. { event: { "on_interact.handler": "...", "on_interact.trigger_items": { [string]: "..." } } } */
-	events: JSO<string | string[] | JSO<string>>
-	event_templates: JSO<PresetEventTemplate>,
-	permutation_templates: McPermutationTemplate[]
-	part_visibility_template: string
-	permutations: JSO
-	part_visibility: JSO
-}
-
 type MaterialInstance = {
-	texture: string,
-	render_method?: string
-	ambient_occlusion?: boolean
-	face_dimming?: boolean
-}
+	texture: string;
+	render_method?: string;
+	ambient_occlusion?: boolean;
+	face_dimming?: boolean;
+};
 
 type MaterialInstanceCollection = {
-	[materialInstanceKey: string]: MaterialInstance
-}
+	[materialInstanceKey: string]: MaterialInstance;
+};
 
 type MaterialTemplate = {
-	title?: string,
-	texture?: string
-	render_method?: string
-	ambient_occlusion?: boolean
-	face_dimming?: boolean
-}
+	title?: string;
+	texture?: string;
+	render_method?: string;
+	ambient_occlusion?: boolean;
+	face_dimming?: boolean;
+};
 
 type MaterialTemplates = {
-	[materialKey: string]: MaterialTemplate
-}
+	[materialKey: string]: MaterialTemplate;
+};
 
 type MaterialPermutationCollection = {
-	[permutationKey: string]: MaterialInstanceCollection
-}
+	[permutationKey: string]: MaterialInstanceCollection;
+};
 
 type MaterialPermutationStore = {
-	[permutationKey: string]: MaterialStoreItem
-}
+	[permutationKey: string]: MaterialStoreItem;
+};
 
 type MaterialStoreItem = {
-	title: string,
-	materialInstances: MaterialInstanceCollection
-}
+	title: string;
+	materialInstances: MaterialInstanceCollection;
+};
 
-
-type MaterialFilter = string[]
-type MaterialInstanceFilter = string[]
-
+type MaterialFilter = string[];
+type MaterialInstanceFilter = string[];
 
 interface MaterialBuilderData {
-	render: {},
+	render: {};
 	/**
 	 * Base data.
 	 */
-	materialTemplates: MaterialTemplates,
+	materialTemplates: MaterialTemplates;
 
 	/**
 	 * Exports.
 	 */
-	materials: MaterialPermutationStore,
+	materials: MaterialPermutationStore;
 
 	/**
 	 * Temp data.
 	 */
-	materialPermutations: MaterialPermutationStore,
+	materialPermutations: MaterialPermutationStore;
 }
 
 /**
  * Material builder factory.
  */
 type MaterialBuilder = {
-	data: MaterialBuilderData
+	data: MaterialBuilderData;
 	/**
 	 * Parse template data and extract materials.
 	 */
-	extractMaterials( templateData: BlockTemplateData ): void
-	generatePermutations(): void
-}
-
+	extractMaterials(templateData: BlockTemplateData): void;
+	generatePermutations(): void;
+};
 
 interface ExtraVars {
-	prefix: string,
-	permutation: string,
-	variant: string,
-	material: string
-	blockName: string,
+	prefix: string;
+	permutation: string;
+	variant: string;
+	material: string;
+	blockName: string;
 }
