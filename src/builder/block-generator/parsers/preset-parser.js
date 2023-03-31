@@ -249,73 +249,6 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 			this.data.actionHooks[ hookName ] = func
 		},
 
-		/**
-		 * Replace all template strings and variables in preset data.
-		 */
-		resolvePresetVars() {
-			const { customVars: cVars, presetVars } = presetHandler
-			const vars = { ...cVars, ...presetVars, ...source.vars }
-
-			resolveNestedVariables( vars )
-
-			resolveRefsRecursively( this.params, vars, { removeMissing: false, mutateSource: true } )
-			resolveTemplateStringsRecursively( this.params, vars, { mutateSource: true } )
-
-			// Filter null values
-			const filterNullInObj = ( obj ) => {
-				reducer( obj, ( result, [ key, value ] ) => {
-					if ( value === null ) {
-						delete result[ key ]
-					}
-					return result
-				}, obj )
-			}
-			reducer( this.params, ( result, [ key, value ] ) => {
-				if ( ! hasPrefix.variable( key ) && isObj( value ) ) {
-					filterNullInObj( value )
-				}
-				return result
-			}, this.params )
-
-			// objReduce( this.params, ( result, [ key, value ] ) => {
-			// 	if ( ! hasPrefix.variable( key ) ) {
-			// 		filterObjValues( result[ key ], null )
-			// 	}
-			// 	return result
-			// }, this.params )
-
-			// resolveRefsRecursively( this.data.presetTemplate, vars, { removeMissing: false, mutateSource: true } )
-			// resolveTemplateStringsRecursively( this.data.presetTemplate, vars, { mutateSource: true } )
-		},
-
-		/**
-		 * Custom property meta data.
-		 *
-		 * @param {string} property
-		 */
-		getPresetPropertyData( property ) {
-			const values = this.params.properties[ property ]
-
-			if ( ! values ) {
-				logger.error( `Invalid values for property '${ property }' in preset '${ presetName }'.` )
-				return
-			}
-
-			const data = {
-				key: property,
-				property: `{{prefix}}:${ property }`,
-				query: `query.block_property('{{prefix}}:${ property }')`,
-				get max() {
-					return Math.max( ...values )
-				},
-				get min() {
-					return Math.min( ...values )
-				},
-			}
-
-			return data
-		},
-
 		createPermutations( permutations ) {
 			// If necessary, transform key-value permutations data to array
 			const permutationsArr = Array.isArray( permutations )
@@ -642,9 +575,48 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 		},
 	}
 
-	presetHandler.resolvePresetVars()
+	resolvePresetVars()
 
 	return presetHandler
+
+	/**
+	 * Replace all template strings and variables in preset data.
+	 */
+	function resolvePresetVars() {
+		const { customVars: cVars, presetVars } = presetHandler
+		const vars = { ...cVars, ...presetVars, ...source.vars }
+
+		resolveNestedVariables( vars )
+
+		resolveRefsRecursively( presetHandler.params, vars, { removeMissing: false, mutateSource: true } )
+		resolveTemplateStringsRecursively( presetHandler.params, vars, { mutateSource: true } )
+
+		// Filter null values
+		const filterNullInObj = ( obj ) => {
+			reducer( obj, ( result, [ key, value ] ) => {
+				if ( value === null ) {
+					delete result[ key ]
+				}
+				return result
+			}, obj )
+		}
+		reducer( presetHandler.params, ( result, [ key, value ] ) => {
+			if ( ! hasPrefix.variable( key ) && isObj( value ) ) {
+				filterNullInObj( value )
+			}
+			return result
+		}, presetHandler.params )
+
+		// objReduce( this.params, ( result, [ key, value ] ) => {
+		// 	if ( ! hasPrefix.variable( key ) ) {
+		// 		filterObjValues( result[ key ], null )
+		// 	}
+		// 	return result
+		// }, this.params )
+
+		// resolveRefsRecursively( this.data.presetTemplate, vars, { removeMissing: false, mutateSource: true } )
+		// resolveTemplateStringsRecursively( this.data.presetTemplate, vars, { mutateSource: true } )
+	}
 }
 
 /**
