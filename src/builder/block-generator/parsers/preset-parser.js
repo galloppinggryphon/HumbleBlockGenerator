@@ -630,9 +630,15 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 function mergePresetData( source, target ) {
 	const _target = _.cloneDeep( target )
 
-	const keys = [ ...Object.keys( target ), ...Object.keys( source ) ]
+	const specialHandlers = {
+		permutation_templates( srcVal, trgVal ) {
+			return [ ...trgVal ?? [], ...srcVal ]
+		},
+	}
 
-	return keys.reduce( ( result, key ) => {
+	const keys = new Set( [ ...Object.keys( target ), ...Object.keys( source ) ] )
+
+	return [ ...keys ].reduce( ( result, key ) => {
 		const srcVal = source[ key ]
 
 		const trgVal = result[ key ]
@@ -646,19 +652,18 @@ function mergePresetData( source, target ) {
 		}
 
 		if ( trgVal === null ) {
-			// delete trg[ key ]
-			// trg[ key ] = null
 			return result
 		}
 
 		if ( ! isObj( trgVal ) ) {
 			return result
 		}
-		if ( key === 'permutation_templates' ) {
-			result[ key ] = [ ...trgVal ?? [], ...srcVal ]
+
+		if ( key in specialHandlers ) {
+			result[ key ] = specialHandlers[ key ]( srcVal, trgVal )
 		}
 		else if ( isObj( srcVal ) ) {
-			result[ key ] = Object.assign( srcVal, trgVal )
+			result[ key ] = mergePresetData( srcVal, trgVal ) // Object.assign( srcVal, trgVal )
 		}
 
 		return result
