@@ -232,19 +232,34 @@ function replaceValue( value, vars ) {
 	}
 }
 
-function resolveNestedVariables( src, vars = undefined ) {
-	vars = vars ?? src
-	return Object.entries( src ).reduce( ( result, [ key, value ] ) => {
-		if ( Object( value ) === value ) {
-			result[ key ] = resolveNestedVariables( value, vars )
-		}
-		else if ( value in vars ) {
-			const _value = replaceValue( value, vars )
-			result[ key ] = _value && 'value' in _value ? _value.value : value
-		}
+/**
+ * Resolve variable dependencies, i.e. variables defined by other variables.
+ *
+ * @param {JSO} obj
+ * param {JSO} [vars]
+ */
+function resolveNestedVariables( obj ) {
+	/**
+	 * Resolve variable dependencies, i.e. variables defined by other variables.
+	 *
+	 * @param {JSO} src
+	 * @param {JSO} vars
+	 */
+	const resolver = ( src, vars ) => {
+		return Object.entries( src ).reduce( ( result, [ key, value ] ) => {
+			if ( Object( value ) === value ) {
+				result[ key ] = resolver( value, vars )
+			}
+			else if ( value in vars ) {
+				const _value = replaceValue( value, vars )
+				result[ key ] = _value && 'value' in _value ? _value.value : value
+			}
 
-		return result
-	}, src )
+			return result
+		}, src )
+	}
+
+	return resolver( obj, obj )
 }
 
 /**
