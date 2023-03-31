@@ -7,6 +7,19 @@ function log( ...msg ) {
 const delay = ( ms ) => new Promise( ( r ) => setTimeout( r, ms ) )
 
 /**
+ * Convert kebab case (kebab_case) to camel case (camelCase).
+ * @param {string} string Kebab case string
+ */
+function kebabToCamelCase( string ) {
+	const rx = /[_](.?)/ig
+	const res = string.replaceAll( rx, ( __, p1 ) => {
+		return p1.toUpperCase()
+	} )
+
+	return res[ 0 ].toLowerCase() + res.slice( 1 )
+}
+
+/**
  * Object literal check with type guard.
  *
  * @param {*} obj
@@ -408,4 +421,4 @@ export function ProxyReadOnly(
 	} )
 }
 
-export { arrayMerge, delay, extractArrayElements, isObj, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith }
+export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith }
