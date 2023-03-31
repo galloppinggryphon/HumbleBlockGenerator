@@ -5,7 +5,7 @@
 	"type": "object",
 	"required": ["base_preset"],
 	"patternProperties": {
-		"^[\\w\\d_-]+$": {
+		"^[\\w\\d_]+$": {
 			"description": "Preset name",
 			"type": "object",
 			"properties": {
@@ -20,36 +20,82 @@
 				},
 
 				"events": {
+					"description": "Configure event triggers.",
 					"type": "object",
-					"description": "Configure events - define triggers, handlers, items and properties.",
 					"patternProperties": {
-						"^[\\w\\d_-]+$": {
-							"oneOf": [
-								{
-									"type": "string",
-									"description": "Custom block property with reference to a variable containing values.",
-									"pattern": "^[$][\\w\\d_.-]+$"
+						"^[\\w\\d_]+$": {
+							"description": "Event trigger configuration. The key must a valid Minecraft event trigger.",
+							"type": "object",
+							"properties": {
+								"condition": {
+									"description": "Condition for event trigger (Molang expression).",
+									"oneOf": [
+										{
+											"type": "null"
+										},
+										{
+											"type": "string"
+										}
+									]
 								},
-								{
-									"type": "array",
-									"description": "Custom block property array.",
-									"uniqueItems": true,
-									"minProperties": 1,
-									"maxProperties": 17,
-									"items": {
-										"type": "number"
-									}
+
+								"handler": {
+									"description": "Name of the event handler.",
+									"type": "string"
+								},
+								"property_names": {
+									"description": "Bind properties (block state) to the event handler.",
+									"pattern": "^[$%]?[\\w\\d_.-]+$",
+									"oneOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										}
+									]
+								},
+
+								"target": {
+									"description": "Event target (e.g. player, self)",
+									"oneOf": [
+										{
+											"type": "null"
+										},
+										{
+											"type": "string"
+										}
+									]
+								},
+
+								"trigger_items": {
+									"description": "Items that trigger this event (if utilized by condition and/or event handler.",
+									"pattern": "^[$%][\\w\\d_.-]+$",
+									"oneOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										}
+									]
 								}
-							]
+							}
 						}
 					}
 				},
 
-				"event_templates": {
+				"event_handler_templates": {
 					"description": "Dynamic event handler templates.",
 					"type": "object",
 					"patternProperties": {
-						"^[\\w\\d_-]+$": {
+						"^[\\w\\d_]+$": {
 							"description": "Event handler",
 							"type": "object",
 							"properties": {
@@ -70,9 +116,17 @@
 											}
 										},
 										"patternProperties": {
-											"^[\\w\\d_-]+$": {
-												"type": "object",
-												"description": "Action item. The key must be one of a set of predefined Minecraft actions."
+											"^[\\w\\d_]+$": {
+												"oneOf": [
+													{
+														"type": "string",
+														"pattern": "^[$%][\\w\\d_.-]+$"
+													},
+													{
+														"type": "object",
+														"description": "Action item. The key must be one of a set of predefined Minecraft actions."
+													}
+												]
 											}
 										}
 									}
@@ -81,6 +135,77 @@
 						}
 					}
 				},
+
+				"permutation_templates": {
+					"description": "Configure event triggers.",
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"properties": {
+										"type": "array",
+										"items": {
+											"type": "string",
+											"pattern": "^[$%]?[\\w\\d_.]+$"
+										}
+									},
+									"condition": {
+										"type": "string",
+										"description": "Event condition (Molang expression).",
+										"pattern": "^[\\w\\d\\s{}_.$%&=-]*$" //"(({{[$%][\\w\\d_.-]+}}))*"// "[\\w\\d_]+"
+									},
+									"block_props": {
+										"description": "Block components.",
+										"oneOf": [
+											{
+												"type": "string",
+												"pattern": "^[$%][\\w\\d_.]+$"
+											},
+											{
+												"type": "object",
+												"patternProperties": {
+													"^[\\w\\d_]+$": {
+														"type": "array",
+														"items": {
+															"oneOf": [
+																{
+																	"type": "number"
+																},
+																{
+																	"type": "string",
+																	"pattern": "^[$%][\\w\\d_.-]+$"
+																}
+															]
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							}
+						}
+					]
+				},
+
+				// "permutation_templates2": [
+				// 	{
+				// 		"properties": ["rotate_y", "rotate_x", "rotate_z"],
+				// 		"condition": "{{%rotate_x.query}} == {{%rotate_x.value}} && {{%rotate_y.query}} == {{%rotate_y.value}} &&  {{%rotate_z.query}} == {{%rotate_z.value}}",
+				// 		"block_props": {
+				// 			"rotation": [
+				// 				"$x_rotation",
+				// 				"$y_rotation",
+				// 				"$z_rotation"
+				// 			]
+				// 		}
+				// 	}
+				// ],
 
 				"properties": {
 					"description": "Custom block properties.",
@@ -91,12 +216,12 @@
 						{
 							"type": "object",
 							"patternProperties": {
-								"^[\\w\\d_-]+$": {
+								"^[\\w\\d_]+$": {
 									"oneOf": [
 										{
 											"type": "string",
 											"description": "Custom block property with reference to a variable containing values.",
-											"pattern": "^[$][\\w\\d_.-]+$"
+											"pattern": "^[$%][\\w\\d_.-]+$"
 										},
 										{
 											"type": "array",
@@ -117,7 +242,7 @@
 			},
 
 			"patternProperties": {
-				"^[$][\\w\\d_.-]+$": {
+				"^[$%][\\w\\d_.-]+$": {
 					"description": "Custom variable.",
 					"oneOf": [
 						{
