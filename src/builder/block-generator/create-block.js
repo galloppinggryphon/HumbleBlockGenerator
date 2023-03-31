@@ -42,24 +42,27 @@ const blockActions = {
 }
 
 /**
- * @param {PermutationBuilder} gData
+ * @param {BlockTemplateData} blockTemplateData
+ * @param {CreateBlock.BlockInfo} [blockInfo]
+ * @param {PermutationTreeData} [permutationTreeData]
  */
-export function CreateBlock( gData ) {
-	const { currentPermutation } = gData.data
+export function CreateBlock( blockTemplateData, blockInfo = undefined, permutationTreeData = undefined ) {
+	// const { currentPermutation } = blockTemplateData
 
 	/** @type {CreateBlock.Block} */
 	const block = {
-		data: CreateBlockData( gData.data.block, {
-			key: currentPermutation.key,
-			name: currentPermutation.name,
-			fullName: currentPermutation.fullName,
-			finalPermutation: gData.permutations.getFinalPermution(),
-		} ),
+		data: CreateBlockData( blockTemplateData, blockInfo ),
+		// 	{
+		// 	key: currentPermutation.key,
+		// 	name: currentPermutation.name,
+		// 	fullName: currentPermutation.fullName,
+		// 	finalPermutation: permutationMeta.getFinalPermution(),
+		// }
 
-		permutationInfo: gData.permutations,
+		permutationInfo: permutationTreeData,
 
 		/**
-		 * Add event to events directive in source.
+		 * Add event to events data store.
 		 */
 		addEvent( {
 			eventTrigger,
@@ -70,8 +73,10 @@ export function CreateBlock( gData ) {
 			this.data.eventTriggers[ eventTrigger ].handler = handler
 
 			if ( condition ) {
-				this.data.eventTriggers[ eventTrigger ].condition ??= []
-				this.data.eventTriggers[ eventTrigger ].condition.push( condition )
+				// ! I don't see a need for this to be an array?
+				// this.data.eventTriggers[ eventTrigger ].condition ??= []
+				// this.data.eventTriggers[ eventTrigger ].condition.push( condition )
+				this.data.eventTriggers[ eventTrigger ].condition = condition
 			}
 
 			this.data.eventHandlers[ handler ] = {
@@ -123,8 +128,8 @@ export function CreateBlock( gData ) {
 		 * @return {GeneratedBlockData}
 		 */
 		make() {
-			const data = parseProps( this.data )
-			const { source, props } = data
+			const parsedBlock = parseProps( this )
+			const { source, props } = parsedBlock.data
 
 			/** @type {GeneratedBlockData} */
 			const blockData = {
@@ -132,7 +137,7 @@ export function CreateBlock( gData ) {
 				block: props.export(),
 				identifier: undefined,
 				title: undefined,
-				permutationData: gData.permutations,
+				permutationData: permutationTreeData,
 			}
 
 			applyActions(
@@ -144,9 +149,6 @@ export function CreateBlock( gData ) {
 			return blockData
 		},
 	}
-
-	// ~ Parse @apply directive ~
-	parsePresets( block )
 
 	return block
 }

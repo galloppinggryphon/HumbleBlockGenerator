@@ -24,6 +24,7 @@ import { logger } from '../../generator-config.js'
 import { CreateBlock } from '../create-block.js'
 import { MaterialBuilder } from './material-parser.js'
 import { BlockTemplateData } from '../data-factories.js'
+import { parsePresets } from './preset-parser.js'
 
 /**
  * Block parser factory.
@@ -95,7 +96,22 @@ export default function BlockParser( blockTemplate ) {
 
 		createBlock() {
 			const generatorData = this.export()
-			const block = CreateBlock( generatorData )
+			const { currentPermutation } = generatorData.data
+
+			/** @type {CreateBlock.BlockInfo} */
+			const blockInfo = {
+				key: currentPermutation.key,
+				name: currentPermutation.name,
+				fullName: currentPermutation.fullName,
+				finalPermutation: generatorData.permutations.getFinalPermution(),
+			}
+
+			const block = CreateBlock( generatorData.data.block, blockInfo, generatorData.permutations )
+
+			// ! Temporary relocation? Moved from CreateBlock
+			// ~ Parse @apply directive ~
+			parsePresets( block )
+
 			return block.make()
 		},
 
