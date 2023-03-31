@@ -229,7 +229,7 @@ function resolveTemplateStringsRecursively( source, variables, { brackets = [ '{
 }
 
 /**
- * Replace string if it matches a key in a key-value set.
+ * Replace whole string if it matches a key in a key-value set.
  *
  * @param {string} value
  * @param {JSO} vars
@@ -421,4 +421,4 @@ export function ProxyReadOnly(
 	} )
 }
 
-export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith }
+export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith }
