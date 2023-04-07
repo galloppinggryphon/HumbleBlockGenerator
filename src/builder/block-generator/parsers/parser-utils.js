@@ -1,9 +1,7 @@
 'use strict'
-
-// import  from '../../generator-config'
+// import _ from 'lodash'
 import { stringStartsWith } from '../../../lib/utils.js'
-
-import { stringFilters } from '../../generator-config.js'
+import { mergeKeySuffix, stringFilters } from '../../generator-config.js'
 
 export function parseMagicKeyword( magicKeyword ) {
 	const rx = stringFilters.magicKeywords
@@ -47,4 +45,33 @@ export function parseMagicKeyword( magicKeyword ) {
 	}
 
 	return meta
+}
+
+/**
+ * Parse preset keys.
+ *
+ * Returns:
+ * ```
+ * 'key': (string) Key excl. mergeSymbol
+ * 'isVariable': (boolean) Whether key is a variable
+ * 'mergeKey': (string) Key with mergeSymbol
+ * 'shouldMerge': (boolean) Whether key includes the merge symbol
+ * ```
+ *
+ * @param {string} presetKey
+ */
+export function parsePresetKey( presetKey ) {
+	if ( ! presetKey ) {
+		return
+	}
+
+	const res = presetKey.match( stringFilters.presetKeyRx )
+	const [ __, key, isVariable, shouldMerge ] = res
+
+	return {
+		key,
+		isVariable: !! isVariable,
+		mergeKey: key + mergeKeySuffix,
+		shouldMerge: !! shouldMerge,
+	}
 }
