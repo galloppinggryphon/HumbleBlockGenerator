@@ -1,5 +1,5 @@
 'use strict'
-// import _ from 'lodash'
+import _ from 'lodash'
 import { stringStartsWith } from '../../../lib/utils.js'
 import { mergeKeySuffix, stringFilters } from '../../generator-config.js'
 
@@ -74,4 +74,67 @@ export function parsePresetKey( presetKey ) {
 		mergeKey: key + mergeKeySuffix,
 		shouldMerge: !! shouldMerge,
 	}
+}
+
+/**
+ * Merge source and target data. Custom control of merge/overwrite operations.
+ *
+ * @template {JSO} Source
+ * template {JSO} Target
+ * @param {Source} source
+ * @param {JSO} target
+ * @param {object} options
+ */
+export function mergePresetData( source, target, { mutate, merge } = { mutate: false, merge: false } ) {
+	const _target = mutate ? target : _.cloneDeep( target )
+
+	const srcKeys = Object.keys( source )
+
+	// Merge arrays?
+	if ( Array.isArray( source ) ) {
+		if ( Array.isArray( target ) && merge ) {
+			_target.push( ...source )
+			return _target
+		}
+
+		return source
+	}
+
+	// Iterate over source keys and target object
+	return [ ...srcKeys ].reduce( ( result, currentKey ) => {
+		// Get merge instructions from source
+		const { key, mergeKey, shouldMerge } = parsePresetKey( currentKey )
+		srcKeys.push( key )
+
+		if ( mergeKey in result ) {
+			const tmpData = mergePresetData( { [ key ]: result[ mergeKey ] }, {} )
+			result[ key ] = tmpData[ key ]
+			delete result[ mergeKey ]
+		}
+
+		const srcVal = source[ mergeKey ] ?? source[ key ]
+		const trgVal = result[ key ] ?? {}
+
+		// If no srcVal, continue
+		if ( srcVal === undefined ) {
+			return result
+		}
+
+		// If no target value or target is not an object, use srcVal
+		if ( trgVal === null || ! Object( trgVal ) === trgVal ) {
+			result[ key ] = srcVal
+			return result
+		}
+
+		// Recurse if source is an object/array
+		if ( shouldMerge && Object( srcVal ) === srcVal ) {
+			result[ key ] = mergePresetData( srcVal, trgVal, { merge: true } )
+		}
+		else {
+			result[ key ] = srcVal
+			return result
+		}
+
+		return result
+	}, _target )
 }
