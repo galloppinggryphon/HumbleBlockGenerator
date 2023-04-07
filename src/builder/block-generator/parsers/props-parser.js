@@ -356,9 +356,14 @@ const propHandlers = {
 		const { prefix } = appData.settings
 
 		Object.entries( properties ).reduce( ( result, [ key, values ] ) => {
+			if ( typeof values === 'string' ) {
+				logger.error( `Encountered an illegal value for the custom property '${ key }', possibly an unresolved variable.`, { [ key ]: values } )
+				return result
+			}
+
 			// Max definitions = 16
 			if ( values.length > 16 ) {
-				logger.warn( `Too many values for custom property '${ key }'. Max values = 16.` )
+				logger.warn( `Too many values for custom property '${ key }'. Max values = 16.`, { [ key ]: values } )
 			}
 
 			// if already prefixed
