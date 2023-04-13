@@ -11,6 +11,7 @@ import {
 	kebabToCamelCase,
 } from '../../../lib/utils.js'
 import {
+	calculatedPropPrefix,
 	logger, variablePrefix,
 } from '../../generator-config.js'
 import appData from '../../../app-data.js'
