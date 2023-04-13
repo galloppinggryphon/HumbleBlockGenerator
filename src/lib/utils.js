@@ -36,10 +36,11 @@ function isObj( obj ) {
  * @template {keyof Input & string} Keys
  * @template {string} InputKeys
  * @template {*} Values
- * @template {Record<string, any>} Output
+ * @template TargetType
+ * @template {Record<string, TargetType>|TargetType[]} Target
  * @param {Input} obj - Input object
- * @param {(accumulator: Output, value: [Keys, Input[Keys]], index: number) => Output } reduceFn - Reducer function
- * @param {Record<string, any>} [target] Optional target object, defaults to new object.
+ * @param {(accumulator: Target, value: [Keys, Input[Keys]], index: number) => Target } reduceFn - Reducer function
+ * @param {Target} [target] Optional target object, defaults to new object.
  */
 function reducer( obj, reduceFn, target = Object.create( {} ) ) {
 	// TS is not happy about just assigning {}
