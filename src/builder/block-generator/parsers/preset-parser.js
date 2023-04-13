@@ -585,24 +585,8 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 		// resolveRefsRecursively( this.data.presetTemplate, vars, { removeMissing: false, mutateSource: true } )
 		// resolveTemplateStringsRecursively( this.data.presetTemplate, vars, { mutateSource: true } )
 	}
-
-	/**
-	 * Resolve variables in event action definitions.
-	 *
-	 * @param {{ action: JSO, triggerItem?: string, propData: JSO }} props
-	 */
-	function resolveEventActionVariables( { action, propData, triggerItem = undefined } ) {
-		const eVars = {
-			[ computedProp( `trigger_item` ) ]: triggerItem && resolveTemplateStrings( triggerItem, presetHandler.customVars ),
-
-			...propData
-				? {
-					[ computedProp( `property` ) ]: propData.property,
-					[ computedProp( `property.query` ) ]: propData.query,
-					[ computedProp( `properties.max` ) ]: propData.max,
-					[ computedProp( `properties.min` ) ]: propData.min,
-				}
-				: {},
+// }
+//
 		}
 
 		return resolveTemplateStringsRecursively( action, eVars, { restrictChars: false } )
