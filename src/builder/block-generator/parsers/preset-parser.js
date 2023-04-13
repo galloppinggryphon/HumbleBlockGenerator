@@ -17,6 +17,7 @@ import {
 import appData from '../../../app-data.js'
 import { filterPropsByKeyPrefix, mergeProps, stringContainsUnresolvedRef, prefixer, filterObjKeys, hasPrefix } from '../../builder-utils.js'
 import { BlockTemplateData, Props } from '../data-factories.js'
+import PresetDataHandler from './preset-handler.js'
 
 const { computedProp } = prefixer
 
