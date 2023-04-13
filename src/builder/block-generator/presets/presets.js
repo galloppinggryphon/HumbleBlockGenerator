@@ -139,23 +139,3 @@ function generateMcPermutations( block, permutionTemplate, permutationValues, re
 	} )
 	return result
 }
-
-export function selectSubType( { blockData, presetName, params, presetTemplate } ) {
-	// Request template subtype?
-	if ( typeof params === 'string' || typeof params === 'number' ) {
-		if ( presetTemplate[ params ] ) {
-			blockData.mergeBlockData( presetTemplate[ params ], blockData.data )
-
-			// add'common' section if present
-			if ( presetTemplate.common ) {
-				blockData.mergeBlockData( presetTemplate.common, blockData.data )
-			}
-		}
-		else {
-			logger.error( `Preset subtype not found.`, { presetName, variation: params } )
-		}
-	}
-	else {
-		// ! invalid
-	}
-}
