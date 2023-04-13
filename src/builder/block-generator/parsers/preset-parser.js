@@ -624,106 +624,135 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
 	}
 
 	/**
-	 * Parse meta data for a custom property.
 	 *
-	 * @param {string} property
+ * @param {Object} props
+ * @param {CreateBlock.Block} props.block
+ * @param {Presets.PresetHandler} props.presetData
+ *
 	 */
-	function getPresetPropertyMeta( property ) {
-		const values = presetHandler.params.properties[ property ]
-		if ( ! values ) {
-			logger.error( `Invalid values for property '${ property }' in preset '${ presetName }'.` )
+export function basePreset( { block, presetData } ) {
+	const { permutations, permutation_templates, events, event_handler_templates, properties, part_visibility } = presetData.params
+
+	// ~ Generate custom state values
+	Object.entries( properties ).forEach( ( [ property, values ] ) => {
+		if ( values === false ) {
+			return
+		}
+		if ( ! Array.isArray( values ) ) {
+			logger.error( `Invalid values (expected an array) for custom property '${ property }' created by preset '${ presetData.name }'.`, { values } )
 			return
 		}
 
-		const data = {
-			key: property,
-			property: `{{prefix}}:${ property }`,
-			query: `query.block_property('{{prefix}}:${ property }')`,
-			get max() {
-				return Math.max( ...values )
-			},
-			get min() {
-				return Math.min( ...values )
-			},
+		block.addProperty( property, values )
+	} )
+
+	// ~ Add events based on @events, @event_handler_templates and @properties
+	if ( events && Object.keys( events ) ) {
+		presetData.createEvents( { events, eventHandlers: event_handler_templates, properties } )
+}
+
+	// ~ Parse permutation templates
+	if ( permutations ) {
+		// 	logger.error( `Missing 'permutations' property for preset '${ presetData.name }'.`, { permutations } )
+		// 	return
+		// }
+
+		if ( ! isObj( permutations ) ) {
+			logger.error( `Invalid 'permutations' property for preset '${ presetData.name }'.`, { permutations } )
+			return
+	}
+
+		/** @type {McPermutationTemplate[]} */
+		const compiledPermutations = []
+
+		// Check validity and combine key-value permutations template with permutation values, transform to array of permutations
+		const presetPermutations = permutation_templates.reduce( ( result, template ) => {
+			const permutationValueArray = template.properties
+				.map( ( key ) => {
+					const data = permutations[ key ]
+
+					if ( data === null ) {
+						return
+					}
+
+					if ( ! data ) {
+						logger.error( `Missing permutations data for custom property '${ key }' in preset '${ presetData.name }'.`, { permutations } )
+					}
+					else if ( ! isObj( data ) ) {
+						logger.error( `Invalid permutations data supplied for custom property '${ key }' in preset '${ presetData.name }'.`, { data } )
 		}
 
-		return data
-	}
+					return {
+						property: key,
+						data: permutations[ key ] ?? {},
+		}
+				} )
+				.filter( ( x ) => x )
+
+			const permutationTemplate = {
+				condition: template.condition,
+				block_props: template.block_props,
+		}
+
+			const newPermutations = generateMcPermutations( block, permutationTemplate, permutationValueArray )
+			result.push( ...newPermutations )
+			return result
+		}, compiledPermutations )
+
+		presetData.createPermutations( presetPermutations )
+		}
+
+	// ~ Add part visibility mapping
+	if ( part_visibility ) {
+		presetData.createPartVisibilityRules( part_visibility )
+		}
+
+	return block
 }
 
 /**
- * Overwrite source with values in target. Merge objects.
+ * Generate permutations from array of permutation values
  *
- * @template {JSO} Source
- * template {JSO} Target
- * @param {Source} source
- * @param {JSO} target
+ * @param {CreateBlock.Block} block
+ * @param {CreateBlock.MCPermutationTemplate} permutionTemplate
+ * @param {JSO[]} permutationValues
+ * @param {CreateBlock.MCPermutationTemplate[]} result
  */
-function mergePresetData( source, target ) {
-	const _target = _.cloneDeep( target )
+function generateMcPermutations( block, permutionTemplate, permutationValues, result = [] ) {
+	const permutationTemplateCopy = _.cloneDeep( permutionTemplate )
 
-	const specialHandlers = {
-		permutation_templates( srcVal, trgVal ) {
-			return [ ...trgVal ?? [], ...srcVal ]
-		},
+	// Grab next set of permutation values in the pipeline
+	const currentPermutationValues = permutationValues.pop()
+
+	Object.entries( currentPermutationValues.data ).forEach( ( [ key, props ] ) => {
+		const newPermutation = _.cloneDeep( permutationTemplateCopy )
+		Object.assign( newPermutation.block_props, props )
+
+		// Add temporary data
+		newPermutation.block_props[ prefixer.computedProp( `${ currentPermutationValues.property }.value` ) ] = key
+
+		if ( permutationValues.length ) {
+			generateMcPermutations( block, newPermutation, _.cloneDeep( permutationValues ), result )
+	}
+		else {
+			// Extract variables
+			const permutationVars = filterPropsByKeyPrefix( newPermutation.block_props, [ variablePrefix, calculatedPropPrefix ] )
+			const vars = {
+				...block.data.source.vars,
+				...block.data.extraVars,
+				...permutationVars,
 	}
 
-	const keys = new Set( [ ...Object.keys( target ), ...Object.keys( source ) ] )
+			// Substitute variables
+			resolveNestedVariables( vars )
+			resolveTemplateStringsRecursively( newPermutation, vars, { mutateSource: true, restrictChars: false } )
+			resolveRefsRecursively( newPermutation, vars, { mutateSource: true } )
 
-	return [ ...keys ].reduce( ( result, key ) => {
-		const srcVal = source[ key ]
+			// Remove variables
+			filterObjKeys( newPermutation.block_props, /^[^\w]/ )
 
-		const trgVal = result[ key ]
-		if ( trgVal === undefined ) {
-			result[ key ] = srcVal
-			return result
+			result.push( newPermutation )
 		}
-
-		if ( ! ( key in source ) || _.isNil( srcVal ) ) {
-			return result
-		}
-
-		if ( trgVal === null ) {
-			return result
-		}
-
-		if ( ! isObj( trgVal ) ) {
-			return result
-		}
-
-		if ( key in specialHandlers ) {
-			result[ key ] = specialHandlers[ key ]( srcVal, trgVal )
-		}
-		else if ( isObj( srcVal ) ) {
-			result[ key ] = mergePresetData( srcVal, trgVal ) // Object.assign( srcVal, trgVal )
-		}
-
+	} )
 		return result
-	}, _target )
-}
-
-/**
- * Merging of event handler templates is a special case
- * - If source == array: merge
- * - If source == object: overwrite
- *
- * @param {JSO<Events.EventHandlerItemTemplate>} target
- * @param {JSO<Events.EventHandlerItemTemplate>} source
- */
-function mergeEventHandlerTemplates( target, source ) {
-	if ( ! source ) {
-		return target
-	}
-	if ( ! target || ! Array.isArray( source ) ) {
-		return source
-	}
-
-	const eventHandlers = source.reduce( ( result, obj ) => {
-		for ( const [ eventTrigger, props ] of Object.entries( obj ) ) {
-			result[ eventTrigger ] = props
-		}
-		return result
-	}, target )
-
-	return eventHandlers
 }
