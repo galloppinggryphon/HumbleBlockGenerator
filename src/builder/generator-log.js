@@ -104,22 +104,26 @@ export default function GeneratorLog() {
 	 *
 	 * @param {keyof typeof logLevels} level
 	 * @param {string} msg
-	 * @param {*} errorData
+	 * @param {*} additionalData
 	 */
-	function NewLogItem( level, msg, errorData ) {
-		let finalErrorData = errorData && errorData.length === 1 ? errorData[ 0 ] : errorData
-		finalErrorData = finalErrorData !== undefined && ( Object( finalErrorData ) === finalErrorData ? _.cloneDeep( finalErrorData ) : finalErrorData )
+	function NewLogItem( level, msg, additionalData ) {
+		let resolvedAdditionalData = additionalData && additionalData.length === 1 ? additionalData[ 0 ] : additionalData
+		resolvedAdditionalData = resolvedAdditionalData !== undefined && ( Object( resolvedAdditionalData ) === resolvedAdditionalData ? _.cloneDeep( resolvedAdditionalData ) : resolvedAdditionalData )
 
 		const levelInt = logLevels[ level ]
+		const { file, line, column } = getLocation()
 
-		/** @type {ErrorItem} */
+		/** @type {LogItem} */
 		const logItem = {
 			level: levelInt,
 			levelStr: level,
 			context: current.context,
 			label: current.label,
 			msg,
-			errorData: finalErrorData,
+			additionalData: resolvedAdditionalData,
+			file,
+			line,
+			column,
 		}
 
 		const store = current.store || 'default'
@@ -128,6 +132,9 @@ export default function GeneratorLog() {
 		return logItem
 	}
 
+	/**
+	 * @param {LogItem} stackItem
+	 */
 	function formatLogItem( stackItem ) {
 		const logLevelLabels = {
 			error: chalk.redBright.bold( 'ERROR' ),
@@ -135,18 +142,38 @@ export default function GeneratorLog() {
 			notice: chalk.cyan.bold( 'NOTICE' ),
 		}
 
-		const label = stackItem.label && stackItem.context === logHandler.BLOCK_BUILDER ? `[${ stackItem.label }]\n` : ''
+		const { additionalData, column, context, file, label, levelStr, line, msg } = stackItem
+		const _label = label && context === logHandler.BLOCK_BUILDER ? chalk.yellowBright( `${ label }\n` ) : ''
 
-		const item = [ `${ label }${ logLevelLabels[ stackItem.levelStr ] } > ${ stackItem.msg }` ]
+		// const item = [ `${ label }${ logLevelLabels[ stackItem.levelStr ] } @{}> ${ stackItem.msg }` ]
+		const location = chalk.cyanBright( `@${ file }:${ line }:${ column }` )
+		const item = [ `${ _label }${ logLevelLabels[ levelStr ] }  >>>  ${ msg }\n${ location }` ]
 
-		if ( stackItem.errorData ) {
-			// _item.push( `Additional error data:` )▣▶◆◇
+		if ( additionalData ) {
+			// ▣▶◆◇↪
 			item.push( '\n↪ ' )
-			item.push( stackItem.errorData )
+			item.push( additionalData )
 		}
 
 		item.push( '\n' )
 
 		return item
+	}
+
+	function getLocation() {
+		const stacktrace = new Error().stack
+
+		// Split by line, then grab line 5 (line were logger was called)
+		const string = stacktrace.split( '\n' )[ 4 ]
+
+		// Parse string to get file and line
+		const rx = /(file:\/\/\/(?<file>.*):(?<line>[\d]+):(?<column>[\d]+))/i
+		const info = string.match( rx )
+		const { file, line, column } = info.groups
+
+		// Show path relative to cwd
+		const cwd = process.cwd()
+		const __file = path.relative( cwd, file )
+		return { file: __file, line, column }
 	}
 }
