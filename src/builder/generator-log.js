@@ -19,16 +19,7 @@ export default function GeneratorLog() {
 	}
 
 	/**
-	 * @typedef {{
-	 * 		level: number,
-	 * 		levelStr: string,
-	 * 		context: string,
-	 * 		label: string,
-	 * 		msg: string,
-	 * 		errorData: string
-	 * }} ErrorItem
-	 *
-	 * @type {{[store: string]: ErrorItem[]}}
+	 * @type {{[store: string]: LogItem[]}}
 	 */
 	const stack = {}
 	const current = { store: '', label: '', context: undefined }
