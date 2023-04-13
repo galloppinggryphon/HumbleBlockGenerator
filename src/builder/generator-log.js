@@ -1,3 +1,5 @@
+import path from 'path'
+
 import chalk from 'chalk'
 import _ from 'lodash'
 import { log } from '../lib/utils.js'
@@ -34,6 +36,25 @@ export default function GeneratorLog() {
 				|| ( threshold === 2 && ( stats.warnings || stats.errors ) )
 				|| ( threshold === 3 && ( stats.notices || stats.warnings || stats.errors ) )
 		},
+		/** @throws Throws error if called. */
+		fatal( message, ...errorData ) {
+			log( '\n\n' )
+			log( chalk.bgRedBright.bold( '   FATAL ERROR - PROGRAM ABORTED!   ' ) )
+
+			if ( this.hasMessages() ) {
+				log()
+				log( chalk.yellow( 'Program log:' ) )
+				this.printLogItems()
+			}
+
+			const item = NewLogItem( 'error', message, errorData )
+
+			log()
+			log( chalk.yellow( 'Fatal error:' ) )
+			log( ...formatLogItem( item ) )
+
+			throw new Error( 'FATAL ERROR! See error info above.' )
+		},
 		error( message, ...errorData ) {
 			stats.errors++
 			return NewLogItem( 'error', message, errorData )
@@ -47,9 +68,9 @@ export default function GeneratorLog() {
 			return NewLogItem( 'notice', message, errorData )
 		},
 		printLog( threshold = 3 ) {
-			const logArr = Object.entries( stack )
+			const logStack = Object.entries( stack )
 
-			if ( ! logArr.length ) {
+			if ( ! logStack.length ) {
 				return
 			}
 
@@ -64,9 +85,18 @@ export default function GeneratorLog() {
 			}
 
 			log()
+			this.printLogItems( logStack )
+		},
+
+		printLogItems( logItems = undefined ) {
+			const logStack = logItems ?? Object.entries( stack )
+
+			if ( ! logStack.length ) {
+				return
+			}
 
 			let currentSection
-			logArr.forEach( ( [ store, items ] ) => {
+			logStack.forEach( ( [ store, items ] ) => {
 				if ( ! items.length ) {
 					return
 				}
