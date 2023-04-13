@@ -285,9 +285,11 @@ function resolveNestedVariables( obj ) {
 /**
  * Resolve variables/references in object values.
  *
- * @param {JSO} source An object literal
+ * @template {JSO|any[]} Source
+ * @param {Source} source An object literal
  * @param {JSO<string>} values Object literal mapping variables to values
  * @param {{ removeMissing?: boolean, flattenArrays?: boolean, mutateSource?: boolean, resolveNestedVars?: boolean, variablePrefix?: string }} options
+ * @return {Source}
  */
 function resolveRefsRecursively( source, values, { removeMissing = false, flattenArrays = true, mutateSource = false, resolveNestedVars = false, variablePrefix = '$' } = {} ) {
 	if ( Object( source ) !== source ) {
@@ -296,6 +298,11 @@ function resolveRefsRecursively( source, values, { removeMissing = false, flatte
 
 	if ( resolveNestedVars ) {
 		resolveNestedVariables( values )
+	}
+
+	if ( Object( source ) !== source ) {
+		console.log( { source } )
+		throw new Error( 'resolveRefsRecursively: source is not an object.' )
 	}
 
 	if ( Array.isArray( source ) ) {
@@ -331,16 +338,19 @@ function resolveRefsRecursively( source, values, { removeMissing = false, flatte
 			}
 			return result
 		}, [] )
-		return arr
+
+		return /** @type {any} */ ( arr )
 	}
 
 	const entries = Object.entries( source )
 
-	if ( ! entries.length ) {
+	// This also makes TS to correctly interpret source as an object literal below
+	if ( ! entries.length || ! isObj( source ) ) {
 		return source
 	}
 
-	const target = mutateSource ? source : {}
+	const target = mutateSource ? source : /** @type {typeof source} */( {} )
+
 	return entries.reduce( ( result, [ key, value ] ) => {
 		if ( Object( value ) === value ) {
 			result[ key ] = resolveRefsRecursively( value, values, { removeMissing, mutateSource: true } )
