@@ -124,10 +124,10 @@ export function parsePresets( block ) {
 			const presetData = PresetDataHandler( block, { presetName, presetTemplate, presetConfig: presetTemplateData.config } )
 
 			// ! All presets now use the basePreset handler!
-			basePreset( {
+			resolvePreset( {
 				block,
 				presetData,
-				presetTemplate,
+				// presetTemplate,
 			} )
 
 			// applyPresetHandler( { handler, data: presetConfig.config, presetName: preset, template: template.value } )
@@ -632,7 +632,7 @@ export function PresetDataHandler( block, { presetName = undefined, presetConfig
  * @param {Presets.PresetHandler} props.presetData
  *
 	 */
-export function basePreset( { block, presetData } ) {
+export function resolvePreset( { block, presetData } ) {
 	const { permutations, permutation_templates, events, event_handler_templates, properties, part_visibility } = presetData.params
 
 	// ~ Generate custom state values
