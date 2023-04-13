@@ -102,11 +102,13 @@ export function basePreset( { block, presetData } ) {
  * @param {CreateBlock.MCPermutationTemplate[]} result
  */
 function generateMcPermutations( block, permutionTemplate, permutationValues, result = [] ) {
+	const permutationTemplateCopy = _.cloneDeep( permutionTemplate )
+
 	// Grab next set of permutation values in the pipeline
 	const currentPermutationValues = permutationValues.pop()
 
 	Object.entries( currentPermutationValues.data ).forEach( ( [ key, props ] ) => {
-		const newPermutation = _.cloneDeep( permutionTemplate )
+		const newPermutation = _.cloneDeep( permutationTemplateCopy )
 		Object.assign( newPermutation.block_props, props )
 
 		// Add temporary data
