@@ -113,17 +113,18 @@ export function parsePresets( block ) {
 		const { handler } = template.data
 
 		if ( handler ) {
-			if ( ! ( handler in presetScripts ) ) {
-				logger.error(
-					`Invalid (missing) preset handler '${ handler }' is specified in preset '${ presetName }.'`,
-				)
-				return
-			}
+			// if ( ! ( handler in presetScripts ) ) {
+			// 	logger.error(
+			// 		`Invalid (missing) preset handler '${ handler }' is specified in preset '${ presetName }.'`,
+			// 	)
+			// 	return
+			// }
 
 			const presetTemplate = _.cloneDeep( template.data )
 			const presetData = PresetDataHandler( block, { presetName, presetTemplate, presetConfig: presetTemplateData.config } )
 
-			presetScripts[ handler ]( {
+			// ! All presets now use the basePreset handler!
+			basePreset( {
 				block,
 				presetData,
 				presetTemplate,
