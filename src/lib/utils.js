@@ -32,7 +32,7 @@ function isObj( obj ) {
 /**
  * Object.entries().reduce() for all types of objects. Type safe.
  *
- * @template {Record<InputKeys, Values>} Input
+ * @template {Record<InputKeys, Values>|Values[]} Input
  * @template {keyof Input & string} Keys
  * @template {string} InputKeys
  * @template {*} Values
