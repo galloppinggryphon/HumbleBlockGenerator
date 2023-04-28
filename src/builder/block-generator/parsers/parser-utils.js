@@ -50,12 +50,12 @@ export function parseMagicKeyword( magicKeyword ) {
 /**
  * Parse preset keys.
  *
- * Returns:
+ * *Returns*:
  * ```
- * 'key': (string) Key excl. mergeSymbol
- * 'isVariable': (boolean) Whether key is a variable
- * 'mergeKey': (string) Key with mergeSymbol
- * 'shouldMerge': (boolean) Whether key includes the merge symbol
+ * 'key': {string} Key excl. mergeSymbol
+ * 'isVariable': {boolean} Whether key is a variable
+ * 'mergeKey': {string} Key with mergeSymbol
+ * 'shouldMerge': {boolean} Whether key includes the merge symbol
  * ```
  *
  * @param {string} presetKey
@@ -65,14 +65,14 @@ export function parsePresetKey( presetKey ) {
 		return
 	}
 
-	const res = presetKey.match( stringFilters.presetKeyRx )
-	const [ __, key, isVariable, shouldMerge ] = res
+	const res = presetKey.match( regexFilters.presetKeyMatch )
+	const { key, prefix, suffix } = res.groups
 
 	return {
 		key,
-		isVariable: !! isVariable,
+		isVariable: !! prefix,
 		mergeKey: key + mergeKeySuffix,
-		shouldMerge: !! shouldMerge,
+		shouldMerge: !! suffix,
 	}
 }
 
@@ -80,7 +80,6 @@ export function parsePresetKey( presetKey ) {
  * Merge source and target data. Custom control of merge/overwrite operations.
  *
  * @template {JSO} Source
- * template {JSO} Target
  * @param {Source} source
  * @param {JSO} target
  * @param {object} options
