@@ -64,7 +64,7 @@ export function filterObjByKeys( data, keys, include = false ) {
 }
 
 /**
- * Filter object by key prefix.
+ * Filter object by key prefix. Mutates source (removes matching prop keys). Returns only prefixed props by default.
  *
  * @template {JSO} Source
  * @param {Source} source
@@ -90,6 +90,13 @@ export function filterPropsByKeyPrefix( source, prefix, returnPrefixedProps = tr
 	return returnPrefixedProps ? prefixedProps : source
 }
 
+/**
+ * Remove object keys by regex pattern. Mutates source by default.
+ *
+ * @param {JSO} source
+ * @param {RegExp} regex
+ * @param {{mutateSource?: boolean}} options
+ */
 export function filterObjKeys( source, regex, { mutateSource = true } = {} ) {
 	const target = mutateSource ? source : {}
 	Object.entries( source ).reduce( ( result, [ key, value ] ) => {
@@ -134,53 +141,6 @@ export function removeObjValues( source, removeValue ) {
 
 	const result = parseObj( { __root__: source }, '__root__' )
 	return result
-}
-
-export function filterObjValuesX( source, compareValue, { mutateSource = true, recursive = true } = {} ) {
-	const parseEl = ( result, key, value ) => {
-		if ( Array.isArray( value ) ) {
-			result[ key ] = value.map( ( x, i ) => {
-				if ( Object( x ) === x ) {
-					value[ i ] = parseEl( value, i, x )
-				}
-				else {
-					const match = compareValue === x
-					if ( ! match ) {
-						value.slice( i, i + 1 )
-					}
-				}
-			} )
-		}
-		else {
-			filterObjValues( result[ key ], compareValue, { recursive } )
-		}
-		return result
-	}
-
-	const compareVal = ( result, key, value ) => {
-		const match = compareValue === value
-		if ( mutateSource ) {
-			if ( match ) {
-				delete result[ key ]
-			}
-		}
-		else if ( ! match ) {
-			result[ key ] = value
-		}
-		return result
-	}
-
-	const target = mutateSource ? source : {}
-	Object.entries( source ).reduce( ( result, [ key, value ] ) => {
-		if ( recursive && Object( value ) === value ) {
-			parseEl( result, key, value )
-			return result
-		}
-
-		const newResult = compareVal( result, key, value )
-		return newResult
-	}, target )
-	return target
 }
 
 /**
