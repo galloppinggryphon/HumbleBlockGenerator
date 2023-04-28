@@ -65,23 +65,23 @@ export function CreateBlock( blockTemplateData, blockInfo = undefined, permutati
 		 * Add event to events data store.
 		 */
 		addEvent( {
-			eventTrigger,
+			eventName,
 			handler,
 			action = [],
 			condition = undefined,
 		} ) {
-			this.data.eventTriggers[ eventTrigger ].handler = handler
+			this.data.eventTriggers[ eventName ].handler = handler
 
 			if ( condition ) {
 				// ! I don't see a need for this to be an array?
 				// this.data.eventTriggers[ eventTrigger ].condition ??= []
 				// this.data.eventTriggers[ eventTrigger ].condition.push( condition )
-				this.data.eventTriggers[ eventTrigger ].condition = condition
+				this.data.eventTriggers[ eventName ].condition = condition
 			}
 
 			this.data.eventHandlers[ handler ] = {
 				sequence: [
-					...( this.data.eventHandlers[ eventTrigger ]?.sequence ?? [] ),
+					...( this.data.eventHandlers[ eventName ]?.sequence ?? [] ),
 					...action,
 				],
 			}
