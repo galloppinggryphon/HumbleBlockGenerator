@@ -18,15 +18,21 @@ const minecraftProps = {
 	},
 }
 
+const magicExpressionMetaDivider = '::'
+const magicExpressionPathDivider = '.'
+
 const variablePrefix = '$'
 const variantPrefix = '>>'
-const calculatedPropPrefix = '%'
+const calculatedPropPrefix = '%' // magicExpressionPrefix
 const expressionPrefix = '`'
+
+const mergeKeySuffix = '[]'
+const mergeKeySuffixRx = String.raw `\[\]`
 
 /**
  * Static props are added directly to the block model, without processing or validation.
  */
-const staticPropPrefix = '§'
+const staticPropPrefix = '§'// todo: change to &
 
 const directivePrefix = '@'
 /**
@@ -61,6 +67,46 @@ const permutationAccumulatorConfig = {
 	},
 }
 
+const strictCharsGroup = '[\\w\\d_.]'
+const regexFilters = {
+	// Character group
+	strictCharsGroup,
+
+	/**
+	 * Prefixes are added to this list programmatically.
+	 *
+	 * Returns four groups: <`key`, `prefix`, `suffix`>
+	 *
+	 * @see {@link PresetKeyMatch}
+	 */
+	presetKeyMatch: new RegExp( `^(?<key>(?<prefix>[$]?)[\\w_.:]+)(?<suffix>${ mergeKeySuffixRx })?$`, 'i' ),
+
+	/**
+	 * **Parse magic expression**
+	 *
+	 * Return groups: `expression`, preset_property, divider, sub_key, dynamic_key
+	 *
+	 * **Patterns**
+	 * |||
+	 * | -------------------------- | ----------------------------------------- |
+	 * | Path value:     			| `%preset_property.sub_key` 				|
+	 * | Dynamic path value:		| `%preset_property.[%magic_expression]` 	|
+	 * | Calculated prop:     		| `%preset_property::meta_key` 				|
+	 * | Dynamic path value:		| `%preset_property::` 						|
+	 *
+	 * **Valid characters**\
+	 * preset_property/sub_key: `[\\w\\d_]`
+	 * meta_key: Whole magicExpression
+	 *
+	 *
+	 * **See**
+	 * * {@link MagicExpressionData} for valid meta keys/calculated props
+	 * * {@link MagicExpressionMatch} -- the object returned
+	 * */
+	magicExpressionMatch: new RegExp( `(?<expression>%(?<preset_property>[\\w\\d_]+)(?<divider>(?:\\.)|(?:::))(?:(?<sub_key>[\\w\\d_]+)|(?:\\[(?<dynamic_key>[^[\\]]+)\\])))`, 'ig' ),
+
+}
+
 /**
  * Separators for names and titles.
  */
@@ -69,4 +115,4 @@ const defaultSeparators = {
 	titles: { '*': ' - ' },
 }
 
-export { defaultSeparators, directives, directivePrefix, generatorPaths, logger, expressionPrefix, materialDirectives, minecraftProps, specialProps, staticPropPrefix, permutationAccumulatorConfig, calculatedPropPrefix, variablePrefix, variantPrefix }
+export { defaultSeparators, directives, directivePrefix, generatorPaths, logger, expressionPrefix, magicExpressionMetaDivider, magicExpressionPathDivider, materialDirectives, mergeKeySuffix, minecraftProps, specialProps, staticPropPrefix, regexFilters, permutationAccumulatorConfig, calculatedPropPrefix, variablePrefix, variantPrefix }
