@@ -86,7 +86,7 @@ export function MaterialBuilder( block, prevData = undefined ) {
 	/**
 	 *
 	 * param {string} permutationName
-	 * @param {MaterialInstanceCollection} materialInstances
+	 * @param {MaterialInstanceCollection|JSO<keyof MaterialInstance>} materialInstances
 	 */
 	function generateMaterialInstances( materialInstances ) {
 		// const { materialInstances, materialTemplates } = data
@@ -110,13 +110,14 @@ export function MaterialBuilder( block, prevData = undefined ) {
 					}
 					else {
 						const { title, ...instanceProps } = template
-						// logger.error( `Cannot find material instance ${ materialInstance } in material templates.` )
-						result[ materialInstance ] = instanceProps
+						// Property optional mismatch
+						result[ materialInstance ] = /** @type {any} */ ( instanceProps )
 					}
 				}
 				result[ key ] = materialInstance
 			}
 			else {
+				// @ts-ignore
 				result[ key ] = materialInstance.texture
 
 				const template = data.materialTemplates[ materialInstance.texture ]
@@ -135,6 +136,7 @@ export function MaterialBuilder( block, prevData = undefined ) {
 					: materialInstance
 
 				if ( material?.texture ) {
+					// @ts-ignore
 					result[ texture ] = texture && ! result[ texture ]
 						? instanceProps
 						: materialInstance
