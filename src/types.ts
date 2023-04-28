@@ -30,30 +30,6 @@ type PropsProxy<Props> = Props & {
 	export(): Props;
 };
 
-declare namespace PresetTemplate {
-	type EventHandlerTemplates = {
-		[eventHandlerName: string]: Events.EventHandlerItemTemplate;
-	};
-
-	type EventTriggers = {
-		[eventTriggerName: string]: Events.EventTriggerItemTemplate;
-	};
-
-	interface TemplateData {
-		[x: string]: any;
-		properties: JSO<number[] | false>;
-		/**
-		 * e.g. { event: { "on_interact.handler": "...", "on_interact.trigger_items": { [string]: "..." } } }
-		 */
-		events: JSO<Events.EventTriggerItemTemplate>;
-		event_handler_templates: EventHandlerTemplates;
-		permutation_templates: McPermutationTemplate[];
-		part_visibility_template: string;
-		permutations: JSO;
-		part_visibility: JSO;
-	}
-}
-
 declare namespace Events {
 	// interface EventsDirectiveItem extends Pick<EventData, "condition"|"handler"|"target"|"action"|"eventTrigger"> {}
 
@@ -156,11 +132,6 @@ declare namespace CreateBlock {
 	type MinecraftPermutationStore = {
 		[condition: string]: any;
 	};
-
-	type MCPermutationTemplate = Pick<
-		McPermutationTemplate,
-		"block_props" | "condition"
-	>;
 }
 
 declare namespace Presets {
@@ -371,13 +342,6 @@ interface PermutationBuilderProxy
 // 	addProperty( key: string, values: any ): void;
 // 	make(): GeneratedBlockData;
 // }
-
-interface McPermutationTemplate {
-	block_props: JSO;
-	properties?: string[];
-	condition?: string;
-	key?: string;
-}
 
 type MaterialInstance = {
 	texture: string;
