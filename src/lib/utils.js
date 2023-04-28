@@ -143,7 +143,7 @@ function removeObjectKeys( obj, removeElements ) {
  * ---
  * @template {string} InputString
  * @param {InputString} inputString - String to search
- * @param {JSO<string>} variables - Key-value list of variables and values
+ * @param {JSO<string|number>} variables - Key-value list of variables and values
  * @param {Object} props Options
  * @param {string | string[] } [props.brackets] - Single start/stop bracket ("%") or different start and stop brackets (["{{", "}}"])
  * @param {boolean} [props.restrictChars] - Use limited set of characters
