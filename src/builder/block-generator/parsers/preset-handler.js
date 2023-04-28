@@ -46,7 +46,7 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 	}
 
 	const defaultActionHooks = {
-		part_visibility() {
+		bone_visibility() {
 
 		},
 		permutations() {
@@ -169,29 +169,29 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 			block.addMinecraftPermutation( permutation.condition, permutation.props.export() )
 		},
 
-		createPartVisibilityRules( partVisibility ) {
-			if ( ! partVisibility ) {
+		createBoneVisibilityRules( boneVisibility ) {
+			if ( ! boneVisibility ) {
 				return
 			}
 
-			if ( stringContainsUnresolvedRef( partVisibility ) ) {
-				logger.error( `Unresolved variable in 'part_visibility' in preset '${ this.name }'!`, { partVisibility } )
+			if ( stringContainsUnresolvedRef( boneVisibility ) ) {
+				logger.error( `Unresolved variable in 'bone_visibility' in preset '${ this.name }'!`, { boneVisibility } )
 				return
 			}
 
-			if ( ! this.params.part_visibility_conditions ) {
-				logger.error( `Missing property 'part_visibility_conditions' in preset '${ this.name }'!` )
+			if ( ! this.params.bone_visibility_conditions ) {
+				logger.error( `Missing property 'bone_visibility_conditions' in preset '${ this.name }'!` )
 				return
 			}
 
-			Object.entries( partVisibility ).forEach( ( [ property, values ] ) => {
+			Object.entries( boneVisibility ).forEach( ( [ property, values ] ) => {
 				if ( stringContainsUnresolvedRef( values ) ) {
-					logger.error( `Unresolved variable in 'part_visibility' in preset '${ this.name }'!`, { partVisibility } )
+					logger.error( `Unresolved variable in 'bone_visibility' in preset '${ this.name }'!`, { boneVisibility } )
 					return
 				}
 
 				if ( ! isObj( values ) ) {
-					logger.error( `Invalid data in 'part_visibility' in preset '${ this.name }'!`, { property, values } )
+					logger.error( `Invalid data in 'bone_visibility' in preset '${ this.name }'!`, { property, values } )
 					return
 				}
 
@@ -203,7 +203,7 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 
 				if ( ! valueBonesSyntax ) {
 					Object.entries( values || {} ).forEach(
-						( [ key, value ] ) => this.createPartVisibilityRule( key, [ value ].flat(), property ),
+						( [ key, value ] ) => this.createBoneVisibilityRule( key, [ value ].flat(), property ),
 					)
 				}
 				else {
@@ -221,36 +221,36 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 					}, entries )
 
 					Object.entries( entries || {} ).forEach(
-						( [ key, value ] ) => this.createPartVisibilityRule( key, value, property ),
+						( [ key, value ] ) => this.createBoneVisibilityRule( key, value, property ),
 					)
 				}
 			} )
 		},
 
-		createPartVisibilityRule( bone, values, property ) {
-			const partVisibility = { bone, values, conditions: [] }
-			const { part_visibility_conditions } = this.params
+		createBoneVisibilityRule( bone, values, property ) {
+			const boneVisibility = { bone, values, conditions: [] }
+			const { bone_visibility_conditions } = this.params
 
 			const vars = {
 				[ computedProp( `property` ) ]: property,
 			}
 
-			const template = part_visibility_conditions[ property ] ?? part_visibility_conditions[ '*' ]
+			const template = bone_visibility_conditions[ property ] ?? bone_visibility_conditions[ '*' ]
 
 			// Generate conditions
-			partVisibility.values.reduce( ( result, value ) => {
+			boneVisibility.values.reduce( ( result, value ) => {
 				vars[ computedProp( `property.value` ) ] = value
 				const condition = resolveTemplateStrings( template, vars, { restrictChars: false } )
-				partVisibility.conditions.push( condition )
+				boneVisibility.conditions.push( condition )
 				return result
-			}, partVisibility )
+			}, boneVisibility )
 
-			this.applyActionHook( 'part_visibility', { preset: presetHandler, partVisibility } )
+			this.applyActionHook( 'bone_visibility', { preset: presetHandler, boneVisibility } )
 
-			partVisibility.bone = resolveTemplateStrings( partVisibility.bone, presetHandler.customVars )
-			// resolveTemplateStringsRecursively( partVisibility.conditions, vars, { mutateSource: true, restrictChars: false } )
+			boneVisibility.bone = resolveTemplateStrings( boneVisibility.bone, presetHandler.customVars )
+			// resolveTemplateStringsRecursively( boneVisibility.conditions, vars, { mutateSource: true, restrictChars: false } )
 
-			block.addPartVisibility( partVisibility.bone, partVisibility.conditions )
+			block.addBoneVisibility( boneVisibility.bone, boneVisibility.conditions )
 		},
 
 		createEvent( { action, eventName, handler, triggerCondition = undefined, triggerItems = undefined, params = undefined } ) {

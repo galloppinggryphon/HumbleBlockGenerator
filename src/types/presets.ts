@@ -30,8 +30,8 @@ declare namespace Presets {
 		createPermutation(
 			permutation: PresetTemplate.PermutationItemData
 		): void;
-		createPartVisibilityRules(partVisibilityConfig: JSO): void;
-		createPartVisibilityRule(
+		createBoneVisibilityRules(boneVisibilityConfig: JSO): void;
+		createBoneVisibilityRule(
 			materialInstanceName: string,
 			conditions: string[],
 			property: string
@@ -78,7 +78,7 @@ declare namespace Presets {
 	}
 
 	type TemplateParsers = Record<
-		"properties" | "events" | "permutations" | "partVisibility",
+		"properties" | "events" | "permutations" | "boneVisibility",
 		({
 			block,
 			presetHandler,

@@ -459,31 +459,31 @@ const presetPropertyResolvers = {
 		return { block, presetHandler, presetName }
 	},
 
-	partVisibility( { block, presetHandler, presetName } ) {
-		const { part_visibility: partVisibility, part_visibility_conditions } = presetHandler.params
+	boneVisibility( { block, presetHandler, presetName } ) {
+		const { bone_visibility: boneVisibility, bone_visibility_conditions } = presetHandler.params
 
-		if ( ! partVisibility ) {
+		if ( ! boneVisibility ) {
 			return { block, presetHandler, presetName }
 		}
 
-		if ( stringContainsUnresolvedRef( partVisibility ) ) {
-			logger.error( `Unresolved variable in 'part_visibility' in preset '${ presetName }'!`, { partVisibility } )
+		if ( stringContainsUnresolvedRef( boneVisibility ) ) {
+			logger.error( `Unresolved variable in 'bone_visibility' in preset '${ presetName }'!`, { boneVisibility } )
 			return
 		}
 
-		if ( ! part_visibility_conditions ) {
-			logger.error( `Missing property 'part_visibility_conditions' in preset '${ presetName }'!` )
+		if ( ! bone_visibility_conditions ) {
+			logger.error( `Missing property 'bone_visibility_conditions' in preset '${ presetName }'!` )
 			return
 		}
 
-		Object.entries( partVisibility ).forEach( ( [ property, values ] ) => {
+		Object.entries( boneVisibility ).forEach( ( [ property, values ] ) => {
 			if ( stringContainsUnresolvedRef( values ) ) {
-				logger.error( `Unresolved variable in 'part_visibility' in preset '${ presetName }'!`, { partVisibility } )
+				logger.error( `Unresolved variable in 'bone_visibility' in preset '${ presetName }'!`, { boneVisibility } )
 				return
 			}
 
 			if ( ! isObj( values ) ) {
-				logger.error( `Invalid data in 'part_visibility' in preset '${ presetName }'!`, { property, values } )
+				logger.error( `Invalid data in 'bone_visibility' in preset '${ presetName }'!`, { property, values } )
 				return
 			}
 
@@ -495,7 +495,7 @@ const presetPropertyResolvers = {
 
 			if ( ! valueBonesSyntax ) {
 				Object.entries( values || {} ).forEach(
-					( [ key, value ] ) => presetHandler.createPartVisibilityRule( key, [ value ].flat(), property ),
+					( [ key, value ] ) => presetHandler.createBoneVisibilityRule( key, [ value ].flat(), property ),
 				)
 			}
 			else {
@@ -513,7 +513,7 @@ const presetPropertyResolvers = {
 				}, entries )
 
 				Object.entries( entries || {} ).forEach(
-					( [ key, value ] ) => presetHandler.createPartVisibilityRule( key, value, property ),
+					( [ key, value ] ) => presetHandler.createBoneVisibilityRule( key, value, property ),
 				)
 			}
 		} )

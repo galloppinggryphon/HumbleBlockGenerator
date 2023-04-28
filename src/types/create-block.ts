@@ -6,7 +6,7 @@ declare namespace CreateBlock {
 		addEvent(eventTemplate: Events.EventData): void;
 		addMinecraftPermutation(condition: string, props: JSO): void;
 		addMaterialInstances(newInstances: any): void;
-		addPartVisibility(
+		addBoneVisibility(
 			materialInstanceName: string,
 			conditions: string[]
 		): void;
