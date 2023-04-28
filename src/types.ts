@@ -150,19 +150,22 @@ declare namespace Presets {
 		readonly data: Presets.PresetHandlerData;
 		readonly name: string;
 		readonly params: Partial<PresetTemplate.TemplateData>;
+		readonly vars: JSO;
 		readonly presetVars: JSO;
 		readonly customVars: JSO;
 		readonly presetPropertyVars: {};
 
-
+		getParamByPath(...path: string[]): any;
 		applyActionHook<Params>(hook: string, params: Params): void;
 		clone(): Presets.PresetHandler;
 		setCustomVar(key: string, value: string | number | any[] | JSO): void;
 		setActionHook(hookName: string, func: Function): void;
-		createPermutations(
-			permutations: McPermutationTemplate | McPermutationTemplate[]
+		// createPermutations(
+		// 	permutations: PresetTemplate.McPermutationData | PresetTemplate.McPermutationData[]
+		// ): void;
+		createPermutation(
+			permutation: PresetTemplate.PermutationItemData
 		): void;
-		createPermutation(permutation: McPermutationTemplate): void;
 		createPartVisibilityRules(partVisibilityConfig: JSO): void;
 		createPartVisibilityRule(
 			materialInstanceName: string,
@@ -170,28 +173,29 @@ declare namespace Presets {
 			property: string
 		): void;
 
-		/**
+		/* *
 		 * Create events. Receives preset directives `@events`, `@event_handler_templates` and `@properties`.
 		 */
-		createEvents({
-			events,
-			eventHandlers,
-			properties,
-		}: {
-			/** `@events`preset directive */
-			events: PresetTemplate.EventTriggers;
-			/** `@event_handler_templates` preset directive */
-			eventHandlers: PresetTemplate.EventHandlerTemplates;
-			/** `@properties` preset directive */
-			properties?: JSO;
-		}): void;
+		// createEvents({
+		// 	events,
+		// 	eventHandlers,
+		// 	properties,
+		// }: {
+		// 	/** `@events`preset directive */
+		// 	events: PresetTemplate.EventTriggers;
+		// 	/** `@event_handler_templates` preset directive */
+		// 	eventHandlers: PresetTemplate.EventHandlerTemplates;
+		// 	/** `@properties` preset directive */
+		// 	properties?: JSO;
+		// }): void;
 
 		createEvent({
 			action,
-			eventTrigger,
+			eventName,
 			handler,
-			propertyNames,
-			triggerItems,
+			params,
+			// propertyNames,
+			// triggerItems,
 			triggerCondition,
 		}: Presets.CreateEventProps): void;
 
@@ -202,6 +206,29 @@ declare namespace Presets {
 	 * Props for presetParser->createEvent().
 	 */
 	interface CreateEventProps extends Omit<Events.EventData, "condition"> {}
+
+	interface TemplateParserArguments {
+		block: CreateBlock.Block;
+		presetHandler: PresetHandler;
+		presetName: string;
+	}
+
+	type TemplateParsers = Record<
+		"properties" | "events" | "permutations" | "partVisibility",
+		({
+			block,
+			presetHandler,
+			presetName,
+		}: TemplateParserArguments) => TemplateParserArguments
+	>;
+
+	interface TemplateParsers2 {
+		events({
+			block,
+			presetHandler,
+			presetName,
+		}: TemplateParserArguments): TemplateParserArguments;
+	}
 }
 
 interface GeneratedBlockData {
