@@ -59,7 +59,7 @@ declare namespace Events {
 			EventHandlerItemTemplate,
 			Pick<
 				Events.EventData,
-				"handler" | "target" | "action"
+				"eventName" | "handler" | "target" | "action"
 			>
 		> {}
 
