@@ -16,8 +16,11 @@ export async function runModelGenerator() {
 
 	const modelConfigPath = nodePath.resolve( configPath, modelConfig )
 	const modelInputPath = nodePath.resolve( configPath, modelFileDir )
+
+	/** @type {ModelConfig.Config} */
 	const modelConfigData = loadJsonFiles( modelConfigPath )
 
+	/** @type {ModelConfig.GeneratorStats} */
 	const stats = {
 		models: 0,
 		file_errors: 0,
@@ -26,30 +29,30 @@ export async function runModelGenerator() {
 
 	for ( const [ category, categoryData ] of Object.entries( modelConfigData ) ) {
 		for ( const categoryItem of categoryData ) {
-			if ( categoryItem.variants ) {
-				for ( const variantData of categoryItem.variants ) {
-					const variant = { ...variantData, ...categoryItem }
-					await parseModelFile( category, modelInputPath, stats, variant )
-				}
-			}
-			else {
-				await parseModelFile( category, modelInputPath, stats, categoryItem )
+			for ( const [ file, name ] of Object.entries( categoryItem.files ) ) {
+				await parseModelFile( category, modelInputPath, stats, file, name, categoryItem )
 			}
 		}
 	}
 
-	log( '\n', chalk.bgGreen.bold( ' MODEL GENERATOR DONE! ' ), '\n' )
-	log( '-------------------------------------------\n' )
-	log( chalk.cyan( chalk.bold( `\nModels created:\t${ stats.models }` ) ),
-		`\nModels errors:\t${ stats.model_errors.length }`,
+	log()
+
+	if ( stats.model_errors.length || stats.file_errors > 0 ) {
+		log( chalk.bgRedBright.white.bold( ' MODEL GENERATOR COMPLETED WITH ERRORS! ' ), '\n' )
+	}
+	else {
+		log( chalk.bgGreen.bold( ' MODEL GENERATOR DONE! ' ), '\n' )
+	}
+
+	log( '-------------------------------------------' )
+	log( chalk.cyan( chalk.bold( `Models created:\t${ stats.models }` ) ),
+		`\nModel errors:\t${ stats.model_errors.length }`,
 		`\nFile errors:\t${ stats.file_errors }`,
 	)
 	log( '-------------------------------------------\n' )
 
 	if ( stats.file_errors ) {
 		log( chalk.red( `Warning - some files are missing or could not be read!\n` ) )
-
-		// log(`\n\nCreated ${ stats.models - stats.failed } models.`,)
 	}
 
 	log()
@@ -61,7 +64,15 @@ export async function runModelGenerator() {
 	// }
 }
 
-async function parseModelFile( category, modelInputPath, stats, { file, name, models, export_base, templates } ) {
+/**
+ * @param {string} category
+ * @param {string} modelInputPath
+ * @param {ModelConfig.GeneratorStats} stats
+ * @param {string} file
+ * @param {string} name
+ * @param {ModelConfig.ConfigItem} inputData
+ */
+async function parseModelFile( category, modelInputPath, stats, file, name, { models, export_base, templates } ) {
 	const filePath = `${ nodePath.join( modelInputPath, file ) }.json`
 
 	log()
@@ -87,10 +98,10 @@ async function parseModelFile( category, modelInputPath, stats, { file, name, mo
 	try {
 		// Export the whole model file?
 		if ( export_base || ! models ) {
-			const modelJson = modelData
-			modelJson[ 'minecraft:geometry' ][ 0 ].description.identifier = createModelName( name )
+			const data = modelData
+			data[ 'minecraft:geometry' ][ 0 ].description.identifier = createModelName( name )
 
-			const result = await saveModelJson( { category, name, modelJson } )
+			const result = await saveModelJson( { category, name, data } )
 
 			if ( result && ! result.error ) {
 				stats.models++
@@ -102,8 +113,8 @@ async function parseModelFile( category, modelInputPath, stats, { file, name, mo
 			const modelFactory = ModelFactory( modelData, name )
 
 			for ( const { modelName, bones } of ModelGenerator( { modelData: models, templates } ) ) {
-				const modelJson = modelFactory( modelName, bones )
-				const result = await saveModelJson( { category, name, modelName, modelJson } )
+				const data = modelFactory( modelName, bones )
+				const result = await saveModelJson( { category, name, modelName, data } )
 
 				if ( ! result ) {
 					stats.models++
@@ -117,7 +128,10 @@ async function parseModelFile( category, modelInputPath, stats, { file, name, mo
 	}
 }
 
-function saveModelJson( { category, name, modelName = '', modelJson } ) {
+/**
+ * @param {{ category: string, name: string, modelName?: string, data: JSO }} props
+ */
+function saveModelJson( { category, name, modelName = '', data } ) {
 	const { paths } = appData.generatorData.output
 	const modelOutputPath = nodePath.join( paths.RP, '/models/blocks/hubgen/', category )
 
@@ -127,5 +141,5 @@ function saveModelJson( { category, name, modelName = '', modelJson } ) {
 	}
 
 	log( '→', name + modelName )
-	return saveDataToJson( fileInfo, modelJson )
+	return saveDataToJson( fileInfo, data )
 }

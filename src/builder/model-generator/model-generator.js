@@ -10,11 +10,7 @@ import appData from '../../app-data.js'
 /**
  * Generate new models from combinations of bones.
  *
- * @param { {
- * 		modelData: JSO,
- * 		templates: JSO,
- * 		data?: { bones: string[], name: string[] }
- * } } props
+ * @param {ModelConfig.GeneratorProps} props
  */
 export function * ModelGenerator( { modelData, templates, data = undefined } ) {
 	// log( chalk.bgCyan( '++++++++++ ModelGenerator ++++++++++++\n' ), { modelData, data } )
@@ -30,7 +26,7 @@ export function * ModelGenerator( { modelData, templates, data = undefined } ) {
 			applyModelTemplate( { key: modelData[ '@template' ], modelData, templates } )
 		}
 		else if ( modelData[ '@variants' ] ) {
-
+			// TODO?
 		}
 
 		const modelEntries = Object.entries( modelData ).filter( ( [ key, template ] ) => (
@@ -50,9 +46,6 @@ export function * ModelGenerator( { modelData, templates, data = undefined } ) {
 		return
 	}
 
-	// log( chalk.bgYellow( '\n##### YIELD #####' ) )
-	// log( { data, modelData } )
-
 	yield {
 		modelName: data.name.join( '' ),
 		bones: [ ...data.bones, ...modelData ],
@@ -62,8 +55,9 @@ export function * ModelGenerator( { modelData, templates, data = undefined } ) {
 /**
  * Model parser factory. Returns function that combines bones into a new model.
  *
- * @param {*} modelData
- * @param {*} rootName
+ * @param {JSO} modelData
+ * @param {string} rootName
+ * @return { ( modelName: string, bones: string[] ) => JSO }
  */
 export function ModelFactory( modelData, rootName ) {
 	const data = {
@@ -93,6 +87,10 @@ export function ModelFactory( modelData, rootName ) {
 		return modelJson
 	}
 
+	/**
+	 * @param {string} boneName
+	 * @param {boolean} getChildren
+	 */
 	function getBone( boneName, getChildren = false ) {
 		// log( 'getBone', data )
 		const bone = data.bones.find( ( current ) => current.name === boneName )
@@ -120,11 +118,18 @@ export function ModelFactory( modelData, rootName ) {
 	}
 }
 
+/**
+ * @param {string} rootName
+ * @param {string} [modelName]
+ */
 export function createModelName( rootName, modelName = '' ) {
 	const { geometryPrefix } = appData.settings
 	return `geometry.${ geometryPrefix }${ rootName }${ modelName }`
 }
 
+/**
+ * @param {{ key: string, modelData: JSO, templates: JSO }} props
+ */
 function applyModelTemplate( { key, modelData, templates } ) {
 	const template = templates[ key ]
 	if ( ! template ) {
@@ -145,8 +150,14 @@ function applyModelTemplate( { key, modelData, templates } ) {
 
 	const permutationKey = permutationKeys[ 0 ]
 
+	/**
+	 * @type {JSO}
+	 */
 	const permutations = permutationVars[ permutationKey ] ? permutationVars[ permutationKey ] : { '': null }
 
+	/**
+	 * @type {JSO}
+	 */
 	const _template = _.cloneDeep( template )
 
 	if ( Object.keys( vars ).length ) {
@@ -161,6 +172,9 @@ function applyModelTemplate( { key, modelData, templates } ) {
 		}
 	}
 
+	/**
+	 * @type {JSO}
+	 */
 	const templateData = Object.entries( permutations ).reduce( ( result, [ modelPermutation, value ] ) => {
 		const permutationData = _.cloneDeep( _template )
 
