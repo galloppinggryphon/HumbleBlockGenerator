@@ -41,18 +41,18 @@ const directiveHandlers = {
 			// eventItem may be an action array, without conditions
 			if ( Array.isArray( eventItem ) ) {
 				block.addEvent( {
-					eventTrigger: eventHandlerName,
+					eventName: eventHandlerName,
 					handler: eventHandlerName,
 					action: eventItem,
 				} )
 			}
 			else {
-				const { action, eventTrigger, triggerCondition, target } = eventItem
+				const { action, eventName, triggerCondition, target } = eventItem
 
 				block.addEvent( {
 					condition: triggerCondition,
 					handler: eventHandlerName,
-					eventTrigger: eventTrigger ?? eventHandlerName,
+					eventName: eventName ?? eventHandlerName,
 					action,
 					target,
 				} )
