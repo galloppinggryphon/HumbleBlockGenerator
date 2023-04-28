@@ -34,6 +34,12 @@ const { computedProp } = prefixer
 export default function PresetDataHandler( block, { presetName = undefined, presetConfig, presetTemplate, customVars = undefined, actionHooks = undefined } ) {
 	const { source } = block.data
 
+	/**
+	 * @type {ReturnType<typeof EventActionParser>}
+	 */
+	// eslint-disable-next-line prefer-const
+	let eventActionParser
+
 	const defaultCustomVars = {
 		// '%variant%': block.data.permutations.path.slice( -1 ),
 	}
@@ -249,128 +255,26 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 			block.addPartVisibility( partVisibility.bone, partVisibility.conditions )
 		},
 
-		/**
-		 * Create events. Receives preset directives `@events`, `@event_handler_templates` and `@properties`.
-		 */
-		createEvents( { events, eventHandlers, properties } ) {
-			/** @type {string[]} */
-			const triggerItemList = []
-
-			/** @type {JSO<Partial<Events.EventData>>} */
-			const eventData = {}
-
-			// Parse @events
-			for ( const [ eventTrigger, props ] of Object.entries( events ) ) {
-				eventData[ eventTrigger ] = eventData[ eventTrigger ] ?? { eventTrigger }
-				const eventItem = eventData[ eventTrigger ]
-
-				for ( const [ rawProperty, value ] of Object.entries( props ) ) {
-					// Normalize JSON key names
-					const property = kebabToCamelCase( rawProperty )
-
-					if ( property === 'triggerItems' ) {
-						if ( isObj( value ) ) {
-							eventItem[ property ] = value
-							triggerItemList.push( ...Object.values( value ) )
-						}
-					}
-					else {
-						eventItem[ property ] = value
-					}
-				}
-			}
-
-			// Normalize eventHandlers
-			Object.entries( eventHandlers ).reduce( ( result, [ key, value ] ) => {
-				for ( const property of Object.keys( value ) ) {
-					const _prop = kebabToCamelCase( property )
-					if ( _prop !== property ) {
-						result[ key ][ _prop ] = value[ property ]
-						delete result[ key ][ property ]
-					}
-				}
-				return result
-			}, eventHandlers )
-
-			// Resolve computed properties %trigger_items.* (used in event_handler_templates and events.condition) with values from trigger items array
-			if ( triggerItemList.length ) {
-				const items = Array.from( new Set( triggerItemList ) )
-				this.setCustomVar(
-					// Comma-separated string
-					computedProp( `trigger_items.list` ),
-					items
-						.map( ( val ) => `'${ val }'` )
-						.join( ',' ),
-				)
-
-				this.setCustomVar(
-					computedProp( `trigger_items.array` ),
-					items,
-				)
-			}
-
-			// Resolve computed property %properties.array = list of custom block properties
-			if ( properties ) {
-				this.setCustomVar(
-					computedProp( `properties.array` ),
-					[ Object.keys( properties ) ].flat(),
-				)
-			}
-
-			// Create events from prepared data
-			Object.values( eventData ).forEach( ( event ) => {
-				const { eventTrigger, handler, propertyNames, triggerItems, condition } = event
-				if ( ! handler ) {
-					return
-				}
-
-				const { triggerCondition, action } = eventHandlers[ handler ] ?? {}
-
-				if ( ! action ) {
-					logger.error( `Problems were found in preset '${ presetName }'. Missing required key in event template: 'action'.` )
-					return
-				}
-
-				this.createEvent( { triggerCondition: condition ?? triggerCondition, action, eventTrigger, handler, propertyNames, triggerItems } )
-			} )
-		},
-
-		createEvent( { action, eventTrigger, handler, triggerCondition = undefined, propertyNames = undefined, triggerItems = undefined } ) {
+		createEvent( { action, eventName, handler, triggerCondition = undefined, triggerItems = undefined, params = undefined } ) {
 			/**
 			 * @type {Events.EventData}
 			 */
 			const eventData = {
 				action: [],
-			}
-
-			eventData.eventTrigger = eventTrigger
-			eventData.handler = handler
-
-			const vars = {
-				// ...block.data.extraVars,
-				...this.customVars,
-				// ...this.presetVars,
+				eventName,
+				handler,
 			}
 
 			// Process variables
 			if ( triggerCondition ) {
-				if ( ! triggerItems ) {
-					logger.error( `Error parsing event data: missing 'trigger_items'.`, { presetName, triggerCondition } )
-				}
-				else if ( stringContainsUnresolvedRef( triggerItems ) ) {
+				// if ( ! triggerItems ) {
+				// 	logger.error( `Error parsing event data: missing 'trigger_items'.`, { presetName, triggerCondition } )
+				// }
+				if ( stringContainsUnresolvedRef( triggerItems ) ) {
 					logger.error( `Error parsing event data: unresolved variable in 'trigger_items'.`, { presetName, triggerItems, triggerCondition } )
 				}
 				else {
-					eventData.condition = resolveTemplateStrings( triggerCondition, vars, { restrictChars: false } )
-
-					// const eVars = {
-					// 	...vars,
-					// 	[ calculatedProp( `trigger_items.list` ) ]: [ Object.keys( triggerItems ) ].flat(),
-
-					// // [ calculatedProp( `trigger_item` ) ]: triggerItems[ params.property ],
-					// // [ calculatedProp( `property` ) ]: params.property,
-					// }
-					// eventData.condition = eventTemplate.condition// resolveTemplateStrings( eventTemplate.condition, eVars, { restrictChars: false } )
+					eventData.condition = resolveTemplateStrings( triggerCondition, this.customVars, { restrictChars: false } )
 				}
 			}
 
@@ -380,30 +284,25 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 			 * [2] Generate from event 'propertyList' list
 			 * [3] Add actions without processing
 			 */
-			if ( triggerItems ) {
-				reducer( this.params.properties, ( result, [ property ] ) => {
-					const triggerItem = triggerItems[ property ]
-					if ( ! triggerItem ) {
-						return result
-					}
+			eventData.action = eventActionParser( { action, params } )
 
-					const actions = eventActionParser( { action, property, triggerItem } )
-					result.push( ...actions )
-					return result
-				}, eventData.action )
-			}
-			else if ( propertyNames ) {
-				const { resolvedPropertyNames } = resolveRefsRecursively( { resolvedPropertyNames: propertyNames }, this.customVars, { mutateSource: true } )
+			// if ( propertyNames ) {
+			// 	const { resolvedPropertyNames } = resolveRefsRecursively( { resolvedPropertyNames: propertyNames }, this.customVars, { mutateSource: true } )
 
-				const actions = [ resolvedPropertyNames ].flat().map(
-					( property ) => eventActionParser( { action, property } ),
-				)
+			// 	// TODO: This code is possibly/probably non-functional
+			// 	// throw new Error( 'MISSING IMPLEMENTATION: eventActionParser + propertyNames' )
 
-				eventData.action.push( ...actions[ 0 ] )
-			}
-			else {
-				eventData.action = action
-			}
+			// 	const actions = [ resolvedPropertyNames ].flat().map(
+			// 		( property ) => eventActionParser( { action, property } ),
+			// 	)
+
+			// 	eventData.action.push( ...actions[ 0 ] )
+			// }
+			// else {
+			// 	eventData.action = eventActionParser( { action, params } )
+
+			// 	// eventData.action = action
+			// }
 
 			block.addEvent( eventData )
 		},
@@ -424,6 +323,7 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 		},
 	}
 
+	eventActionParser = EventActionParser( presetHandler )
 	resolvePresetVars()
 
 	return presetHandler
@@ -449,8 +349,10 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 				return result
 			}, obj )
 		}
+
 		reducer( presetHandler.params, ( result, [ key, value ] ) => {
 			if ( ! hasPrefix.variable( key ) && isObj( value ) ) {
+				// logger.error( `The preset object '${ key }' contains a null or illegal value.`, value )
 				filterNullInObj( value )
 			}
 			return result
@@ -466,43 +368,6 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 		// resolveRefsRecursively( this.data.presetTemplate, vars, { removeMissing: false, mutateSource: true } )
 		// resolveTemplateStringsRecursively( this.data.presetTemplate, vars, { mutateSource: true } )
 	}
-
-	/**
-	 * Resolve variables in event action definitions.
-	 *
-	 * @param {{ action: JSO, triggerItem?: string, propData: JSO }} props
-	 */
-	function resolveEventActionVariables( { action, propData, triggerItem = undefined } ) {
-		const eVars = {
-			[ computedProp( `trigger_item` ) ]: triggerItem && resolveTemplateStrings( triggerItem, presetHandler.customVars ),
-
-			...propData
-				? {
-					[ computedProp( `property` ) ]: propData.property,
-					[ computedProp( `property.query` ) ]: propData.query,
-					[ computedProp( `properties.max` ) ]: propData.max,
-					[ computedProp( `properties.min` ) ]: propData.min,
-				}
-				: {},
-		}
-
-		return resolveTemplateStringsRecursively( action, eVars, { restrictChars: false } )
-	}
-
-	/**
-	 * Action generator
-	 * @param {{action: Events.ActionItem[], property: string, triggerItem?: string}} param0
-	 */
-	function eventActionParser( { action, property, triggerItem = undefined } ) {
-		const propData = getPresetPropertyMeta( property )
-
-		let actionArray = []
-
-		// Generate actions for multiple trigger items, if defined
-		actionArray = _.cloneDeep( action )
-		const resolvedActions = actionArray.map( ( item ) => {
-			return resolveEventActionVariables( { propData, action: item, triggerItem } )
-		} )
-		return resolvedActions
-	}
+// }
+//
 }
