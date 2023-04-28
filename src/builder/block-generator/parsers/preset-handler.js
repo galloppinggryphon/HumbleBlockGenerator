@@ -16,7 +16,8 @@ import {
 import appData from '../../../app-data.js'
 import { filterPropsByKeyPrefix, mergeProps, stringContainsUnresolvedRef, prefixer, filterObjKeys, hasPrefix } from '../../builder-utils.js'
 import { BlockTemplateData, Props } from '../data-factories.js'
-import { mergePresetData } from './parser-utils.js'
+import { findMagicExpressionsInObj, getPropertyData, mergePresetData, parseMagicExpression } from './parser-utils.js'
+import EventActionParser from './event-action-parser.js'
 
 const { computedProp } = prefixer
 
@@ -82,13 +83,7 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 		get params() {
 			if ( ! this.data.params ) {
 				// Merging of event templates is a special case
-
-				// const { event_handler_templates: eventHandlerConfig, ...presetConfigData } = this.data.presetConfig
-
-				// const { event_handler_templates: eventHandlerTemplates, ...presetTemplateData } = this.data.presetTemplate
-
-				this.data.params = mergePresetData( this.data.presetTemplate, this.data.presetConfig )
-				// this.data.params.event_handler_templates = mergeEventHandlerTemplates( eventHandlerTemplates, eventHandlerConfig )
+				this.data.params = mergePresetData( this.data.presetConfig, this.data.presetTemplate )
 			}
 
 			return this.data.params
@@ -108,6 +103,10 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 			return this.data.presetVars
 		},
 
+		get vars() {
+			return { ...this.presetVars, ...source.vars, ...this.customVars, ...this.presetPropertyVars }
+		},
+
 		get customVars() {
 			return this.data.customVars
 		},
@@ -117,9 +116,20 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 				const _key = computedProp( key )
 				const value = `{{prefix}}:${ key }`
 				result[ _key ] = value
-				result[ `${ _key }.query` ] = `query.block_property('${ value }')`
+				result[ `${ _key }::query` ] = `query.block_property('${ value }')`
+				// result[ `${ _key }::value` ] = value
 				return result
 			}, {} )
+		},
+
+		getParamByPath( ...path ) {
+			const data = _.get( this.params, path )
+
+			// if ( ! data ) {
+			// 	throw new Error( `Invalid path '${ path.join( '.' ) }'.` )
+			// }
+
+			return data
 		},
 
 		clone() {
@@ -139,18 +149,6 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 			this.data.actionHooks[ hookName ] = func
 		},
 
-		createPermutations( permutations ) {
-			// If necessary, transform key-value permutations data to array
-			const permutationsArr = Array.isArray( permutations )
-				? permutations
-				: Object.entries( permutations ).map( ( [ key, block_props ] ) => /** @type {McPermutationTemplate} */ ( { key, block_props } ) )
-
-			permutationsArr.forEach(
-				( { condition, key, block_props } ) => this.createPermutation( { condition, block_props, key } )
-				, this,
-			)
-		},
-
 		createPermutation( { block_props, key = undefined, condition = undefined } ) {
 			const permutationHandler = presetHandler.clone()
 			const permutationProps = BlockTemplateData( block_props )
@@ -162,7 +160,7 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 
 			permutationHandler.applyActionHook( 'permutations', { preset: permutationHandler, key, permutation } )
 
-			const vars = { ...source.vars, ...permutationHandler.presetVars, ...permutationHandler.customVars, ...permutationProps.vars, ...permutationHandler.presetPropertyVars }
+			const vars = { ...source.vars, ...permutationHandler.presetVars, ...permutationHandler.customVars, ...permutationProps.vars }
 
 			permutation.condition = resolveTemplateStrings( permutation.condition, vars, { restrictChars: false } )
 			resolveTemplateStringsRecursively( permutation.props, vars, { mutateSource: true, restrictChars: false } ) // todo: not proxy safe
