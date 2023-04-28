@@ -62,17 +62,20 @@ const directiveHandlers = {
 	},
 
 	/**
-	 * Parse '@part_visibility' directive.
+	 * Parse '@bone_visibility' directive.
+	 *
+	 * ! Note !
+	 * ~ With MC 1.19.80, `part__visibility` has moved to the `geometry` key and has been renamed `bone_visibility`
 	 */
-	part_visibility( block ) {
+	bone_visibility( block ) {
 		const { props } = block.data
 		const { dir } = block.data.source
 
-		if ( ! dir.part_visibility ) {
+		if ( ! dir.bone_visibility ) {
 			return block
 		}
 
-		const partVisibility = Object.entries( dir.part_visibility ).reduce(
+		const boneVisibility = Object.entries( dir.bone_visibility ).reduce(
 			( result, [ materialInstance, conditions ] ) => {
 				const allConditions = _.uniq( [
 					...[ result[ materialInstance ] ?? [] ].flat(),
@@ -82,10 +85,13 @@ const directiveHandlers = {
 				result[ materialInstance ] = allConditions.join( ' || ' )
 				return result
 			},
-			props.part_visibility?.conditions ?? {},
+			props.bone_visibility?.conditions ?? {},
 		)
 
-		props.part_visibility = { conditions: partVisibility }
+		props.geometry ??= {
+			bone_visibility: {},
+		}
+		props.geometry.bone_visibility = boneVisibility
 
 		return block
 	},
@@ -252,6 +258,14 @@ const propHandlers = {
 
 	/**
 	 * Process geometry data and add to block.data. Add geometry prefix.
+	 *
+	 * ! Note !
+	 * ~ With MC 1.19.80, `part__visibility` has moved to the `geometry` key and has been renamed `bone_visibility`
+	 *
+	 * TODO: Accept geometry object in templates.
+	 * ! For now, geometry continues to accept a string.
+	 * ~ This function adds `geometry` to the geometry object.
+	 *
 	 */
 	geometry( block ) {
 		const { props, source } = block.data
@@ -261,20 +275,27 @@ const propHandlers = {
 		}
 
 		const { geometry } = source.props
-		let newGeoVal = geometry
+
+		let geoString = geometry
 
 		if ( stringHasPrefix( 'geometry.', geometry ) ) {
 			logger.notice(
-				`The 'geometry.*' prefix is used in the 'geometry' property. You can omit this prefix, it is added automatically.`,
+				`The 'geometry.*' prefix was found in the 'geometry' property. You can omit this prefix, it is added automatically.`,
 			)
-			newGeoVal = geometry.slice( 9 )
+			geoString = geometry.slice( 9 )
 		}
 
 		const { geometryPrefix } = appData.settings
 		const geoPrefix =
 			typeof geometryPrefix === 'string' ? geometryPrefix : ''
 
-		props.geometry = `geometry.${ geoPrefix + newGeoVal }`
+		geoString = `geometry.${ geoPrefix + geoString }`
+
+		props.geometry ??= {
+			geometry: '',
+		}
+
+		props.geometry.geometry = `geometry.${ geoPrefix + geoString }`
 		delete source.props.geometry
 
 		return block

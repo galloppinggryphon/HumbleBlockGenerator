@@ -8,9 +8,9 @@ declare namespace PresetTemplate {
 		events: JSO<Events.EventTriggerItemTemplate>;
 		event_handler_templates: EventHandlerTemplates;
 		permutation_templates: PermutationItemData[];
-		part_visibility_template: string;
+		// part_visibility_template: string;
 		permutations: JSO;
-		part_visibility: JSO;
+		bone_visibility: JSO;
 	}
 
 	type EventHandlerTemplates = {

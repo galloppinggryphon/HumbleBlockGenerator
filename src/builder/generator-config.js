@@ -38,7 +38,7 @@ const directivePrefix = '@'
 /**
  * All template directives
  */
-const directives = [ 'apply', 'events', 'export', 'materials', 'exclude_materials', 'material_templates', 'material_permutations', 'material_instances', 'part_visibility', 'render', 'texture', 'title', 'type', 'variants' ]
+const directives = [ 'apply', 'events', 'export', 'materials', 'exclude_materials', 'material_templates', 'material_permutations', 'material_instances', 'bone_visibility', 'render', 'texture', 'title', 'type', 'variants' ]
 /**
  * All directives used to generate materials.
  */
