@@ -8,7 +8,7 @@ import pathConfig from '../paths.js'
 /**
  * Application state manager
  */
-const appData = new Proxy( {
+const appData = new Proxy( /** @type {Application.AppData} */ ( {
 	uninitialized: true,
 	generatorData: {
 		output: {
@@ -36,7 +36,7 @@ const appData = new Proxy( {
 		templateDir: undefined,
 		templatePath: undefined,
 	},
-}, {} )
+} ), {} )
 
 if ( appData.uninitialized ) {
 	delete appData.uninitialized
