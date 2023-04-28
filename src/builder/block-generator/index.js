@@ -193,7 +193,7 @@ function setupInputPaths() {
 
 	const presetScriptFiles = {
 		presetScripts: nodePath.join( configPath, presetScripts ),
-		bundledPresetScripts: nodePath.join( bundledPresetsPath, 'presets.js' ),
+		// bundledPresetScripts: nodePath.join( bundledPresetsPath, 'presets.js' ),
 	}
 
 	const blocks = scriptArgs.blocks && scriptArgs.blocks.length
