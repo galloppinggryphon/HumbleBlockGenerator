@@ -68,14 +68,69 @@ const directiveHandlers = {
 	 * ~ With MC 1.19.80, `part__visibility` has moved to the `geometry` key and has been renamed `bone_visibility`
 	 */
 	bone_visibility( block ) {
-		const { props } = block.data
-		const { dir } = block.data.source
+		return block
+
+		const { dir, props } = block.data.source
 
 		if ( ! dir.bone_visibility ) {
 			return block
 		}
 
-		const boneVisibility = Object.entries( dir.bone_visibility ).reduce(
+		// if ( typeof dir.bone_visibility === 'string' ) {
+		// 	block.data.source.props.bone_visibility = dir.bone_visibility
+		// 	return block
+		// }
+
+		// ! Currently unsupported: Conditional bone visibility
+		// const boneVisibility = Object.entries( dir.bone_visibility ).reduce(
+		// 	( result, [ materialInstance, conditions ] ) => {
+		// 		const allConditions = _.uniq( [
+		// 			...[ result[ materialInstance ] ?? [] ].flat(),
+		// 			...[ conditions ].flat(),
+		// 		] )
+
+		// 		result[ materialInstance ] = allConditions.join( ' || ' )
+		// 		return result
+		// 	},
+		// 	{},
+		// )
+
+		// Save to block.data. Added to the geometry key later.
+		// ! Disabled: block.data.boneVisibility = boneVisibility
+
+		const { bones, visible } = dir.bone_visibility
+
+		const visibleBones = Object.values( visible )
+		const boneVisibility = reducer( bones, ( result, [ __, bone ] ) => {
+			if ( ! visibleBones.includes( bone ) ) {
+				result[ bone ] = false
+			}
+			// result[ bone ] = visibleBones.includes( bone ) ?? false
+			return result
+		} )
+
+		props.geometry ??= {}
+		props.geometry.bone_visibility = boneVisibility
+
+		return block
+	},
+
+	/**
+	 * Parse '@part_visibility' directive.
+	 *
+	 * ! Note: Prior to 1.19.80 !
+	 */
+	part_visibility( block ) {
+		// return block
+
+		const { dir } = block.data.source
+
+		if ( ! dir.part_visibility ) {
+			return block
+		}
+
+		// ! Currently unsupported: Conditional bone visibility
+		const boneVisibility = Object.entries( dir.part_visibility ).reduce(
 			( result, [ materialInstance, conditions ] ) => {
 				const allConditions = _.uniq( [
 					...[ result[ materialInstance ] ?? [] ].flat(),
@@ -85,13 +140,14 @@ const directiveHandlers = {
 				result[ materialInstance ] = allConditions.join( ' || ' )
 				return result
 			},
-			props.bone_visibility?.conditions ?? {},
+			{},
 		)
 
-		props.geometry ??= {
-			bone_visibility: {},
+		block.data.source.props.part_visibility = {
+			conditions: boneVisibility,
 		}
-		props.geometry.bone_visibility = boneVisibility
+
+		delete dir.part_visibility
 
 		return block
 	},
