@@ -50,7 +50,7 @@ export default function EventActionParser( presetHandler ) {
 	 * - %properties::*
 	 * - %trigger_items
 	 *
-	 * @param {{action: Events.ActionItem[], params?: JSO}} param0
+	 * @param {{action: Events.EventActionItem[], params?: JSO}} param0
 	 */
 	function eventActionParser( { action, params } ) {
 		const resolvedAction = resolveRefsRecursively( action, presetHandler.vars )
@@ -87,7 +87,7 @@ export default function EventActionParser( presetHandler ) {
 	/**
 	 * Resolve magic expressions in event action item and generate valid Minecraft event data.
 	 *
-	 * @param {Events.ActionItem} action
+	 * @param {Events.EventActionItem} action
 	 */
 	function resolveAction( action ) {
 		const { params, ...actionData } = action
@@ -129,7 +129,7 @@ export default function EventActionParser( presetHandler ) {
 	/**
 	 * Generate valid Minecraft event items based on forEach array values.
 	 *
-	 * @param {Events.ActionItem} action
+	 * @param {Events.EventActionItem} action
 	 */
 	function resolveForEach( action ) {
 		const { for_each: forEach, params, ...actionData } = action
@@ -152,34 +152,9 @@ export default function EventActionParser( presetHandler ) {
 		const magicExpressions = findMagicExpressionsInObj( actionData )
 
 		// const forEachArr = forEachParam// [ forEachParam ].flat()
-
 		// dimension -> dimension::name -> properties.rotate_x::name
 		// dimension -> properties.rotate_x -> current_block_state
 		// dimension -> properties.rotate_x -> max/min
-
-		/*
-			{
-			key: "rotate_x",
-			name: "{{prefix}}:rotate_x",
-			magic_key: "%rotate_x",
-			current_block_state: "query.block_property('{{prefix}}:rotate_x')",
-			rotate_x: [
-				0,
-				1,
-				2,
-				3,
-			],
-			value: [
-				0,
-				1,
-				2,
-				3,
-			],
-			length: 4,
-			max: 3,
-			min: 0,
-			}
-		*/
 
 		const forEachVars = {}
 		const mcActions = []
@@ -268,8 +243,7 @@ export default function EventActionParser( presetHandler ) {
 				forEachValue = presetHandler.getParamByPath( ...forEachInfo.path )
 			}
 			catch ( e ) {
-				//
-				const i = 0
+				throw new Error( 'forEachValue error' )
 			}
 
 			const forEachData = getPropertyData( forEachInfo.metaKey, forEachValue )
@@ -289,21 +263,21 @@ export default function EventActionParser( presetHandler ) {
 		return mcActions
 	}
 
-	function generateForEachAction( forEachValues, action, params, keywordArr, forEachVars = {} ) {
+	function generateForEachAction( forEachKeys, action, params, magicExpressionsArr, forEachVars = {} ) {
 		// ~ Generate Minecraft event items - one action per forEach value ~
 		const mcEventItems = []
 
-		for ( let index = 0; index < forEachValues.length; index++ ) {
+		for ( let index = 0; index < forEachKeys.length; index++ ) {
 			// %for_each values update for each iteration
-			const nextIndex = index + 1 === forEachValues.length ? 0 : index + 1
-			const nextCountValue = nextIndex === forEachValues.length ? 1 : nextIndex + 1
-			const forEachCurrentValue = forEachValues && nextIndex < forEachValues.length ? forEachValues[ nextIndex ] : ''
+			const nextIndex = index + 1 === forEachKeys.length ? 0 : index + 1
+			const nextCountValue = nextIndex === forEachKeys.length ? 1 : nextIndex + 1
+			const forEachCurrentKey = forEachKeys && nextIndex < forEachKeys.length ? forEachKeys[ nextIndex ] : ''
 
 			const forEachCurrent = {
-				current: forEachCurrentValue,
+				key: forEachCurrentKey,
 				index: index,
 				next_index: nextCountValue,
-				count: forEachValues.length,
+				count: forEachKeys.length,
 			}
 
 			// Resolve and add %forEach variables
@@ -315,7 +289,7 @@ export default function EventActionParser( presetHandler ) {
 
 			Object.assign( dynamicVars, forEachVars, dynamicVars )
 
-			keywordArr.forEach( ( keyword ) => {
+			magicExpressionsArr.forEach( ( keyword ) => {
 				const meta = parseMagicExpression( keyword )
 
 				// %for_each is a special case and has already been parsed
@@ -343,45 +317,21 @@ export default function EventActionParser( presetHandler ) {
 						dynamicVars[ keyword ] = ''
 					}
 				}
-				// else if ( isObj( paramValue ) ) {
-				// 	//
-				// 	const _paramValue = paramValue[ forEachCurrentValue ]
-				// 	const valueInfo = parseMagicKeyword( _paramValue )
-				// 	const valueData = presetHandler.getParamByPath( ...valueInfo.path )
-
-				// 	const data = getPropertyData( forEachCurrentValue, valueData )
-
-				// 	// forEachVars[ `${ computedProp( meta.property ) }` ] = paramValue
-
-				// 	Object.entries( data ).forEach( ( [ _key, _val ] ) => {
-				// 		forEachVars[ `${ computedProp( meta.property ) }${ magicKeywordMetaDivider }${ _key }` ] = _val
-				// 	} )
-				// }
 				else {
-					// x
 					const data = getPropertyData( meta.property, paramValue )
-
-					// forEachVars[ `${ computedProp( meta.property ) }` ] = paramValue
 
 					Object.entries( data ).forEach( ( [ _key, _val ] ) => {
 						dynamicVars[ `${ computedProp( meta.property ) }${ magicExpressionMetaDivider }${ _key }` ] = _val
 					} )
 				}
-				// const data = getPropertyData( meta.property, _paramValue )
-
-				// const keys = data.keys ?? meta.property
-
-				// if ( data.keys ) {
-				// 	data.keys.forEach( ( k ) => {
-				// 		const kd = getPropertyData( k )
-				// 		currentVars[ `${ computedProp( kd.magic_key ) }` ] = paramValue
-				// 	} )
-				// }
 			} )
 
 			// ~ Now resolve all the variables in the action object ~
 			const actionCopy = _.cloneDeep( action )
 			const mcEventData = resolveTemplateStringsRecursively( actionCopy, dynamicVars, { restrictChars: false } )
+
+			// if ( stringContainsUnresolvedRef( '' ) ) {
+
 			mcEventItems.push( mcEventData )
 		}
 
