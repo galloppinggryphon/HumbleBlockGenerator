@@ -53,7 +53,7 @@ export default function generateBlocks( { fileName, blockData, results } ) {
  * @param {string} props.fileName
  * @param {JSO} props.blockData
  * @param {string} [props.permutationKey]
- * @param {PermutationBuilder} [props.prevPermutation]
+ * @param {BlockParser.PermutationBuilder} [props.prevPermutation]
  * @yields {GeneratedBlockData}
  * return {GeneratedBlockData}
  */

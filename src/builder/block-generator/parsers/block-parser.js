@@ -35,7 +35,7 @@ export default function BlockParser( blockTemplate ) {
 	/**
 	 * Block parser.
 	 *
-	 * @type {PermutationBuilder}
+	 * @type {BlockParser.PermutationBuilder}
 	 */
 	// @ts-ignore
 	const dataHandlers = {
@@ -326,15 +326,15 @@ export default function BlockParser( blockTemplate ) {
 	 * Permutation proxy factory
 	 *
 	 * @param {Object} props
-	 * @param {PermutationBuilder} [props.prevBuilder]
+	 * @param {BlockParser.PermutationBuilder} [props.prevBuilder]
 	 * @param {JSO} [props.children]
 	 * @param {boolean} [props.exportData]
 	 */
 	const CreatePermutationHandler = ( { prevBuilder, children = {}, exportData = false } ) => {
-		/** @type {Partial<PermutationBuilderProxy>} */
+		/** @type {Partial<BlockParser.PermutationBuilderProxy>} */
 		const proxyData = {}
 
-		/** @type {PermutationBuilder} */
+		/** @type {BlockParser.PermutationBuilder} */
 		const proxy = new Proxy( proxyData, proxyHandlers )
 		const data = BlockPermutationData( prevBuilder?.data, exportData )
 		const materials = MaterialBuilder( proxy, _.cloneDeep( prevBuilder?.materials.data ) )
@@ -342,7 +342,7 @@ export default function BlockParser( blockTemplate ) {
 		Object.assign( proxyData, {
 			data,
 			children,
-			handlers: /** @type {PermutationBuilderHandlers} */ ( dataHandlers ),
+			handlers: /** @type {BlockParser.PermutationBuilderHandlers} */ ( dataHandlers ),
 			materials,
 			copyPermutationData() {
 				return CreatePermutationHandler( { prevBuilder: proxy } )

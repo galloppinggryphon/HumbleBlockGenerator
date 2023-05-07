@@ -43,22 +43,13 @@ const blockActions = {
 
 /**
  * @param {BlockTemplateData} blockTemplateData
- * @param {CreateBlock.BlockInfo} [blockInfo]
+ * @param {Partial<CreateBlock.BlockInfo>} [blockInfo]
  * @param {PermutationTreeData} [permutationTreeData]
  */
-export function CreateBlock( blockTemplateData, blockInfo = undefined, permutationTreeData = undefined ) {
-	// const { currentPermutation } = blockTemplateData
-
+export function CreateBlock( blockTemplateData, blockInfo = {}, permutationTreeData = undefined ) {
 	/** @type {CreateBlock.Block} */
 	const block = {
 		data: CreateBlockData( blockTemplateData, blockInfo ),
-		// 	{
-		// 	key: currentPermutation.key,
-		// 	name: currentPermutation.name,
-		// 	fullName: currentPermutation.fullName,
-		// 	finalPermutation: permutationMeta.getFinalPermution(),
-		// }
-
 		permutationInfo: permutationTreeData,
 
 		/**
@@ -70,18 +61,19 @@ export function CreateBlock( blockTemplateData, blockInfo = undefined, permutati
 			action = [],
 			condition = undefined,
 		} ) {
-			this.data.eventTriggers[ eventName ].handler = handler
+			const { eventHandlers, eventTriggers } = this.data
+
+			eventTriggers[ eventName ].handler = handler
 
 			if ( condition ) {
-				// ! I don't see a need for this to be an array?
-				// this.data.eventTriggers[ eventTrigger ].condition ??= []
-				// this.data.eventTriggers[ eventTrigger ].condition.push( condition )
-				this.data.eventTriggers[ eventName ].condition = condition
+				// Add conditions to array, then compile
+				const conditions = [ eventTriggers[ eventName ].condition, condition ].flat()
+				eventTriggers[ eventName ].condition = conditions
 			}
 
 			this.data.eventHandlers[ handler ] = {
 				sequence: [
-					...( this.data.eventHandlers[ eventName ]?.sequence ?? [] ),
+					...( eventHandlers[ eventName ]?.sequence ?? [] ),
 					...action,
 				],
 			}
@@ -127,7 +119,7 @@ export function CreateBlock( blockTemplateData, blockInfo = undefined, permutati
 		 *
 		 * @return {GeneratedBlockData}
 		 */
-		make() {
+		make( prepareFinalBlock = true ) {
 			const parsedBlock = parseProps( this )
 			const { source, props } = parsedBlock.data
 
@@ -140,6 +132,10 @@ export function CreateBlock( blockTemplateData, blockInfo = undefined, permutati
 				permutationData: permutationTreeData,
 			}
 
+			if ( ! prepareFinalBlock ) {
+				return blockData
+			}
+
 			applyActions(
 				blockData,
 				blockActions.prepareIdentifiers,
@@ -148,6 +144,7 @@ export function CreateBlock( blockTemplateData, blockInfo = undefined, permutati
 
 			return blockData
 		},
+
 	}
 
 	return block

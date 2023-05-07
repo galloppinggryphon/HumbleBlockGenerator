@@ -14,15 +14,15 @@ import {
 } from '../../generator-config.js'
 
 /**
- * @param {PermutationBuilder} block
- * @param {MaterialBuilderData} prevData
- * @return {MaterialBuilder}
+ * @param {BlockParser.PermutationBuilder} block
+ * @param {Materials.MaterialBuilderData} prevData
+ * @return {Materials.MaterialBuilder}
  */
 export function MaterialBuilder( block, prevData = undefined ) {
 	const { materialConfig = {} } = appData.generatorData
 
 	/**
-	 * @type {MaterialBuilderData}
+	 * @type {Materials.MaterialBuilderData}
 	 */
 	const data = prevData ?? {
 		render: {},
@@ -44,7 +44,7 @@ export function MaterialBuilder( block, prevData = undefined ) {
 
 	/**
 	 *
-	 * @param {{key: string, material: MaterialTemplate}} props
+	 * @param {{key: string, material: Materials.MaterialTemplate}} props
 	 */
 	function newMaterialTemplate( { key = undefined, material } ) {
 		// const materialInstance = {
@@ -86,7 +86,7 @@ export function MaterialBuilder( block, prevData = undefined ) {
 	/**
 	 *
 	 * param {string} permutationName
-	 * @param {MaterialInstanceCollection|JSO<keyof MaterialInstance>} materialInstances
+	 * @param {Materials.MaterialInstanceCollection|JSO<keyof Materials.MaterialInstance>} materialInstances
 	 */
 	function generateMaterialInstances( materialInstances ) {
 		// const { materialInstances, materialTemplates } = data

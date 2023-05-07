@@ -205,11 +205,11 @@ export function Props( data = undefined ) {
 
 /**
  * @param {BlockTemplateData} source
- * @param {CreateBlock.Data['blockInfo']} blockInfo
+ * @param {Partial<CreateBlock.BlockInfo>} blockInfo
  * @return {CreateBlock.Data}
  */
 export function CreateBlockData( source, blockInfo ) {
-	/** @type {ExtraVars} */
+	/** @type {CreateBlock.ExtraVars} */
 	const extraVars = {
 		prefix: appData.settings.prefix,
 		permutation: blockInfo.finalPermutation,
