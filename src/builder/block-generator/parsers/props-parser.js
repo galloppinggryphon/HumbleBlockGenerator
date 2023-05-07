@@ -134,8 +134,14 @@ const propHandlers = {
 			return block
 		}
 
-		const BC = parseCollisionBox( source.props, props, 'block_collision' )
-		if ( BC ) {
+		if ( typeof block_collision === 'string' ) {
+			logger.error( `Invalid value for 'block_collision', must be a number. Is it an unevaluated variable?`, { block_collision } )
+			return block
+		}
+
+		const collisionBox = parseCollisionBox( source.props, props, 'block_collision' )
+		if ( collisionBox ) {
+			props.block_collision = collisionBox
 			delete source.props.block_collision
 		}
 
@@ -150,7 +156,14 @@ const propHandlers = {
 			return block
 		}
 
-		if ( parseCollisionBox( source.props, props, 'selection_box' ) ) {
+		if ( typeof selection_box === 'string' ) {
+			logger.error( `Invalid value for 'selection_box', must be a number. Is it an unevaluated variable?`, { selection_box } )
+			return block
+		}
+
+		const collisionBox = parseCollisionBox( source.props, props, 'selection_box' )
+		if ( collisionBox ) {
+			props.selection_box = collisionBox
 			delete source.props.selection_box
 		}
 
