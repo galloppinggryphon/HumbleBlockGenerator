@@ -19,15 +19,16 @@ interface MagicExpressionMeta<IsMagicExpression extends boolean = true> {
 }
 
 type MagicExpressionKeyData = {
-	key: string;
-	magic_key: string;
-	name: string;
-	current_block_state: string;
+	key?: string;
+	magic_key?: string;
+	name?: string;
+	current_block_state?: string;
 };
 
 interface MagicExpressionData extends MagicExpressionKeyData {
 	[propertyName: string]: any;
 	current_value?: string | number;
+	key?: string,
 	keys?: string[];
 	key_list?: string;
 	is_main_hand?: string;

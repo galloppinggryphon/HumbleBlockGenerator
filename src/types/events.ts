@@ -1,15 +1,13 @@
 declare namespace Events {
-	// interface EventsDirectiveItem extends Pick<EventData, "condition"|"handler"|"target"|"action"|"eventTrigger"> {}
-
 	interface EventData {
 		/**
 		 * Event handler actions
 		 *
-		 * @see Valid event types: https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockevents/blockeventlist
+		 * Valid event types: @see https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockevents/blockeventlist
 		 */
-		action?: Events.ActionItem[]; // | Events.ActionSequence;
-		/** Action execution filter (Molang expression) */
-		condition?: string;
+		action?: Events.EventActionItem[];
+		/** Action execution filter (Molang expression(s)) */
+		condition?: string | string[];
 		/**
 		 * Minecraft event trigger.
 		 *
@@ -19,33 +17,27 @@ declare namespace Events {
 		/** Name of event handler */
 		handler?: string;
 		/** Properties, variables to use with event_handler_templates  */
-		// event_handler_params?: JSO;
-		eventHandlerParams?: JSO;
-
 		params?: JSO;
-		/** List of properties to use with event */
-		// propertyNames?: string | string[];
 		/** Event target, e.g. `self` or `player` */
 		target?: string;
-		/** Condition to use with event trigger */
-		triggerCondition?: string;
-		/** Items that can trigger this event {Key: ItemName} */
-		// triggerItems?: JSO<string>;
+	}
+
+	interface EventParserData extends EventData {
+		condition?: string
 	}
 
 	/** Event handler item used in preset event_handler_templates key */
-	interface EventHandlerItemTemplate
-		extends Pick<Events.EventData, "action" | "triggerCondition"> {}
+	interface EventHandler
+		extends Pick<Events.EventData, "action" | "condition"> {}
 
 	/** Event trigger item used in preset events key: condition, handler, target, propertyNames, triggerItems */
-	interface EventTriggerItemTemplate
+	interface EventTrigger
 		extends Pick<
 			Events.EventData,
 			| "action"
 			| "condition"
 			| "handler"
-			// | "propertyNames"
-			// | "triggerItems"
+			| "params"
 			| "target"
 		> {}
 
@@ -56,23 +48,23 @@ declare namespace Events {
 	/** Used by block templates */
 	interface EventDirectiveItem
 		extends CombineTwo<
-			EventHandlerItemTemplate,
+			EventHandler,
 			Pick<
 				Events.EventData,
-				"eventName" | "handler" | "target" | "action"
+				"eventName" | "handler" | "target" | "action" | "params"
 			>
 		> {}
 
 	/** Used by block templates */
 	interface EventDirectives {
-		[eventHandlerName: string]: EventDirectiveItem | Events.ActionItem[];
+		[eventHandlerName: string]: EventDirectiveItem | Events.EventActionItem[];
 	}
 
-	type ActionSequence = {
-		sequence: Events.ActionItem[];
+	type EventActionSequence = {
+		sequence: Events.EventActionItem[];
 	};
 
-	type ActionItem = {
+	type EventActionItem = {
 		forEach?: string;
 		for_each?: string;
 		params?: JSO;

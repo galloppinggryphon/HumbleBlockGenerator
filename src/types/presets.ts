@@ -24,43 +24,21 @@ declare namespace Presets {
 		clone(): Presets.PresetHandler;
 		setCustomVar(key: string, value: string | number | any[] | JSO): void;
 		setActionHook(hookName: string, func: Function): void;
-		// createPermutations(
-		// 	permutations: PresetTemplate.McPermutationData | PresetTemplate.McPermutationData[]
-		// ): void;
 		createPermutation(
-			permutation: PresetTemplate.PermutationItemData
+			permutation: PresetTemplate.PermutationTemplate
 		): void;
-		createBoneVisibilityRules(boneVisibilityConfig: JSO): void;
-		createBoneVisibilityRule(
+		createPartVisibilityRule(
 			materialInstanceName: string,
 			conditions: string[],
 			property: string
 		): void;
-
-		/* *
-		 * Create events. Receives preset directives `@events`, `@event_handler_templates` and `@properties`.
-		 */
-		// createEvents({
-		// 	events,
-		// 	eventHandlers,
-		// 	properties,
-		// }: {
-		// 	/** `@events`preset directive */
-		// 	events: PresetTemplate.EventTriggers;
-		// 	/** `@event_handler_templates` preset directive */
-		// 	eventHandlers: PresetTemplate.EventHandlerTemplates;
-		// 	/** `@properties` preset directive */
-		// 	properties?: JSO;
-		// }): void;
 
 		createEvent({
 			action,
 			eventName,
 			handler,
 			params,
-			// propertyNames,
-			// triggerItems,
-			triggerCondition,
+			condition,
 		}: Presets.CreateEventProps): void;
 
 		checkRequiredParams(): void;
@@ -69,7 +47,9 @@ declare namespace Presets {
 	/**
 	 * Props for presetParser->createEvent().
 	 */
-	interface CreateEventProps extends Omit<Events.EventData, "condition"> {}
+	interface CreateEventProps extends Events.EventData {
+		condition: string
+	}
 
 	interface TemplateParserArguments {
 		block: CreateBlock.Block;
@@ -78,19 +58,11 @@ declare namespace Presets {
 	}
 
 	type TemplateParsers = Record<
-		"properties" | "events" | "permutations" | "boneVisibility",
+		"properties" | "events" | "permutation_data" | "boneVisibility" | "partVisibility",
 		({
 			block,
 			presetHandler,
 			presetName,
 		}: TemplateParserArguments) => TemplateParserArguments
 	>;
-
-	interface TemplateParsers2 {
-		events({
-			block,
-			presetHandler,
-			presetName,
-		}: TemplateParserArguments): TemplateParserArguments;
-	}
 }

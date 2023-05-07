@@ -1,27 +1,35 @@
-
 declare namespace CreateBlock {
 	interface Block {
 		readonly data: CreateBlock.Data;
 		readonly permutationInfo: PermutationTreeData;
-		addEvent(eventTemplate: Events.EventData): void;
+		addEvent(eventData: Events.EventData): void;
 		addMinecraftPermutation(condition: string, props: JSO): void;
 		addMaterialInstances(newInstances: any): void;
-		addBoneVisibility(
+		addPartVisibility(
 			materialInstanceName: string,
 			conditions: string[]
 		): void;
 		addProperty(key: string, values: any): void;
-		make(): GeneratedBlockData;
+		make(prepareFinalBlock?: boolean): GeneratedBlockData;
 	}
 
 	interface Data {
-		blockInfo: BlockInfo;
+		boneVisibility?: JSO;
+		blockInfo: Partial<CreateBlock.BlockInfo>;
 		source: BlockTemplateData;
-		extraVars: ExtraVars;
+		extraVars: CreateBlock.ExtraVars;
 		props: JSO;
-		permutations: MinecraftPermutationStore;
+		permutations: MinecraftPermutationData;
 		eventTriggers: JSO<Events.EventTriggerComponent>;
-		eventHandlers: JSO<Events.ActionSequence>;
+		eventHandlers: JSO<Events.EventActionSequence>;
+	}
+
+	interface ExtraVars {
+		prefix: string;
+		permutation: string;
+		variant: string;
+		material: string;
+		blockName: string;
 	}
 
 	type BlockInfo = {
@@ -31,7 +39,7 @@ declare namespace CreateBlock {
 		finalPermutation: string;
 	};
 
-	type MinecraftPermutationStore = {
+	type MinecraftPermutationData = {
 		[condition: string]: any;
 	};
 }

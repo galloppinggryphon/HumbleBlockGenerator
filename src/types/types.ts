@@ -26,7 +26,6 @@ type PropsProxy<Props> = Props & {
 	export(): Props;
 };
 
-
 interface GeneratedBlockData {
 	source: BlockTemplateData;
 	block: JSO; // Props( data.props ),
@@ -81,7 +80,7 @@ interface PermutationData {
 	/**
 	 * Materials to use for this permutation tree.
 	 */
-	materialPermutations: PermutationBuilder[];
+	materialPermutations: BlockParser.PermutationBuilder[];
 
 	/**
 	 * Data about the current permutation in the loop.
@@ -92,153 +91,4 @@ interface PermutationData {
 		name: string;
 		fullName: string;
 	};
-}
-
-/**
- * Block parser methods.
- */
-interface PermutationBuilderHandlers {
-	readonly permutations: PermutationTreeData;
-
-	/**
-	 * Reference to the proxy MaterialBuilder
-	 */
-	materials: MaterialBuilder;
-
-	mergeProps(obj: JSO): void;
-	isValid(): boolean;
-	setPermutationData({ key, title, type }: PermutationInfo): void;
-	hasPermutations(): boolean;
-	getPermutations(): [string, JSO][];
-	newPermutation(
-		permutationKey: string,
-		blockTemplate: JSO
-	): PermutationBuilder;
-	createBlock(): GeneratedBlockData;
-	newMaterialPermutation(
-		name: string,
-		materials: BlockTemplateData
-	): PermutationBuilder;
-	disablePermutation(): void;
-	mergeTemplateData(templateData: BlockTemplateData): void;
-	mergePresetSettings(dir: JSO): void;
-	eachMaterialPermutation(): PermutationBuilder[];
-	parseMaterials(): void;
-}
-
-/**
- * Block parser public proxy data and methods.
- */
-interface PermutationBuilderPublicProxyInterface {
-	export(): PermutationBuilder;
-	copyPermutationData(): PermutationBuilder;
-	data: PermutationData;
-	children: JSO;
-}
-
-/**
- * Block parser.
- */
-type PermutationBuilder = PermutationBuilderPublicProxyInterface &
-	PermutationBuilderHandlers;
-
-interface PermutationBuilderProxy
-	extends PermutationBuilderPublicProxyInterface {
-	/**
-	 * Permutation methods
-	 */
-	handlers: PermutationBuilderHandlers;
-
-	/**
-	 * MaterialBuilder factory
-	 */
-	materials: MaterialBuilder;
-}
-
-// interface CreateBlock.Block {
-// 	readonly data: CreateBlockData;
-// 	readonly permutationInfo: PermutationInfoHandler;
-// 	addEvent( eventTemplate: EventTemplate ): void;
-// 	addMinecraftPermutation( condition: string, props: JSO ): void;
-// 	addMaterialInstances( newInstances: any ): void;
-// 	addPartVisibility( materialInstanceName: string, conditions: string[] ): void;
-// 	addProperty( key: string, values: any ): void;
-// 	make(): GeneratedBlockData;
-// }
-
-type MaterialInstance = {
-	texture: string;
-	render_method?: string;
-	ambient_occlusion?: boolean;
-	face_dimming?: boolean;
-};
-
-type MaterialInstanceCollection = {
-	[materialInstanceKey: string]: MaterialInstance;
-};
-
-type MaterialTemplate = {
-	title?: string;
-	texture?: string;
-	render_method?: string;
-	ambient_occlusion?: boolean;
-	face_dimming?: boolean;
-};
-
-type MaterialTemplates = {
-	[materialKey: string]: MaterialTemplate;
-};
-
-type MaterialPermutationCollection = {
-	[permutationKey: string]: MaterialInstanceCollection;
-};
-
-type MaterialPermutationStore = {
-	[permutationKey: string]: MaterialStoreItem;
-};
-
-type MaterialStoreItem = {
-	title: string;
-	materialInstances: MaterialInstanceCollection;
-};
-
-type MaterialFilter = string[];
-type MaterialInstanceFilter = string[];
-
-interface MaterialBuilderData {
-	render: {};
-	/**
-	 * Base data.
-	 */
-	materialTemplates: MaterialTemplates;
-
-	/**
-	 * Exports.
-	 */
-	materials: MaterialPermutationStore;
-
-	/**
-	 * Temp data.
-	 */
-	materialPermutations: MaterialPermutationStore;
-}
-
-/**
- * Material builder factory.
- */
-type MaterialBuilder = {
-	data: MaterialBuilderData;
-	/**
-	 * Parse template data and extract materials.
-	 */
-	extractMaterials(templateData: BlockTemplateData): void;
-	generatePermutations(): void;
-};
-
-interface ExtraVars {
-	prefix: string;
-	permutation: string;
-	variant: string;
-	material: string;
-	blockName: string;
 }
