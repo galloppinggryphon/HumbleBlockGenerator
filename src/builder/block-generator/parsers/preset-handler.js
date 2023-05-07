@@ -169,88 +169,30 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 			block.addMinecraftPermutation( permutation.condition, permutation.props.export() )
 		},
 
-		createBoneVisibilityRules( boneVisibility ) {
-			if ( ! boneVisibility ) {
-				return
-			}
-
-			if ( stringContainsUnresolvedRef( boneVisibility ) ) {
-				logger.error( `Unresolved variable in 'bone_visibility' in preset '${ this.name }'!`, { boneVisibility } )
-				return
-			}
-
-			if ( ! this.params.bone_visibility_conditions ) {
-				logger.error( `Missing property 'bone_visibility_conditions' in preset '${ this.name }'!` )
-				return
-			}
-
-			Object.entries( boneVisibility ).forEach( ( [ property, values ] ) => {
-				if ( stringContainsUnresolvedRef( values ) ) {
-					logger.error( `Unresolved variable in 'bone_visibility' in preset '${ this.name }'!`, { boneVisibility } )
-					return
-				}
-
-				if ( ! isObj( values ) ) {
-					logger.error( `Invalid data in 'bone_visibility' in preset '${ this.name }'!`, { property, values } )
-					return
-				}
-
-				// ~ Syntax alternatives
-				// [1] bone: values[]
-				// [2] value: bones[]
-				const i = Object.keys( values )[ 0 ]
-				const valueBonesSyntax = Number.isInteger( i && +i[ 0 ] )
-
-				if ( ! valueBonesSyntax ) {
-					Object.entries( values || {} ).forEach(
-						( [ key, value ] ) => this.createBoneVisibilityRule( key, [ value ].flat(), property ),
-					)
-				}
-				else {
-					const entryArr = Array.from( new Set( [ ...Object.values( values ).flat() ] ) )
-					const entries = entryArr.reduce( ( result, bone ) => (
-						result[ bone ] = [],
-						result
-					), {} )
-
-					reducer( values, ( result, [ key, bones ] ) => {
-						bones.forEach( ( bone ) => {
-							result[ bone ].push( +key )
-						} )
-						return result
-					}, entries )
-
-					Object.entries( entries || {} ).forEach(
-						( [ key, value ] ) => this.createBoneVisibilityRule( key, value, property ),
-					)
-				}
-			} )
-		},
-
-		createBoneVisibilityRule( bone, values, property ) {
-			const boneVisibility = { bone, values, conditions: [] }
-			const { bone_visibility_conditions } = this.params
+		createPartVisibilityRule( bone, values, property ) {
+			const partVisibility = { bone, values, conditions: [] }
+			const { part_visibility_conditions } = this.params
 
 			const vars = {
 				[ computedProp( `property` ) ]: property,
 			}
 
-			const template = bone_visibility_conditions[ property ] ?? bone_visibility_conditions[ '*' ]
+			const template = part_visibility_conditions[ property ] ?? part_visibility_conditions[ '*' ]
 
 			// Generate conditions
-			boneVisibility.values.reduce( ( result, value ) => {
+			partVisibility.values.reduce( ( result, value ) => {
 				vars[ computedProp( `property.value` ) ] = value
 				const condition = resolveTemplateStrings( template, vars, { restrictChars: false } )
-				boneVisibility.conditions.push( condition )
+				partVisibility.conditions.push( condition )
 				return result
-			}, boneVisibility )
+			}, partVisibility )
 
-			this.applyActionHook( 'bone_visibility', { preset: presetHandler, boneVisibility } )
+			// this.applyActionHook( 'part_visibility', { preset: presetHandler, boneVisibility } )
 
-			boneVisibility.bone = resolveTemplateStrings( boneVisibility.bone, presetHandler.customVars )
+			partVisibility.bone = resolveTemplateStrings( partVisibility.bone, presetHandler.customVars )
 			// resolveTemplateStringsRecursively( boneVisibility.conditions, vars, { mutateSource: true, restrictChars: false } )
 
-			block.addBoneVisibility( boneVisibility.bone, boneVisibility.conditions )
+			block.addPartVisibility( partVisibility.bone, partVisibility.conditions )
 		},
 
 		createEvent( { action, eventName, handler, triggerCondition = undefined, triggerItems = undefined, params = undefined } ) {
