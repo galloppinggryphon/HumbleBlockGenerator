@@ -23,6 +23,8 @@ import { replaceValues } from '../generator-utils.js'
 import EventActionParser from './event-action-parser.js'
 import { findMagicExpressionsInObj, findMagicKeywordsInString, getMagicKeyExpressionMeta, getPropertyData, getPropertyKeyMeta, mergePresetData, parseMagicExpression } from './parser-utils.js'
 import PresetDataHandler from './preset-handler.js'
+import { CreateBlock } from '../create-block.js'
+import parseProps from './props-parser.js'
 
 const { computedProp } = prefixer
 
@@ -123,6 +125,11 @@ function compilePresetNames( presetTemplateData, applyPresets ) {
 	}
 }
 
+/**
+ * @param {CreateBlock.Block} block
+ * @param {string} presetName
+ * @param {JSO} data
+ */
 function applyPreset( block, presetName, data ) {
 	const templateData = { data: {} }
 
@@ -154,12 +161,14 @@ function applyPreset( block, presetName, data ) {
 		const presetTemplate = _.cloneDeep( templateData.data )
 		const presetData = PresetDataHandler( block, { presetName, presetTemplate, presetConfig: data.data.config } )
 
-		// ! All presets now use the basePreset handler!
-		resolvePresetTemplate( {
-			block,
-			presetHandler: presetData,
-			presetName: presetData.name,
-		} )
+		applyActions(
+			{
+				block,
+				presetHandler: presetData,
+				presetName: presetData.name,
+			},
+			...Object.values( presetPropertyResolvers ),
+		)
 	}
 	else {
 		const presetData = BlockTemplateData( templateData.data )
@@ -190,38 +199,37 @@ const presetPropertyResolvers = {
 	},
 
 	/**
-		 * Create events. Receives preset directives `@events`, `@event_handler_templates` and `@properties`.
-		 */
+	 * Create events. Receives preset directives `@events`, `@event_handlers` and `@properties`.
+	 */
 	events( { block, presetHandler, presetName } ) {
-		const { events, event_handler_templates: eventHandlers, properties } = presetHandler.params
+		const { events, event_handlers: eventHandlers } = presetHandler.params
 
 		if ( ! events || ! Object.keys( events ).length ) {
 			return { block, presetHandler, presetName }
 		}
 
-		/** @type {string[]} */
-		const triggerItemList = []
-
-		/** @type {JSO<Partial<Events.EventData>>} */
+		/** @type {JSO<Partial<Events.EventParserData>>} */
 		const eventData = {}
 
-		// Parse @events
+		// Parse events data
 		reducer( events, ( result, [ eventName, props ] ) => {
 			result[ eventName ] ??= { eventName }
 			const eventItem = result[ eventName ]
 
 			const magicExpressions = findMagicExpressionsInObj( props )
+
 			const magicData = reducer( magicExpressions, ( vars, [ __, key ] ) => {
 				const exprMeta = parseMagicExpression( key )
 				let data = presetHandler.getParamByPath( ...exprMeta.path )
 
 				if ( ! data ) {
-					data = _.get( props.params, ...exprMeta.path )
+					data = _.get( props.params, exprMeta.path )
 				}
 
-				const magicData2 = getPropertyData( exprMeta.property, data )
-				vars[ key ] = magicData2[ exprMeta.metaKey ]
-				presetHandler.setCustomVar( key, magicData2[ exprMeta.metaKey ] )
+				const propData = getPropertyData( exprMeta.property, data )
+				vars[ key ] = propData[ exprMeta.metaKey ]
+
+				presetHandler.setCustomVar( key, propData[ exprMeta.metaKey ] )
 				return vars
 			}, {} )
 
@@ -230,32 +238,13 @@ const presetPropertyResolvers = {
 				const property = kebabToCamelCase( propKey )
 
 				if ( magicExpressions.includes( value ) ) {
-					// const exprMeta = parseMagicExpression( value )
-					// const data = presetHandler.getParamByPath( ...exprMeta.path )
-					// const magicData = getPropertyData( exprMeta.property, data )
 					eventItem[ property ] = magicData[ value ]
 				}
-
-				// else if ( property === 'triggerItems' ) {
-				// 	if ( isObj( value ) ) {
-				// 		eventItem[ property ] = value
-				// 		triggerItemList.push( ...Object.values( value ) )
-				// 	}
-				// }
 				else if ( typeof value === 'string' ) {
-					const magicExpressions = findMagicKeywordsInString( value )
-					if ( magicExpressions.length ) {
-						eventItem[ property ] = resolveTemplateStrings( value, magicData, { restrictChars: false } )
+					const magicStrings = findMagicKeywordsInString( value )
 
-						// magicExpressions.forEach( ( expr ) => {
-						// 	// const exprMeta = parseMagicExpression( expr )
-						// 	// const data = presetHandler.getParamByPath( ...exprMeta.path )
-						// 	// const magicData = getPropertyData( exprMeta.property, data )
-						// 	// const vars = {
-						// 	// 	[ expr ]: magicData[ exprMeta.metaKey ],
-						// 	// }
-						// 	eventItem[ property ] = resolveTemplateStrings( value, magicData, { restrictChars: false } )
-						// } )
+					if ( magicStrings.length ) {
+						eventItem[ property ] = resolveTemplateStrings( value, magicData, { restrictChars: false } )
 					}
 					else {
 						eventItem[ property ] = value
@@ -281,35 +270,9 @@ const presetPropertyResolvers = {
 			return result
 		}, eventHandlers )
 
-		// TODO: check if triggerItemList is used
-		// Resolve computed properties %trigger_items.* (used in event_handler_templates and events.condition) with values from trigger items array
-		if ( triggerItemList.length ) {
-			const items = Array.from( new Set( triggerItemList ) )
-			presetHandler.setCustomVar(
-				// Comma-separated string
-				computedProp( `trigger_items::key_list` ),
-				items
-					.map( ( val ) => `'${ val }'` )
-					.join( ',' ),
-			)
-
-			presetHandler.setCustomVar(
-				computedProp( `trigger_items::array` ),
-				items,
-			)
-		}
-
-		// Resolve computed property %properties.array = list of custom block properties
-		if ( properties ) {
-			presetHandler.setCustomVar(
-				computedProp( `properties::array` ),
-				[ Object.keys( properties ) ].flat(),
-			)
-		}
-
 		// Create events from prepared data
 		Object.values( eventData ).forEach( ( event ) => {
-			const { eventHandlerParams, eventName, handler, params, triggerItems, condition } = event
+			const { condition, eventName, handler, params } = event
 
 			if ( ! handler ) {
 				return
@@ -327,122 +290,186 @@ const presetPropertyResolvers = {
 				return
 			}
 
-			presetHandler.createEvent( { triggerCondition: condition, action, eventName: eventName, handler, triggerItems, params: eventHandlerParams } )
+			presetHandler.createEvent( { condition, action, eventName, handler, params } )
 		} )
 
 		return { block, presetHandler, presetName }
 	},
 
-	permutations( { block, presetHandler, presetName } ) {
-		const { permutations, permutation_templates } = presetHandler.params
+	permutation_data( { block, presetHandler, presetName } ) {
+		const { permutation_data, part_visibility } = presetHandler.params
 
-		if ( ! permutations || ! Object.keys( permutations ).length ) {
+		if ( ! isObj( permutation_data ) || ! Object.keys( permutation_data ).length ) {
+			if ( ! part_visibility ) {
+				logger.error( `Invalid 'permutations' property for preset '${ presetHandler.name }'.`, { permutation_data } )
+			}
 			return { block, presetHandler, presetName }
 		}
 
-		if ( ! isObj( permutations ) ) {
-			logger.error( `Invalid 'permutations' property for preset '${ presetHandler.name }'.`, { permutations } )
-			return
-		}
-
 		// Check validity and combine key-value permutations template with permutation values, transform to array of permutations
-		permutation_templates.forEach( ( permutationTemplate ) => {
+		Object.entries( permutation_data ).forEach( ( [ currentPreset, permutationConfig ] ) => {
+			// This permutation_data key is disabled
+			if ( permutationConfig === false ) {
+				return
+			}
+
+			if ( ! permutationConfig ) {
+				logger.error( `Missing permutation data for preset '${ currentPreset }'. To disable permutation generation by this preset, set 'permutation_data->${ currentPreset }' to false.` )
+				return false
+			}
+
+			const { permutations, template: permutationTemplate } = permutationConfig
+
+			if ( ! permutations ) {
+				logger.error( `Missing permutation data for preset '${ currentPreset }' (in 'permutation_data->${ currentPreset }->permutations').`, { permutationTemplate } )
+				return
+			}
+
+			if ( ! permutationTemplate.block_props ) {
+				logger.error( `Missing 'block_props' key in permutation template for preset '${ currentPreset }'.`, { permutationTemplate } )
+				return
+			}
+
+			Object.entries( permutations ).some( ( [ key, value ] ) => {
+				// if(value === false)
+				// return false
+				if ( value === undefined || value === null ) {
+					logger.error( `Missing permutation data for key '${ key }' in 'permutation_data->${ currentPreset }->permutations'. To disable permutations for this key, set '${ currentPreset }->permutations->${ key }' to false.`, { permutationTemplate } )
+
+					delete permutations[ key ]
+					return true
+				}
+				if ( value === false ) {
+					delete permutations[ key ]
+					return true
+				}
+				return false
+			} )
+
 			// Resolve variables in the template object, but not in block_props yet
-			const { block_props: blockProps, ...templateData } = permutationTemplate
+			const presetVars = _.cloneDeep( presetHandler.presetVars )
+			let template = resolveRefsRecursively( permutationTemplate, presetVars )
 
-			/** @type {Partial<typeof permutationTemplate>} */
-			const template = resolveTemplateStringsRecursively( templateData, { ...presetHandler.presetVars }, { restrictChars: false } )
+			const { block_props: blockProps, ...templateData } = template
 
+			template = resolveTemplateStringsRecursively( templateData, { ...presetHandler.presetVars }, { restrictChars: false } )
 			template.block_props = blockProps
 
-			const { for_each, params } = template
+			const { for_each: forEach, params } = template
 
 			// Resolve for_each if it is an expression
 			if ( ! params ) {
-				logger.error( `Missing params.` )
-				return
-			}
-			else if ( typeof params[ for_each ] === 'string' ) {
-				const expressionMeta = parseMagicExpression( params[ for_each ] )
-				const data = presetHandler.getParamByPath( ...expressionMeta.path )
-
-				if ( ! data || ! data.length ) {
-					logger.error( `${ expressionMeta.path } not found.` )
-				}
-				else {
-					params[ for_each ] = data
-				}
-			}
-
-			if ( ! params[ for_each ] ) {
-				logger.error( `Missing value for for_each parameter ('${ for_each }') in params.`, permutationTemplate )
+				logger.error( `Missing 'params' in permutation template.`, { permutationTemplate } )
 				return
 			}
 
 			let permutationSets = []
+			const dynamicVars = {}
 
-			if ( ! isObj( params[ for_each ] ) ) {
-				const forEachData = getPropertyData( for_each, permutations[ for_each ] )
-				params[ for_each ] = forEachData
-				permutationSets.push( forEachData )
-			}
-			else {
-				permutationSets = reducer( params[ for_each ], ( result, [ propKey, expression ] ) => {
-				// "dimension": "%properties.rotate_x"
-				// dimension::name -> properties.rotate_x::name
+			if ( forEach ) {
+				if ( ! params[ forEach ] ) {
+					logger.error( `Missing value for for_each parameter ('${ forEach }') in params.`, permutationTemplate )
+					return
+				}
 
-					// %dimension::value -> properties.rotate_x::value
+				/** @type {JSO} */
+				const forEachProps = isObj( params[ forEach ] )
+					? params[ forEach ]
+					: { [ forEach ]: params[ forEach ] }
 
-					// ~ dimension: ["%properties.rotate_x"]
-					// %dimension::name -> {{prefix}}:rotate_x
-					// %dimension::current_block_state -> query.block_property({{prefix}}:rotate_x)
-					// %dimension::min -> 0
-
-					// Two dimensional permutation data
-					// if ( Object( propValue ) === propValue ) {
-					const expressionMeta = parseMagicExpression( expression )
-					const forEachValue = permutations[ expressionMeta.metaKey ]
-
-					if ( ! forEachValue ) {
-						logger.warn( `Permutation Generator: Failed to resolve '${ expression }'!`, { propKey, expression } )
+				permutationSets = reducer( forEachProps, ( result, [ forEachKey, forEachItem ] ) => {
+					if ( ! permutations[ forEachKey ] ) {
+						// logger.error( `Missing permutations data for '${ forEachKey }'!`, { forEachItem } )
+						return result
 					}
 
-					const forEachData = getPropertyData( expressionMeta.metaKey, forEachValue )
-					params[ for_each ][ propKey ] = forEachData.value
+					let paramsData
+					if ( typeof forEachItem === 'string' ) {
+						const forEachMeta = parseMagicExpression( forEachItem )
+						paramsData = presetHandler.getParamByPath( ...forEachMeta.path )
+
+						if ( ! paramsData || ! paramsData.length ) {
+							logger.error( `${ forEachMeta.path } not found.` )
+							return result
+						}
+
+						params[ forEachKey ] = paramsData
+					}
+
+					const forEachData = getPropertyData( forEachKey, permutations[ forEachKey ] )
+
+					const magicExpressions = findMagicExpressionsInObj( template.block_props )
+
+					for ( let index = 0; index < paramsData.length; index++ ) {
+						// Resolve and add %forEach variables
+
+						const forEachCurrent = {
+							index,
+							// current: forEachCurrentValue,
+							// next_index: nextCountValue,
+							// count: forEachValues.length,
+						}
+
+						dynamicVars[ computedProp( `for_each${ magicExpressionMetaDivider }index` ) ] = index
+
+						magicExpressions.forEach( ( expression ) => {
+							const meta = parseMagicExpression( expression )
+
+							const paramValue = params[ meta.property ]
+
+							const { dynamicProperty } = meta
+
+							if ( dynamicProperty ) {
+								const dynamicKey = forEachCurrent[ dynamicProperty.metaKey ]
+								dynamicVars[ expression ] = paramValue[ dynamicKey ]
+							}
+						} )
+					}
+
 					result.push( forEachData )
-					// }
-					// One dimensional
-					// else {
-					// 	result.push( propValue )
-					// }
 
 					return result
 				}, [] )
-			}
 
-			const { conditionalConditions } = template
+				const { conditionalConditions } = template
 
-			if ( conditionalConditions ) {
-				if ( typeof conditionalConditions === 'string' ) {
-					const ccMeta = parseMagicExpression( conditionalConditions )
+				if ( conditionalConditions ) {
+					if ( typeof conditionalConditions === 'string' ) {
+						const ccMeta = parseMagicExpression( conditionalConditions )
 
-					if ( ccMeta.dynamicProperty ) {
-						const dpData = params[ ccMeta.dynamicProperty.property ]
-						const dpMeta = getPropertyData( ccMeta.dynamicProperty.property, dpData )
-						const ccData = params[ ccMeta.property ]
-						const conditionArr = dpMeta.keys.map( ( key ) => ccData[ key ] )
-						template.condition = conditionArr.join( ' && ' )
+						if ( ccMeta.dynamicProperty ) {
+							const dpData = params[ ccMeta.dynamicProperty.property ]
+							const dpMeta = getPropertyData( ccMeta.dynamicProperty.property, dpData )
+							const ccData = params[ ccMeta.property ]
+							const conditionArr = dpMeta.keys.map( ( key ) => ccData[ key ] )
+							template.condition = conditionArr.join( ' && ' )
+						}
 					}
 				}
+			}
+			else {
+				permutationSets = reducer( permutations, ( sets, [ setKey, setValue ] ) => {
+					sets.push( {
+						key: setKey,
+						value: Object.values( setValue ),
+					} )
+					return sets
+				}, [] )
 			}
 
 			const _template = { condition: template.condition, block_props: template.block_props }
 
 			const data = {
+				dynamicVars,
 				source: block.data.source.vars,
 				presetVars: presetHandler.presetVars,
 				template: filterPropsByKeyPrefix( params, variablePrefix ),
 				magicExpressionsInTemplate: findMagicExpressionsInObj( _template ),
+			}
+
+			if ( ! permutationSets.length ) {
+				logger.error( `Failed to process permutation data, probably due to earlier errors.`, { [ currentPreset ]: permutationConfig } )
+				return
 			}
 
 			const mcPermutations = generateMcPermutations( data, _template, permutationSets )
@@ -595,10 +622,10 @@ const presetPropertyResolvers = {
  *
  * Generated permutations are stored in `permutations`.
  *
- * @param {{ presetVars: JSO<string>, source: JSO<string>, template: JSO<string>, magicExpressionsInTemplate: string[] }} data
+ * @param {{ presetVars: JSO<string>, source: JSO<string>, template: JSO<string>, magicExpressionsInTemplate: string[], dynamicVars: JSO }} data
  * @param {PresetTemplate.PermutationProps} permutionTemplate
  * @param {MagicExpressionData[]} permutationSets
- * @param {PresetTemplate.PermutationItemData[]} permutations
+ * @param {PresetTemplate.PermutationTemplate[]} permutations
  * @param {JSO<number>} indices Matrix of the permutation indices for the properties to iterate over
  */
 function generateMcPermutations( data, permutionTemplate, permutationSets, permutations = [], indices = {} ) {
@@ -628,8 +655,21 @@ function generateMcPermutations( data, permutionTemplate, permutationSets, permu
 			generateMcPermutations( data, permutationData, _.cloneDeep( permutationSets ), permutations, indices )
 		}
 		else {
+			// Set up index
+			// const nextIndex = index + 1 === forEachValues.length ? 0 : index + 1
+			// const nextCountValue = nextIndex === forEachValues.length ? 1 : nextIndex + 1
+			// const forEachCurrentValue = forEachValues && nextIndex < forEachValues.length ? forEachValues[ nextIndex ] : ''
+
+			const forEachCurrent = {
+				// current: forEachCurrentValue,
+				// index: index,
+				// next_index: nextCountValue,
+				// count: forEachValues.length,
+			}
+
 			// Resolve magic vars
 			const { magicExpressionsInTemplate } = data
+
 			const magicVars = magicExpressionsInTemplate.reduce( ( result, magicKey ) => {
 				const { metaKey, property, dynamicProperty } = parseMagicExpression( magicKey )
 
@@ -651,9 +691,13 @@ function generateMcPermutations( data, permutionTemplate, permutationSets, permu
 				// 	return _result
 				// }, result )
 
+				// for ( let index = 0; index < forEachValues.length; index++ ) {
+				// %for_each values update for each iteration
+
 				if ( dynamicProperty ) {
 					// const v = variables[ property ]
 					// const ii = 0
+
 				}
 				else {
 					const propertyIndex = indices[ property ]
@@ -672,12 +716,15 @@ function generateMcPermutations( data, permutionTemplate, permutationSets, permu
 				...data.source,
 				...permutationVars,
 				...magicVars,
+				...data.dynamicVars,
 			}
 
+			const varsCopy = _.cloneDeep( vars )
+
 			// Substitute variables
-			resolveNestedVariables( vars )
-			resolveTemplateStringsRecursively( permutationData, vars, { mutateSource: true, restrictChars: false } )
-			resolveRefsRecursively( permutationData, vars, { mutateSource: true } )
+			resolveNestedVariables( varsCopy )
+			resolveRefsRecursively( permutationData, varsCopy, { mutateSource: true } )
+			resolveTemplateStringsRecursively( permutationData, varsCopy, { mutateSource: true, restrictChars: false } )
 
 			// Remove variables
 			if ( Object( permutationData.block_props ) !== permutationData.block_props ) {
@@ -685,7 +732,7 @@ function generateMcPermutations( data, permutionTemplate, permutationSets, permu
 				return
 			}
 
-			filterObjKeys( permutationData.block_props, /^[^\w]/ )
+			// filterObjKeys( permutationData.block_props, /^[^\w]/ )
 
 			permutations.push( permutationData )
 		}

@@ -438,7 +438,7 @@ const propHandlers = {
 
 				// const x = CreateBlock()
 
-				const blockPermutation = CreateBlock( BlockTemplateData( permutationProps ), block.data.blockInfo ) // CreateBlockData( BlockTemplateData( permutationProps ), block.data.blockInfo )
+				const blockPermutation = CreateBlock( BlockTemplateData( permutationProps ), block.data.blockInfo )
 
 				applyActions( blockPermutation, ...Object.values( directiveHandlers.events ) )
 
@@ -459,15 +459,7 @@ const propHandlers = {
 
 				applyActions( blockPermutation, ...Object.values( propActionHandlers ) )
 
-				// const permutation = applyActions(
-				// 	BlockTemplateData( permutationProps ),
-				// 	parsePermutationProps,
-				// )
-
 				return { ...blockPermutation.data.props, condition }
-
-				// const permutation = parseProps( BlockTemplateData( permutationProps ) )
-				// return { ...getPermutationProps( permutation ), condition: condition }
 			},
 			[],
 		)
@@ -529,6 +521,8 @@ const propHandlers = {
 		return block
 	},
 }
+
+propHandlerList = Object.keys( propHandlers )
 
 /**
  * @type {PropParsers}
