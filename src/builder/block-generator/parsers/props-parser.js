@@ -346,29 +346,58 @@ const propHandlers = {
 			return block
 		}
 
-		const { geometry } = source.props
+		// ~ Pre 1.19.80 update ~
+		if ( typeof source.props.geometry === 'string' ) {
+			let geoString = source.props.geometry
 
-		let geoString = geometry
+			if ( stringHasPrefix( 'geometry.', geoString ) ) {
+				logger.notice(
+					`The 'geometry.*' prefix was found in the 'geometry' property. You can omit this prefix, it is added automatically.`,
+				)
+				// geoString = geoString.slice( 9 )
+				return block
+			}
 
-		if ( stringHasPrefix( 'geometry.', geometry ) ) {
+			const { geometryPrefix } = appData.settings
+			const geoPrefix = typeof geometryPrefix === 'string' ? geometryPrefix : ''
+			geoString = `geometry.${ geoPrefix + geoString }`
+
+			block.data.props.geometry = geoString
+			return block
+		}
+
+		const { identifier, bone_visibility } = source.props.geometry ?? {}
+
+		if ( ! identifier ) {
+			return block
+		}
+
+		let geoString = identifier
+
+		if ( typeof geoString !== 'string' ) {
+			return block
+		}
+
+		if ( stringHasPrefix( 'geometry.', geoString ) ) {
 			logger.notice(
 				`The 'geometry.*' prefix was found in the 'geometry' property. You can omit this prefix, it is added automatically.`,
 			)
-			geoString = geometry.slice( 9 )
+			// geoString = geoString.slice( 9 )
+		}
+		else {
+			const { geometryPrefix } = appData.settings
+			const geoPrefix = typeof geometryPrefix === 'string' ? geometryPrefix : ''
+			geoString = `geometry.${ geoPrefix + geoString }`
 		}
 
-		const { geometryPrefix } = appData.settings
-		const geoPrefix =
-			typeof geometryPrefix === 'string' ? geometryPrefix : ''
-
-		geoString = `geometry.${ geoPrefix + geoString }`
-
-		props.geometry ??= {
-			geometry: '',
+		// Convert from string to object
+		props.geometry = {
+			bone_visibility,
+			identifier: geoString,
 		}
 
-		props.geometry.geometry = `geometry.${ geoPrefix + geoString }`
 		delete source.props.geometry
+		delete block.data.boneVisibility
 
 		return block
 	},
