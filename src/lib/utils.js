@@ -33,18 +33,24 @@ function isObj( obj ) {
  * Object.entries().reduce() for all types of objects. Type safe.
  *
  * @template {Record<InputKeys, Values>|Values[]} Input
- * @template {keyof Input & string} Keys
  * @template {string} InputKeys
  * @template {*} Values
- * @template TargetType
- * @template {Record<string, TargetType>|TargetType[]} Target
+ * @template {JSO|any[]} Target extends {} ? JSO : any[]
+ * @template {[InputKeys, Input[InputKeys extends keyof Input ? InputKeys : never]]} CurrentValue
  * @param {Input} obj - Input object
- * @param {(accumulator: Target, value: [Keys, Input[Keys]], index: number) => Target } reduceFn - Reducer function
- * @param {Target} [target] Optional target object, defaults to new object.
+ * @param {(accumulator: Target, currentValue: CurrentValue, index?: number) => Target } reduceFn - Reducer function
+ * @param {Target} [target] Optional target object, defaults to new object
+ * return {Target extends any[] ? any[] : JSO}
+ * @return {FilterMissingTypeArg<Target> extends never ? Target extends any[] ? any[] : JSO : Target}
  */
 function reducer( obj, reduceFn, target = Object.create( {} ) ) {
+	const _target = /** @type {Target} */( target )
+
 	// TS is not happy about just assigning {}
-	return Object.entries( obj ).reduce( reduceFn, target )
+	const r = Object.entries( obj ).reduce( reduceFn, _target )
+
+	// @ts-ignore
+	return r
 }
 
 /**
