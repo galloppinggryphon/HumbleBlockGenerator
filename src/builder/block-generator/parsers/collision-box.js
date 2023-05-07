@@ -24,10 +24,11 @@ export function parseCollisionBox( source, props, propertyKey ) {
 		}
 
 		if ( ! Array.isArray( coordinates ) ) {
-			logger.error( `Cannot parse data for the '${ key }' key of the '${ propertyKey }' property. ${
-				hasPrefix.variable( coordinates )
-					? `Found an unevaluated variable: '${ coordinates }'.`
-					: `Expected [x,y,z].` }`, { [ key ]: coordinates } )
+			const errType = hasPrefix.variable( coordinates )
+				? `Found an unevaluated variable: '${ coordinates }'.`
+				: `Expected [x,y,z].`
+
+			logger.error( `Cannot parse data for the '${ key }' key of the '${ propertyKey }' property. ${ errType }`, { [ key ]: coordinates } )
 
 			result[ key ] = `INVALID VALUE: '${ coordinates }'`
 			return result
@@ -45,7 +46,7 @@ export function parseCollisionBox( source, props, propertyKey ) {
 				calcVal = evalMathExpression( expr )
 			}
 			catch ( err ) {
-				logger.error( `Could not evaluate math expression in '${ propertyKey }' coordinates. The following expression is invalid: '${ expr }'.`, { collisionBox } )
+				logger.error( `Could not evaluate math expression in '${ propertyKey }' coordinates. Did you omit the expression prefix?`, { collisionBox } )
 				calcVal = `INVALID EXPRESSION: '${ expr }'`
 			}
 			return calcVal
@@ -57,7 +58,7 @@ export function parseCollisionBox( source, props, propertyKey ) {
 	const { origin, size, anchor } = collisionBox
 
 	if ( ! anchor ) {
-		return
+		return collisionBox
 	}
 
 	if ( [ origin, size ].find( ( x ) => ! Array.isArray( x ) ) ) {
@@ -74,9 +75,7 @@ export function parseCollisionBox( source, props, propertyKey ) {
 
 	delete collisionBox.anchor
 
-	props[ propertyKey ] = collisionBox
-
-	return true
+	return collisionBox
 }
 
 /**
@@ -114,29 +113,57 @@ export function getUnitCubeCoordinates( origin, size = undefined, anchor = 'wbs'
 		}
 	} )
 
-	origin.find( ( v, i ) => {
-		if ( ( v + size[ i ] ) > 16 ) {
-			const dim = [ 'x', 'y', 'z' ][ i ]
-			throw new Error( `Invalid block size: origin + size for the '${ dim }' dimension is outside the unit cube!` )
+	// origin.find( ( v, i ) => {
+
+	// 	if ( ( v + size[ i ] ) > 16 ) {
+	// 		const dim = [ 'x', 'y', 'z' ][ i ]
+	// 		throw new Error( `Invalid block size: origin + size for the '${ dim }' dimension is outside the unit cube!` )
+	// 	}
+	// } )
+
+	const [ x, y, z ] = origin
+	const [ sX, sY, sZ ] = size
+	const [ aX, aY, aZ ] = [ ...anchor ]
+
+	const coordinates = [
+		calculateOrigin( 'x', x, sX, aX ), // === 'w' ),
+		calculateOrigin( 'y', y, sY, aY ), // === 'b' ),
+		calculateOrigin( 'z', z, sZ, aZ ), // === 's' ),
+	]
+
+	coordinates.forEach( ( v, i ) => {
+		const s = size[ i ]
+		const d = [ 'x', 'y', 'z' ][ i ]
+		const max = i === 1 ? 16 : 8
+
+		if ( ( v + s ) > max ) {
+			throw new Error( `Invalid unit coordinates - the '${ d }' dimension is out bounds. Origin (${ v }) + size (${ s }) cannot exceed ${ max }!` )
 		}
 	} )
 
-	const calcCoord = ( v, s, invert ) => ( invert
+	return /** @type {any} */ ( coordinates )
+}
+
+/**
+ * Calculate origin point.
+ *
+ * @param {string} dimension
+ * @param {number} v
+ * @param {number} s
+ * @param {string} a
+ */
+function calculateOrigin( dimension, v, s, a ) {
+	if ( dimension === 'y' ) {
+		return a === 'b' ? v : 16 - v - s
+	}
+
+	const invert = dimension === 'x'
+		? a === 'w'
+		: a === 's'
+
+	return invert
 		? ( v + s - 8 ) * -1
 		: ( v - 8 )
-	)
-
-	const [ aX, aY, aZ ] = [ ...anchor ]
-	const [ x, y, z ] = origin
-	const [ sX, sY, sZ ] = size
-
-	const mcOrigins = [
-		calcCoord( x, sX, aX === 'w' ),
-		aY === 'b' ? y : 16 - y - sY,
-		calcCoord( z, sZ, aZ === 's' ),
-	]
-
-	return /** @type {any} */ ( mcOrigins )
 }
 
 /**
