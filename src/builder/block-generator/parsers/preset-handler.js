@@ -272,11 +272,15 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 	 * Replace all template strings and variables in preset data.
 	 */
 	function resolvePresetVars() {
+		// Add block variables to presetHandler
+		presetHandlerData.params = mergePresetData( presetHandlerData.presetConfig, presetHandlerData.presetTemplate )
+		presetHandlerData.presetVars = filterPropsByKeyPrefix( presetHandlerData.params, variablePrefix )
+		presetHandlerData.presetVars = mergePresetData( block.data.source.vars, presetHandlerData.presetVars )
+
 		const { customVars: cVars, presetVars } = presetHandler
 		const vars = { ...cVars, ...presetVars, ...source.vars }
 
 		resolveNestedVariables( vars )
-
 		resolveRefsRecursively( presetHandler.params, vars, { removeMissing: false, mutateSource: true } )
 		resolveTemplateStringsRecursively( presetHandler.params, vars, { mutateSource: true } )
 
@@ -297,17 +301,5 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 			}
 			return result
 		}, presetHandler.params )
-
-		// objReduce( this.params, ( result, [ key, value ] ) => {
-		// 	if ( ! hasPrefix.variable( key ) ) {
-		// 		filterObjValues( result[ key ], null )
-		// 	}
-		// 	return result
-		// }, this.params )
-
-		// resolveRefsRecursively( this.data.presetTemplate, vars, { removeMissing: false, mutateSource: true } )
-		// resolveTemplateStringsRecursively( this.data.presetTemplate, vars, { mutateSource: true } )
 	}
-// }
-//
 }
