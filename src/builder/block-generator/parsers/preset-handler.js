@@ -95,10 +95,10 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 		 * Includes vars in preset params and presetTemplate.
 		 */
 		get presetVars() {
-			if ( ! this.data.presetVars ) {
-				// Extract template variables
-				this.data.presetVars = filterPropsByKeyPrefix( this.params, variablePrefix )
-			}
+			// if ( ! this.data.presetVars ) {
+			// 	// Extract template variables
+			// 	this.data.presetVars = filterPropsByKeyPrefix( this.params, variablePrefix )
+			// }
 
 			return this.data.presetVars
 		},
@@ -195,7 +195,7 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 			block.addPartVisibility( partVisibility.bone, partVisibility.conditions )
 		},
 
-		createEvent( { action, eventName, handler, triggerCondition = undefined, triggerItems = undefined, params = undefined } ) {
+		createEvent( { action, eventName, handler, condition = undefined, params = undefined } ) {
 			/**
 			 * @type {Events.EventData}
 			 */
@@ -206,43 +206,16 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 			}
 
 			// Process variables
-			if ( triggerCondition ) {
-				// if ( ! triggerItems ) {
-				// 	logger.error( `Error parsing event data: missing 'trigger_items'.`, { presetName, triggerCondition } )
-				// }
-				if ( stringContainsUnresolvedRef( triggerItems ) ) {
-					logger.error( `Error parsing event data: unresolved variable in 'trigger_items'.`, { presetName, triggerItems, triggerCondition } )
+			if ( condition ) {
+				if ( stringContainsUnresolvedRef( condition ) ) {
+					logger.error( `Error parsing event data: unresolved variable in 'condition'.`, { presetName, handler, condition } )
 				}
 				else {
-					eventData.condition = resolveTemplateStrings( triggerCondition, this.customVars, { restrictChars: false } )
+					eventData.condition = resolveTemplateStrings( condition, this.customVars, { restrictChars: false } )
 				}
 			}
 
-			/**
-			 * ~ Create event actions in one of three ways
-			 * [1] Generate from event 'trigger_items'
-			 * [2] Generate from event 'propertyList' list
-			 * [3] Add actions without processing
-			 */
 			eventData.action = eventActionParser( { action, params } )
-
-			// if ( propertyNames ) {
-			// 	const { resolvedPropertyNames } = resolveRefsRecursively( { resolvedPropertyNames: propertyNames }, this.customVars, { mutateSource: true } )
-
-			// 	// TODO: This code is possibly/probably non-functional
-			// 	// throw new Error( 'MISSING IMPLEMENTATION: eventActionParser + propertyNames' )
-
-			// 	const actions = [ resolvedPropertyNames ].flat().map(
-			// 		( property ) => eventActionParser( { action, property } ),
-			// 	)
-
-			// 	eventData.action.push( ...actions[ 0 ] )
-			// }
-			// else {
-			// 	eventData.action = eventActionParser( { action, params } )
-
-			// 	// eventData.action = action
-			// }
 
 			block.addEvent( eventData )
 		},

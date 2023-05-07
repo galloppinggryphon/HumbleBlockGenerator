@@ -47,10 +47,10 @@ const directiveHandlers = {
 				} )
 			}
 			else {
-				const { action, eventName, triggerCondition, target } = eventItem
+				const { action, eventName, condition, target } = eventItem
 
 				block.addEvent( {
-					condition: triggerCondition,
+					condition,
 					handler: eventHandlerName,
 					eventName: eventName ?? eventHandlerName,
 					action,
@@ -177,6 +177,8 @@ const directiveHandlers = {
 		return block
 	},
 }
+
+let propHandlerList = []
 
 /**
  * @type {PropParsers}
@@ -318,17 +320,17 @@ const propHandlers = {
 				result[ event ] ??= {}
 				result[ event ].event = trigger.handler
 				result[ event ].target = trigger.target
-				result[ event ].condition = trigger.condition ?? props[ event ].condition
+				// result[ event ].condition = trigger.condition ?? props[ event ].condition
 
 				// ! condition as array disabled
-				// const condition = [
-				// 	props[ event ].condition ?? [],
-				// 	...trigger.condition ?? [],
-				// ].flat()
+				const condition = [
+					props[ event ].condition ?? [],
+					...trigger.condition ?? [],
+				].flat()
 
-				// if ( condition.length ) {
-				// 	result[ event ].condition = condition.join( ' || ' )
-				// }
+				if ( condition.length ) {
+					result[ event ].condition = condition.join( ' || ' )
+				}
 
 				return result
 			}, {} )
