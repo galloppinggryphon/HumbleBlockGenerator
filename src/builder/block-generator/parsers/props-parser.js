@@ -269,10 +269,24 @@ const propHandlers = {
 		return block
 	},
 
+	/**
+	 * Merge all remaining source props without processing.
+	 *
+	 * @param {*} block
+	 */
 	components( block ) {
+		const { components } = block.data.source.props
+		const _components = reducer( components, ( result, [ key, value ] ) => {
+			if ( ! propHandlerList.includes( key ) ) {
+				result[ key ] = value
+			}
+			return result
+		} )
+
 		mergeProps(
 			block.data.props.components,
-			block.data.source.props.components,
+			_components,
+			// block.data.source.props.components,
 			{ overwriteArrays: true },
 		)
 		return block
