@@ -275,15 +275,15 @@ export const prefixer = {
 }
 
 export const hasPrefix = {
-	computedProp: ( str ) => str.slice( 0, calculatedPropPrefix.length ) === calculatedPropPrefix, //
-	variable: ( str ) => str.slice( 0, variablePrefix.length ) === variablePrefix,
-	variant: ( str ) => str.slice( 0, variantPrefix.length ) === variantPrefix,
-	expression: ( str ) => str.slice( 0, variantPrefix.length ) === expressionPrefix,
+	computedProp: ( str ) => String( str ).slice( 0, calculatedPropPrefix.length ) === calculatedPropPrefix, //
+	variable: ( str ) => String( str ).slice( 0, variablePrefix.length ) === variablePrefix,
+	variant: ( str ) => String( str ).slice( 0, variantPrefix.length ) === variantPrefix,
+	expression: ( str ) => String( str ).slice( 0, variantPrefix.length ) === expressionPrefix,
 }
 
 export const unPrefix = {
-	computedProp: ( str ) => str.slice( 0, calculatedPropPrefix.length ) === calculatedPropPrefix && str.slice( calculatedPropPrefix.length - 1 ), //
-	variable: ( str ) => str.slice( 0, variablePrefix.length ) === variablePrefix && str.slice( variablePrefix.length - 1 ),
-	variant: ( str ) => str.slice( 0, variantPrefix.length ) === variantPrefix && str.slice( variantPrefix.length - 1 ),
-	expression: ( str ) => str.slice( 0, expressionPrefix.length ) === expressionPrefix && str.slice( expressionPrefix.length ),
+	computedProp: ( str ) => String( str ).slice( 0, calculatedPropPrefix.length ) === calculatedPropPrefix && String( str ).slice( calculatedPropPrefix.length - 1 ), //
+	variable: ( str ) => String( str ).slice( 0, variablePrefix.length ) === variablePrefix && String( str ).slice( variablePrefix.length - 1 ),
+	variant: ( str ) => String( str ).slice( 0, variantPrefix.length ) === variantPrefix && String( str ).slice( variantPrefix.length - 1 ),
+	expression: ( str ) => String( str ).slice( 0, expressionPrefix.length ) === expressionPrefix && String( str ).slice( expressionPrefix.length ),
 }
