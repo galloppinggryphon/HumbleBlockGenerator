@@ -160,40 +160,43 @@ const propHandlers = {
 	/**
 	 * @see https://wiki.bedrock.dev/documentation/creative-categories.html#top
 	 */
-	creative_category( block ) {
+	menu_category( block ) {
 		const { props, source } = block.data
-		const { creative_category } = source.props
-		if ( ! creative_category ) {
+		const { menu_category } = source.props
+		if ( ! menu_category ) {
 			return block
 		}
 
 		// const category = { creative_category: props.creative_category ?? {} }
-		if ( Object( creative_category ) !== creative_category ) {
-			logger.error( `Invalid value for 'creative_category'.`, {
-				creative_category,
+		if ( Object( menu_category ) !== menu_category ) {
+			logger.error( `Invalid value for 'menu_category'.`, {
+				menu_category,
 			} )
 			return block
 		}
 
-		if ( 'group' in creative_category ) {
-			if ( stringHasPrefix( 'itemGroup.name', creative_category.group ) ) {
+		if ( 'group' in menu_category ) {
+			if ( stringHasPrefix( 'itemGroup.name', menu_category.group ) ) {
 				logger.notice(
-					`Found 'itemGroup.name' prefix in 'creative_category' property. You can omit this prefix, it is added automatically.`,
+					`Found 'itemGroup.name' prefix in the 'menu_category.group' property. You can omit this prefix, it is added automatically.`,
 				)
 			}
 			else {
-				creative_category.group = `itemGroup.name.${ creative_category.group }`
+				menu_category.group = `itemGroup.name.${ menu_category.group }`
 			}
 
-			if ( ! ( 'category' in creative_category ) ) {
+			if ( ! ( 'category' in menu_category ) ) {
 				logger.warn(
-					`Found 'group' in 'creative_category', but 'category' also required.`,
+					`Found 'group' in 'menu_category', but 'category' also required.`,
 				)
 			}
 		}
 
+		props.creative_category = menu_category
+
 		delete source.props.creative_category
-		props.creative_category = creative_category
+		delete source.props.menu_category
+
 		return block
 	},
 
