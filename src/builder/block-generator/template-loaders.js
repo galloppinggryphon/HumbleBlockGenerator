@@ -49,7 +49,12 @@ export function loadBlockTemplate( file ) {
 export async function loadTemplateScripts( files ) {
 	const templateScripts = await Object.entries( files ).reduce( async( result, [ key, file ] ) => {
 		const _result = await result
-		_result[ key ] = await loadScript( key, file )
+		const _file = await loadScript( key, file )
+
+		if ( _file ) {
+			_result[ key ] = _file
+		}
+
 		return result
 	}, {} )
 	return templateScripts
@@ -130,13 +135,6 @@ export function loadJson( loadFiles ) {
 		if ( pathExists( file ) ) {
 			result[ key ] = file
 		}
-		else {
-			display.error( `Couldn't find input file '${ nodePath.relative( rootPath, file ) }' ('config.input.${ key }').\n` )
-			logger.setSection( 'config' )
-			// !! not working>>>
-			// logger.setLabel( `config.input.${ key }` )
-			logger.error( `Couldn't find input file '${ nodePath.relative( rootPath, file ) }' ('config.input.${ key }').\n` )
-		}
 		return result
 	}, {} )
 
@@ -162,7 +160,7 @@ async function loadScript( key, file ) {
 		const scriptData = await import( pathToFileURL( file ).href )
 		return 'default' in scriptData ? scriptData.default : scriptData
 	}
-	else if ( file ) {
-		display.error( `Couldn't find input script '${ file }' ('config.input.${ key }').\n` )
-	}
+	// else if ( file ) {
+	// 	// display.error( `Couldn't find input script '${ file }' ('config.input.${ key }').\n` )
+	// }
 }

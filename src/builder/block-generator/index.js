@@ -131,7 +131,6 @@ async function blockGeneratorSetup() {
 
 	const { generatorData, settings } = appData
 	const templateData = await loadJson( paths.jsonFiles )
-	const templateScripts = await loadTemplateScripts( paths.presetScriptFiles )
 
 	if ( ! Object.keys( templateData ).length ) {
 		return
@@ -140,6 +139,10 @@ async function blockGeneratorSetup() {
 	generatorData.input.blockFiles = await loadBlockTemplateFiles( paths.blocks )
 	generatorData.materialConfig = templateData.materials
 	generatorData.scaffolding = templateData.scaffolding
+
+	// !! Deprecate?
+	// Todo: remove template scripts?
+	const templateScripts = await loadTemplateScripts( paths.presetScriptFiles )
 
 	// Prepare preset templates
 	if ( templateScripts.presetScripts ) {
