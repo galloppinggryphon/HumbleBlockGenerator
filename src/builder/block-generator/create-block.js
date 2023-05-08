@@ -67,8 +67,9 @@ export function CreateBlock( blockTemplateData, blockInfo = {}, permutationTreeD
 
 			if ( condition ) {
 				// Add conditions to array, then compile
-				const conditions = [ eventTriggers[ eventName ].condition, condition ].flat()
-				eventTriggers[ eventName ].condition = conditions
+				const conditions = eventTriggers[ eventName ].condition ? [ eventTriggers[ eventName ].condition, condition ] : [ condition ]
+
+				eventTriggers[ eventName ].condition = conditions.flat()
 			}
 
 			this.data.eventHandlers[ handler ] = {
