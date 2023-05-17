@@ -154,9 +154,10 @@ function removeObjectKeys( obj, removeElements ) {
  * @param {string | string[] } [props.brackets] - Single start/stop bracket ("%") or different start and stop brackets (["{{", "}}"])
  * @param {boolean} [props.restrictChars] - Use limited set of characters
  * @param {boolean} [props.removeUnmatched] - Remove unmatched placeholders, or leave alone
+ * @param {boolean} [props.throwErrors] - Throw on error
  * @return {InputString}
  */
-function resolveTemplateStrings( inputString, variables, { brackets = [ '{{', '}}' ], restrictChars = true, removeUnmatched = false } = {} ) {
+function resolveTemplateStrings( inputString, variables, { brackets = [ '{{', '}}' ], restrictChars = true, removeUnmatched = false, throwErrors = false } = {} ) {
 	if ( typeof inputString !== 'string' ) {
 		return inputString
 	}
@@ -178,6 +179,14 @@ function resolveTemplateStrings( inputString, variables, { brackets = [ '{{', '}
 
 	// @ts-ignore
 	return inputString.replace( rx, ( _expr, key ) => {
+		if ( Object( variables[ key ] ) === variables[ key ] ) {
+			const errStr = `${ key }: Template variable cannot be an object.` // '[INVALID TEMPLATE VARIABLE: OBJECT]'
+
+			if ( throwErrors ) {
+				throw new Error( errStr )
+			}
+			return `[${ errStr.toUpperCase() }]`
+		}
 		return variables[ key ] ?? ( removeUnmatched
 			? '' : `${ bracketLeft }${ key }${ bracketRight }`
 		)
@@ -198,47 +207,82 @@ function resolveTemplateStrings( inputString, variables, { brackets = [ '{{', '}
  * @param {boolean} [props.restrictChars] - Use limited set of characters
  * @param {boolean} [props.mutateSource] - Mutate source object?
  * @param {boolean} [props.removeUnmatched] - Remove unmatched placeholders, or leave alone
+ * @param {boolean} [props.accumulateErrors] - Tolerate errors, but save them and throw when exiting last recursion. Must be used in combination with `mutateSource`
+ * @param {string[]} [errors] - Accumulated errors, if enabled
  * @return {Source}
  */
-function resolveTemplateStringsRecursively( source, variables, { brackets = [ '{{', '}}' ], restrictChars = true, mutateSource = false, removeUnmatched = false } = {} ) {
-	if ( Array.isArray( source ) ) {
-		const target = mutateSource ? source : []
+function resolveTemplateStringsRecursively( source, variables, { brackets = [ '{{', '}}' ], restrictChars = true, mutateSource = false, removeUnmatched = false, accumulateErrors = false } = {}, errors = undefined ) {
+	let entrypoint = false
+	if ( accumulateErrors && errors === undefined ) {
+		entrypoint = true
+		errors = []
+	}
 
-		return source.reduce( ( result, value, key ) => {
-			if ( Object( value ) === value ) {
-				result[ key ] = resolveTemplateStringsRecursively( value, variables, { brackets, removeUnmatched, restrictChars } )
+	let target
+
+	if ( Array.isArray( source ) ) {
+		target = mutateSource ? source : []
+
+		source.reduce( ( result, value, key ) => {
+			try {
+				if ( Object( value ) === value ) {
+					result[ key ] = resolveTemplateStringsRecursively( value, variables, { brackets, removeUnmatched, restrictChars, accumulateErrors }, errors )
+				}
+				else {
+					result[ key ] = resolveTemplateStrings( value, variables, { brackets, removeUnmatched, restrictChars, throwErrors: accumulateErrors } )
+				}
 			}
-			else {
-				// result.splice( key, 1 )
-				result[ key ] = resolveTemplateStrings( value, variables, { brackets, removeUnmatched, restrictChars } )
+			catch ( err ) {
+				if ( accumulateErrors ) {
+					errors.push( err )
+					result[ key ] = 'ERROR!'
+				}
+			}
+			return result
+		}, target )
+	}
+	else {
+		const entries = Object.entries( source )
+
+		if ( ! entries.length ) {
+			return source
+		}
+
+		target = mutateSource ? source : /** @type {Source} */ ( {} )
+		entries.reduce( ( result, [ key, value ] ) => {
+			try {
+			/** @type {keyof Source} */
+				const _key = resolveTemplateStrings( key, variables, { brackets, removeUnmatched, restrictChars, throwErrors: accumulateErrors } )
+
+				if ( _key !== key ) {
+					delete result[ key ]
+				}
+
+				const _value = Object( value ) === value
+					? resolveTemplateStringsRecursively( value, variables, { brackets, removeUnmatched, restrictChars, mutateSource: true, accumulateErrors }, errors )
+					: resolveTemplateStrings( value, variables, { brackets, removeUnmatched, restrictChars, throwErrors: accumulateErrors } )
+
+				result[ _key ] = _value
+			}
+			catch ( err ) {
+				if ( accumulateErrors ) {
+					errors.push( err.message )
+
+					// @ts-ignore
+					result[ key ] = 'ERROR - INVALID VARIABLE!'
+				}
 			}
 
 			return result
 		}, target )
 	}
 
-	const entries = Object.entries( source )
-
-	if ( ! entries.length ) {
-		return source
+	if ( entrypoint && errors.length ) {
+		throw new Error( `Errors occurred while substituting template strings:\n\n# ${ errors.join( '\n# ' ) }\n` )
 	}
 
-	const target = mutateSource ? source : /** @type {Source} */ ( {} )
-	return entries.reduce( ( result, [ key, value ] ) => {
-		/** @type {keyof Source} */
-		const _key = resolveTemplateStrings( key, variables, { brackets, removeUnmatched, restrictChars } )
-
-		if ( _key !== key ) {
-			delete result[ key ]
-		}
-
-		const _value = Object( value ) === value
-			? resolveTemplateStringsRecursively( value, variables, { brackets, removeUnmatched, restrictChars, mutateSource: true } )
-			: resolveTemplateStrings( value, variables, { brackets, removeUnmatched, restrictChars } )
-
-		result[ _key ] = _value
-		return result
-	}, target )
+	// @ts-ignore
+	return target
 }
 
 /**
