@@ -644,7 +644,7 @@ const presetPropertyResolvers = {
  *
  * Generated permutations are stored in `permutations`.
  *
- * @param {{ presetVars: JSO<string>, source: JSO<string>, template: JSO<string>, magicExpressionsInTemplate: string[], dynamicVars: JSO }} data
+ * @param {{ presetVars: JSO<string>, source: JSO<string>, template: JSO<string>, magicExpressionsInTemplate: string[]}} data
  * @param {PresetTemplate.PermutationProps} permutionTemplate
  * @param {MagicExpressionData[]} permutationSets
  * @param {PresetTemplate.PermutationTemplate[]} permutations
@@ -739,7 +739,6 @@ function generateMcPermutations( data, permutionTemplate, permutationSets, permu
 				...data.source,
 				...permutationVars,
 				...magicVars,
-				...data.dynamicVars,
 			} )
 
 			// Substitute variables
