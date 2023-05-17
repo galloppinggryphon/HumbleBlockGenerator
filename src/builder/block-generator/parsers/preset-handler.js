@@ -25,14 +25,16 @@ const { computedProp } = prefixer
  * Preset builder.
  *
  * @param {CreateBlock.Block} block - Block data
- * @param {Object} props
- * @param {string} [props.presetName]
- * @param {Partial<PresetTemplate.TemplateData>} props.presetConfig Configuration data from block template
- * @param {Partial<PresetTemplate.TemplateData>} props.presetTemplate Preset template
- * @param {JSO} [props.customVars]
- * @param {any} [props.actionHooks]
+ * @param {Object} initData
+ * @param {string} [initData.presetName]
+ * @param {Partial<PresetTemplate.TemplateData>} initData.presetConfig Configuration data from block template
+ * @param {Partial<PresetTemplate.TemplateData>} initData.presetTemplate Preset template
+ * @param {JSO} [initData.customVars]
+ * @param {any} [initData.actionHooks]
+ * @param {boolean} [initData.skipInit]
  */
-export default function PresetDataHandler( block, { presetName = undefined, presetConfig, presetTemplate, customVars = undefined, actionHooks = undefined } ) {
+export default function PresetDataHandler( block, initData ) {
+	const { presetName = undefined, presetConfig, presetTemplate, customVars = undefined, actionHooks = undefined, skipInit = false } = initData
 	const { source } = block.data
 
 	/**
@@ -134,7 +136,7 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 
 		clone() {
 			const data = _.cloneDeep( this.data )
-			return PresetDataHandler( block, data )
+			return PresetDataHandler( block, { ...data, skipInit: true } )
 		},
 
 		applyActionHook( hook, params ) {
@@ -241,8 +243,10 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 		},
 	}
 
-	eventActionParser = EventActionParser( presetHandler )
-	resolvePresetVars()
+	if ( ! skipInit ) {
+		eventActionParser = EventActionParser( presetHandler )
+		resolvePresetVars()
+	}
 
 	return presetHandler
 
