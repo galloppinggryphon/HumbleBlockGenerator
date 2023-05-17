@@ -24,8 +24,7 @@ const magicExpressionPathDivider = '.'
 const variablePrefix = '$'
 const variantPrefix = '>>'
 const calculatedPropPrefix = '%' // magicExpressionPrefix
-const expressionPrefix = '`'
-
+const expressionPrefix = '='
 const mergeKeySuffix = '[]'
 const mergeKeySuffixRx = String.raw `\[\]`
 

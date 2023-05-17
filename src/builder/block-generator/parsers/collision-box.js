@@ -34,12 +34,24 @@ export function parseCollisionBox( source, props, propertyKey ) {
 			return result
 		}
 
+		// Parse math expressions and string numbers
 		result[ key ] = coordinates.map( ( value ) => {
 			if ( typeof value !== 'string' ) {
 				return value
 			}
 
+			const int = parseInt( value )
+
+			if ( ! isNaN( int ) ) {
+				return int
+			}
+
 			const expr = unPrefix.expression( value )
+
+			if ( ! expr ) {
+				logger.error( `Invalid value: not a number or math expression, in '${ propertyKey }' coordinates.`, { collisionBox } )
+				return
+			}
 
 			let calcVal
 			try {
