@@ -162,9 +162,14 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 
 			const vars = { ...source.vars, ...permutationHandler.presetVars, ...permutationHandler.customVars, ...permutationProps.vars }
 
-			permutation.condition = resolveTemplateStrings( permutation.condition, vars, { restrictChars: false } )
-			resolveTemplateStringsRecursively( permutation.props, vars, { mutateSource: true, restrictChars: false } ) // todo: not proxy safe
-			resolveRefsRecursively( permutation.props, vars, { variablePrefix, removeMissing: false, mutateSource: true } )
+			try {
+				permutation.condition = resolveTemplateStrings( permutation.condition, vars, { restrictChars: false } )
+				resolveTemplateStringsRecursively( permutation.props, vars, { mutateSource: true, restrictChars: false, accumulateErrors: true } ) // todo: not proxy safe
+				resolveRefsRecursively( permutation.props, vars, { variablePrefix, removeMissing: false, mutateSource: true } )
+			}
+			catch ( err ) {
+				logger.error( err )
+			}
 
 			block.addMinecraftPermutation( permutation.condition, permutation.props.export() )
 		},
@@ -253,9 +258,14 @@ export default function PresetDataHandler( block, { presetName = undefined, pres
 		const { customVars: cVars, presetVars } = presetHandler
 		const vars = { ...cVars, ...presetVars, ...source.vars }
 
-		resolveNestedVariables( vars )
-		resolveRefsRecursively( presetHandler.params, vars, { removeMissing: false, mutateSource: true } )
-		resolveTemplateStringsRecursively( presetHandler.params, vars, { mutateSource: true } )
+		try {
+			resolveNestedVariables( vars )
+			resolveRefsRecursively( presetHandler.params, vars, { removeMissing: false, mutateSource: true } )
+			resolveTemplateStringsRecursively( presetHandler.params, vars, { mutateSource: true, accumulateErrors: true } )
+		}
+		catch ( err ) {
+			logger.error( err )
+		}
 
 		// Filter null values
 		const filterNullInObj = ( obj ) => {

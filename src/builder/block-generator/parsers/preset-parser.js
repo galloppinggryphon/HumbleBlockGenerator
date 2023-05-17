@@ -314,8 +314,10 @@ const presetPropertyResolvers = {
 			}
 
 			if ( ! permutationConfig ) {
-				logger.error( `Missing permutation data for preset '${ currentPreset }'. To disable permutation generation by this preset, set 'permutation_data->${ currentPreset }' to false.` )
-				return false
+				// logger.error( `Missing permutation data for preset '${ currentPreset }'. To disable permutation generation by this preset, set 'permutation_data->${ currentPreset }' to false.` )
+
+				logger.error( `Missing permutation data for preset '${ currentPreset }'. To disable permutations for this key, set '${ `$property_name` }:permutations' to 'false'
+				return false` )
 			}
 
 			const { permutations, template: permutationTemplate } = permutationConfig
@@ -334,7 +336,7 @@ const presetPropertyResolvers = {
 				// if(value === false)
 				// return false
 				if ( value === undefined || value === null ) {
-					logger.error( `Missing permutation data for key '${ key }' in 'permutation_data->${ currentPreset }->permutations'. To disable permutations for this key, set '${ currentPreset }->permutations->${ key }' to false.`, { permutationTemplate } )
+					logger.error( `Missing permutation data for key '${ key }' in 'permutation_data->${ currentPreset }->permutations'. To disable permutations for this key, set '${ `$${ key }` }:permutations' to 'false'.`, { permutationTemplate } )
 
 					delete permutations[ key ]
 					return true
@@ -352,8 +354,13 @@ const presetPropertyResolvers = {
 
 			const { block_props: blockProps, ...templateData } = template
 
-			template = resolveTemplateStringsRecursively( templateData, { ...presetHandler.presetVars }, { restrictChars: false } )
+			// try {
+			template = resolveTemplateStringsRecursively( templateData, { ...presetHandler.presetVars }, { restrictChars: false /* accumulateErrors: true*/ } )
 			template.block_props = blockProps
+			// }
+			// catch ( err ) {
+			// 	logger.error( err )
+			// }
 
 			const { for_each: forEach, params } = template
 
@@ -364,7 +371,7 @@ const presetPropertyResolvers = {
 			}
 
 			let permutationSets = []
-			const dynamicVars = {}
+			const permutationVars = {}
 
 			if ( forEach ) {
 				if ( ! params[ forEach ] ) {
@@ -396,40 +403,55 @@ const presetPropertyResolvers = {
 						params[ forEachKey ] = paramsData
 					}
 
-					const forEachData = getPropertyData( forEachKey, permutations[ forEachKey ] )
+					const permutationData = permutations[ forEachKey ]
+
+					if ( permutationData === false ) {
+						return result
+					}
+
+					// const vars = filterPropsByKeyPrefix( permutationData, variablePrefix )
+					// Object.assign( permutationVars, vars )
+
+					const forEachData = getPropertyData( forEachKey, permutationData )
 
 					const magicExpressions = findMagicExpressionsInObj( template.block_props )
 
-					for ( let index = 0; index < paramsData.length; index++ ) {
+					if ( magicExpressions.length ) {
+						for ( let index = 0; index < paramsData.length; index++ ) {
 						// Resolve and add %forEach variables
 
-						const forEachCurrent = {
-							index,
+							const forEachCurrent = {
+								index,
 							// current: forEachCurrentValue,
 							// next_index: nextCountValue,
 							// count: forEachValues.length,
-						}
-
-						dynamicVars[ computedProp( `for_each${ magicExpressionMetaDivider }index` ) ] = index
-
-						magicExpressions.forEach( ( expression ) => {
-							const meta = parseMagicExpression( expression )
-
-							const paramValue = params[ meta.property ]
-
-							const { dynamicProperty } = meta
-
-							if ( dynamicProperty ) {
-								const dynamicKey = forEachCurrent[ dynamicProperty.metaKey ]
-								dynamicVars[ expression ] = paramValue[ dynamicKey ]
 							}
-						} )
+
+							permutationVars[ computedProp( `for_each${ magicExpressionMetaDivider }index` ) ] = index
+
+							magicExpressions.forEach( ( expression ) => {
+								const meta = parseMagicExpression( expression )
+
+								const paramValue = params[ meta.property ]
+
+								const { dynamicProperty } = meta
+
+								if ( dynamicProperty ) {
+									const dynamicKey = forEachCurrent[ dynamicProperty.metaKey ]
+									permutationVars[ expression ] = paramValue[ dynamicKey ]
+								}
+							} )
+						}
 					}
 
 					result.push( forEachData )
 
 					return result
 				}, [] )
+
+				if ( ! permutationSets.length ) {
+					return
+				}
 
 				const { conditionalConditions } = template
 
@@ -460,7 +482,7 @@ const presetPropertyResolvers = {
 			const _template = { condition: template.condition, block_props: template.block_props }
 
 			const data = {
-				dynamicVars,
+				// permutationVars,
 				source: block.data.source.vars,
 				presetVars: presetHandler.presetVars,
 				template: filterPropsByKeyPrefix( params, variablePrefix ),
@@ -468,7 +490,7 @@ const presetPropertyResolvers = {
 			}
 
 			if ( ! permutationSets.length ) {
-				logger.error( `Failed to process permutation data, probably due to earlier errors.`, { [ currentPreset ]: permutationConfig } )
+				logger.error( `Failed to process permutation data, perhaps due to earlier errors.`, { [ currentPreset ]: permutationConfig } )
 				return
 			}
 
@@ -710,21 +732,25 @@ function generateMcPermutations( data, permutionTemplate, permutationSets, permu
 
 			// Extract variables
 			const permutationVars = filterPropsByKeyPrefix( permutationData.block_props, [ variablePrefix, calculatedPropPrefix ] )
-			const vars = {
+
+			const vars = _.cloneDeep( {
 				...data.presetVars,
 				...data.template,
 				...data.source,
 				...permutationVars,
 				...magicVars,
 				...data.dynamicVars,
-			}
-
-			const varsCopy = _.cloneDeep( vars )
+			} )
 
 			// Substitute variables
-			resolveNestedVariables( varsCopy )
-			resolveRefsRecursively( permutationData, varsCopy, { mutateSource: true } )
-			resolveTemplateStringsRecursively( permutationData, varsCopy, { mutateSource: true, restrictChars: false } )
+			try {
+				resolveNestedVariables( vars )
+				resolveRefsRecursively( permutationData, vars, { mutateSource: true } )
+				resolveTemplateStringsRecursively( permutationData, vars, { mutateSource: true, restrictChars: false, accumulateErrors: true } )
+			}
+			catch ( err ) {
+				logger.error( err )
+			}
 
 			// Remove variables
 			if ( Object( permutationData.block_props ) !== permutationData.block_props ) {
