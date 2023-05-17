@@ -6,6 +6,7 @@ import {
 	recursivePrefixer,
 	resolveTemplateStringsRecursively,
 	resolveRefsRecursively,
+	isObj,
 } from '../../../lib/utils.js'
 import { logger } from '../../generator-config.js'
 import appData from '../../../app-data.js'
@@ -173,6 +174,30 @@ const directiveHandlers = {
 
 			return result
 		}, permutations )
+
+		return block
+	},
+
+	render( block ) {
+		const { material_instances } = block.data.source.props
+		const { render } = block.data.source.dir
+
+		if ( ! render ) {
+			return block
+		}
+
+		if ( ! material_instances ) {
+			logger.notice( "Oops, you've specified render options (with @render), but you're not providing 'material_instances'." )
+			return block
+		}
+
+		// Add to each instance
+		reducer( material_instances, ( result, [ key, value ] ) => {
+			if ( isObj( value ) ) {
+				Object.assign( result[ key ], render )
+			}
+			return result
+		}, material_instances )
 
 		return block
 	},
