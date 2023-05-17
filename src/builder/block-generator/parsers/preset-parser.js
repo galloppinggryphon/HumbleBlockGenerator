@@ -1,6 +1,10 @@
 'use strict'
 import _ from 'lodash'
-
+import appData from '../../../app-data.js'
+import {
+	calculatedPropPrefix,
+	logger, magicExpressionMetaDivider, variablePrefix,
+} from '../../generator-config.js'
 import {
 	resolveTemplateStrings,
 	resolveTemplateStringsRecursively,
@@ -9,22 +13,11 @@ import {
 	reducer,
 	isObj,
 	kebabToCamelCase,
-	replaceValue,
-	stringStartsWith,
 } from '../../../lib/utils.js'
-import {
-	calculatedPropPrefix,
-	logger, magicExpressionMetaDivider, variablePrefix,
-} from '../../generator-config.js'
-import appData from '../../../app-data.js'
-import { filterPropsByKeyPrefix, mergeProps, stringContainsUnresolvedRef, prefixer, filterObjKeys, hasPrefix, applyActions } from '../../builder-utils.js'
-import { BlockTemplateData, Props } from '../data-factories.js'
-import { replaceValues } from '../generator-utils.js'
-import EventActionParser from './event-action-parser.js'
-import { findMagicExpressionsInObj, findMagicKeywordsInString, getMagicKeyExpressionMeta, getPropertyData, getPropertyKeyMeta, mergePresetData, parseMagicExpression } from './parser-utils.js'
+import { filterPropsByKeyPrefix, mergeProps, stringContainsUnresolvedRef, prefixer, applyActions } from '../../builder-utils.js'
+import { BlockTemplateData } from '../data-factories.js'
+import { findMagicExpressionsInObj, findMagicKeywordsInString, getPropertyData, mergePresetData, parseMagicExpression } from './parser-utils.js'
 import PresetDataHandler from './preset-handler.js'
-import { CreateBlock } from '../create-block.js'
-import parseProps from './props-parser.js'
 
 const { computedProp } = prefixer
 
@@ -59,7 +52,6 @@ export function parsePresets( block ) {
 	}
 
 	// Walk through presets collection
-	// Object.entries( applyPresets ).forEach( ( [ presetName, data ] ) => {
 	for ( const [ presetName, data ] of Object.entries( applyPresets ) ) {
 		applyPreset( block, presetName, data )
 	}
@@ -314,8 +306,6 @@ const presetPropertyResolvers = {
 			}
 
 			if ( ! permutationConfig ) {
-				// logger.error( `Missing permutation data for preset '${ currentPreset }'. To disable permutation generation by this preset, set 'permutation_data->${ currentPreset }' to false.` )
-
 				logger.error( `Missing permutation data for preset '${ currentPreset }'. To disable permutations for this key, set '${ `$property_name` }:permutations' to 'false'
 				return false` )
 			}
@@ -409,22 +399,15 @@ const presetPropertyResolvers = {
 						return result
 					}
 
-					// const vars = filterPropsByKeyPrefix( permutationData, variablePrefix )
-					// Object.assign( permutationVars, vars )
-
 					const forEachData = getPropertyData( forEachKey, permutationData )
 
 					const magicExpressions = findMagicExpressionsInObj( template.block_props )
 
 					if ( magicExpressions.length ) {
 						for ( let index = 0; index < paramsData.length; index++ ) {
-						// Resolve and add %forEach variables
-
+							// Resolve and add %forEach variables
 							const forEachCurrent = {
 								index,
-							// current: forEachCurrentValue,
-							// next_index: nextCountValue,
-							// count: forEachValues.length,
 							}
 
 							permutationVars[ computedProp( `for_each${ magicExpressionMetaDivider }index` ) ] = index
@@ -677,44 +660,11 @@ function generateMcPermutations( data, permutionTemplate, permutationSets, permu
 			generateMcPermutations( data, permutationData, _.cloneDeep( permutationSets ), permutations, indices )
 		}
 		else {
-			// Set up index
-			// const nextIndex = index + 1 === forEachValues.length ? 0 : index + 1
-			// const nextCountValue = nextIndex === forEachValues.length ? 1 : nextIndex + 1
-			// const forEachCurrentValue = forEachValues && nextIndex < forEachValues.length ? forEachValues[ nextIndex ] : ''
-
-			const forEachCurrent = {
-				// current: forEachCurrentValue,
-				// index: index,
-				// next_index: nextCountValue,
-				// count: forEachValues.length,
-			}
-
 			// Resolve magic vars
 			const { magicExpressionsInTemplate } = data
 
 			const magicVars = magicExpressionsInTemplate.reduce( ( result, magicKey ) => {
 				const { metaKey, property, dynamicProperty } = parseMagicExpression( magicKey )
-
-				// Set current value to the current permutation index
-				// let currentIndex = property in indices ? indices[ property ] : undefined
-				// currentIndex ??= property in data.template ? data.template[ property ] : null
-
-				// const forEachCurrent = {
-				// 	current: permutationKey,
-				// 	index: currentIndex,
-				// 	// next_index: nextCountValue,
-				// 	// count: forEachValues.length,
-				// }
-
-				// Resolve and add %forEach variables
-				// reducer( forEachCurrent, ( _result, [ key, currentVal ] ) => {
-				// 	const magicExpr = computedProp( `for_each${ magicExpressionMetaDivider }${ key }` )
-				// 	_result[ magicExpr ] = currentVal
-				// 	return _result
-				// }, result )
-
-				// for ( let index = 0; index < forEachValues.length; index++ ) {
-				// %for_each values update for each iteration
 
 				if ( dynamicProperty ) {
 					// const v = variables[ property ]
@@ -757,25 +707,10 @@ function generateMcPermutations( data, permutionTemplate, permutationSets, permu
 				return
 			}
 
-			// filterObjKeys( permutationData.block_props, /^[^\w]/ )
-
 			permutations.push( permutationData )
 		}
 	} )
 	return permutations
-}
-
-/**
- *
- * @param {Presets.TemplateParserArguments} resolverProps
- */
-function resolvePresetTemplate( resolverProps ) {
-	applyActions(
-		resolverProps,
-		...Object.values( presetPropertyResolvers ),
-	)
-
-	return resolverProps.block
 }
 
 /**
