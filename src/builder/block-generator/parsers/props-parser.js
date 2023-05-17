@@ -263,7 +263,7 @@ const propHandlers = {
 			}
 		}
 
-		props.creative_category = menu_category
+		props.description.menu_category = menu_category
 
 		delete source.props.creative_category
 		delete source.props.menu_category
