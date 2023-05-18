@@ -132,7 +132,10 @@ export default function BlockParser( blockTemplate ) {
 			const { data } = this
 
 			type = type || 'default'
-			title = ! title && title !== null ? key : title
+
+			if ( title === undefined ) {
+				title = ! isAnonymousPermutationBranch( key ) ? key : title
+			}
 
 			title = ( resolveRefsRecursively( { title }, data.block.vars, { removeMissing: false, resolveNestedVars: true } ) ?? {} ).title
 

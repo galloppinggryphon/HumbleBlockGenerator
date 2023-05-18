@@ -25,28 +25,15 @@ export function getPermutationTitle( permutationData ) {
 	const { titleTemplate } = appData.settings.output
 	const buildString = RecursiveTemplateStringBuilder( titleTemplate )
 
-	permutationData
-		.filter(
-			( permutation ) =>
-				permutation.key &&
-				! isAnonymousPermutationBranch( permutation.key ),
-		)
-		.forEach(
-			( { title, type } ) => title !== null && buildString.add( title, type ),
-		)
-	// .forEach( ( permutationName ) => {
-	// 	const { title, type } = permutationData.data[ permutationName ]
+	const permutations = permutationData.filter(
+		( permutation ) => permutation.key && permutation.title,
+	)
 
-	// 	// Skip if null
-	// 	if ( title === null ) {
-	// 		return
-	// 	}
-
-	// 	// Use permutation key if undefined
-	// 	const _title = title ?? permutationName
-
-	// 	buildString.add( _title, type )
-	// } )
+	permutations.forEach(
+		( { title, type } ) => {
+			return title !== null && buildString.add( title, type )
+		},
+	)
 
 	return buildString.get()
 }
@@ -213,6 +200,8 @@ function RecursiveTemplateStringBuilder( template ) {
 	}
 
 	return {
+		data: data,
+		group: data.group,
 		add( value, type = undefined ) {
 			const templateEl = template[ type ?? 'default' ]
 
