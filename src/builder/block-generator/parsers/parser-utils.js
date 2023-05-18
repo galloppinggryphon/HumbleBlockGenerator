@@ -207,16 +207,16 @@ export function getPropertyData( propertyName, propertyValue = undefined, curren
 		arrValues = Object.values( propertyValue )
 	}
 	else {
-		arrValues = [ propertyValue ]
+		// arrValues = [ propertyValue ]
 		data.is_main_hand = `query.is_item_name_any('slot.weapon.mainhand', 0, '${ propertyValue }')`
 	}
 
-	const arr = arrValues.map( ( v ) => {
-		const num = Number( v )
-		return isNaN( num ) ? v : num
-	} )
+	if ( arrValues ) {
+		const arr = arrValues.map( ( v ) => {
+			const num = Number( v )
+			return isNaN( num ) ? v : num
+		} )
 
-	if ( arr && arr.length ) {
 		Object.assign( data, {
 			[ propertyName ]: arr,
 			get length() {
