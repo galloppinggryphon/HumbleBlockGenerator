@@ -1,6 +1,6 @@
 'use strict'
 import _ from 'lodash'
-import { logger } from '../generator-config.js'
+import { blockFormatVersion, logger } from '../generator-config.js'
 import appData from '../../app-data.js'
 import { applyActions, mergeProps, prefixer } from '../builder-utils.js'
 import {
@@ -14,14 +14,16 @@ import { CreateBlockData, Props } from './data-factories.js'
 
 const blockActions = {
 	/**
-	 * Block title and ID.
+	 * Add format_version, title and ID.
 	 *
 	 * @param {GeneratedBlockData} blockData
 	 */
-	prepareIdentifiers( blockData ) {
+	prepareBlockPreamble( blockData ) {
 		const { permutationData, block } = blockData
 		blockData.identifier = getPermutationName( permutationData.data )
 		blockData.title = getPermutationTitle( permutationData.data )
+
+		block.description.format_version = blockFormatVersion
 		block.description.identifier = `${ appData.settings.prefix }:${ blockData.identifier }`
 		return blockData
 	},
@@ -139,7 +141,7 @@ export function CreateBlock( blockTemplateData, blockInfo = {}, permutationTreeD
 
 			applyActions(
 				blockData,
-				blockActions.prepareIdentifiers,
+				blockActions.prepareBlockPreamble,
 				blockActions.addScaffolding,
 			)
 

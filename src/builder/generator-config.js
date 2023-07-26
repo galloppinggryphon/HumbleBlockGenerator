@@ -2,6 +2,8 @@ import GeneratorLog from './generator-log.js'
 
 const logger = GeneratorLog()
 
+const blockFormatVersion = '1.20.10'
+
 const generatorPaths = {
 	bundledPresetsDir: 'src/builder/block-generator/presets',
 }
@@ -114,4 +116,4 @@ const defaultSeparators = {
 	titles: { '*': ' - ' },
 }
 
-export { defaultSeparators, directives, directivePrefix, generatorPaths, logger, expressionPrefix, magicExpressionMetaDivider, magicExpressionPathDivider, materialDirectives, mergeKeySuffix, minecraftProps, specialProps, staticPropPrefix, regexFilters, permutationAccumulatorConfig, calculatedPropPrefix, variablePrefix, variantPrefix }
+export { blockFormatVersion, defaultSeparators, directives, directivePrefix, generatorPaths, logger, expressionPrefix, magicExpressionMetaDivider, magicExpressionPathDivider, materialDirectives, mergeKeySuffix, minecraftProps, specialProps, staticPropPrefix, regexFilters, permutationAccumulatorConfig, calculatedPropPrefix, variablePrefix, variantPrefix }
