@@ -1,7 +1,7 @@
 'use strict'
 import _ from 'lodash'
 import { stringStartsWith } from '../../../lib/utils.js'
-import { magicExpressionMetaDivider, magicExpressionPathDivider, mergeKeySuffix, regexFilters } from '../../generator-config.js'
+import { logger, magicExpressionMetaDivider, magicExpressionPathDivider, mergeKeySuffix, regexFilters } from '../../generator-config.js'
 import { prefixer } from '../../builder-utils.js'
 
 const { computedProp } = prefixer
@@ -280,6 +280,11 @@ export function parsePresetKey( presetKey ) {
 	}
 
 	const res = presetKey.match( regexFilters.presetKeyMatch )
+
+	if ( res === null ) {
+		return
+	}
+
 	const { key, prefix, suffix } = res.groups
 
 	return {
@@ -316,7 +321,13 @@ export function mergePresetData( source, target, { mutate, merge } = { mutate: f
 	// Iterate over source keys and target object
 	return [ ...srcKeys ].reduce( ( result, currentKey ) => {
 		// Get merge instructions from source
-		const { key, mergeKey, shouldMerge } = parsePresetKey( currentKey )
+		const parseData = parsePresetKey( currentKey )
+		if ( ! parseData ) {
+			logger.error( `Invalid key in preset object: '${ currentKey }'.`, source )
+			return result
+		}
+
+		const { key, mergeKey, shouldMerge } = parseData
 		srcKeys.push( key )
 
 		if ( mergeKey in result ) {
