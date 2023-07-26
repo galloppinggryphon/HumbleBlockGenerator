@@ -111,10 +111,10 @@ export function CreateBlock( blockTemplateData, blockInfo = {}, permutationTreeD
 
 		addProperty( key, values, asInteger = true ) {
 			const { props } = this.data.source
-			props.properties = props.properties ?? {}
+			props.states = props.states ?? {}
 
 			const _values = asInteger ? values.map( _.toInteger ).sort() : values
-			props.properties[ key ] = _values
+			props.states[ key ] = _values
 		},
 
 		/**

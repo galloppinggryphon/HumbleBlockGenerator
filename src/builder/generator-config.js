@@ -20,7 +20,7 @@ const generatorPaths = {
 const minecraftProps = {
 	skip: [ 'identifier' ],
 	root: [ 'components', 'description', 'events', 'permutations' ],
-	description: [ 'properties', 'register_to_creative_menu', 'is_experimental' ],
+	description: [ 'states', 'register_to_creative_menu', 'is_experimental' ],
 	props: {
 		description: {},
 		components: {},
@@ -54,7 +54,7 @@ const directives = [ 'apply', 'events', 'export', 'materials', 'exclude_material
  */
 const materialDirectives = [ 'texture', 'materials', 'exclude_materials', 'render', 'material_templates', 'material_instances', 'material_permutations' ]
 
-const specialProps = [ 'identifier', 'creative_category', 'permutations', 'properties' ]
+const specialProps = [ 'identifier', 'creative_category', 'permutations', 'states' ]
 
 /**
  * Control how data is accumulated/merged when adding permutations with existing props/directives.
@@ -73,7 +73,7 @@ const permutationAccumulatorConfig = {
 		material_instances: 'mergeObject',
 		events: 'mergeObject',
 		permutations: 'mergeArray',
-		properties: 'mergeObject',
+		states: 'mergeObject',
 	},
 }
 

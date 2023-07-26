@@ -114,7 +114,7 @@ export default function PresetDataHandler( block, initData ) {
 		},
 
 		get presetPropertyVars() {
-			return Object.keys( this.params.properties ).reduce( ( result, key ) => {
+			return Object.keys( this.params.states ).reduce( ( result, key ) => {
 				const _key = computedProp( key )
 				const value = `{{prefix}}:${ key }`
 				result[ _key ] = value

@@ -170,16 +170,16 @@ function applyPreset( block, presetName, data ) {
 
 /** @type {Presets.TemplateParsers} */
 const presetPropertyResolvers = {
-	properties( { block, presetHandler, presetName } ) {
-		const { properties } = presetHandler.params
+	states( { block, presetHandler, presetName } ) {
+		const { states } = presetHandler.params
 
-		if ( properties ) {
-			Object.entries( properties ).forEach( ( [ property, values ] ) => {
+		if ( states ) {
+			Object.entries( states ).forEach( ( [ property, values ] ) => {
 				if ( values === false ) {
 					return
 				}
 				if ( ! Array.isArray( values ) ) {
-					logger.error( `Invalid values (expected an array) for custom property '${ property }' created by preset '${ presetHandler.name }'.`, { values } )
+					logger.error( `Invalid values (expected an array) for custom state '${ property }' created by preset '${ presetHandler.name }'.`, { values } )
 					return
 				}
 
@@ -492,12 +492,13 @@ const presetPropertyResolvers = {
 	},
 
 	boneVisibility( { block, presetHandler, presetName } ) {
-		/**
-		 * !! For 1.19.80+
-		 */
-		return { block, presetHandler, presetName }
-
 		const { bone_visibility: boneVisibility } = presetHandler.params
+
+		if ( boneVisibility ) {
+			block.addBoneVisibility( boneVisibility )
+		}
+
+		return { block, presetHandler, presetName }
 
 		if ( ! boneVisibility ) {
 			return { block, presetHandler, presetName }
@@ -536,7 +537,7 @@ const presetPropertyResolvers = {
 				return result
 			}, entries )
 
-			const x = entries
+			block.data.source.dir.bone_visibility = entries
 
 			// Object.keys( entries || {} ).forEach(
 			// 	( bone ) =>

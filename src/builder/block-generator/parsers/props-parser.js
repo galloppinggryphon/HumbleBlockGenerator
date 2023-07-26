@@ -495,22 +495,22 @@ const propHandlers = {
 		return block
 	},
 
-	properties( block ) {
+	states( block ) {
 		const { description } = block.data.props
 		const { source } = block.data
 
-		const properties =
-			source.props.properties || source.props.description?.properties
+		const states =
+			source.props.states || source.props.description?.states
 
-		if ( ! properties ) {
+		if ( ! states ) {
 			return block
 		}
 
-		description.properties = description.properties ?? {}
+		description.states = description.states ?? {}
 
 		const { prefix } = appData.settings
 
-		Object.entries( properties ).reduce( ( result, [ key, values ] ) => {
+		Object.entries( states ).reduce( ( result, [ key, values ] ) => {
 			if ( typeof values === 'string' ) {
 				logger.error( `Encountered an illegal value for the custom property '${ key }', possibly an unresolved variable.`, { [ key ]: values } )
 				return result
@@ -532,17 +532,17 @@ const propHandlers = {
 				: `${ prefix }:${ key }`
 
 			if (
-				_key in description.properties ||
-				_key in description.properties
+				_key in description.states ||
+				_key in description.states
 			) {
 				// !!WARNING
 			}
 
 			result[ _key ] = values
 			return result
-		}, description.properties )
+		}, description.states )
 
-		delete source.props.properties
+		delete source.props.states
 		return block
 	},
 }

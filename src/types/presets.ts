@@ -58,7 +58,7 @@ declare namespace Presets {
 	}
 
 	type TemplateParsers = Record<
-		"properties" | "events" | "permutation_data" | "boneVisibility" | "partVisibility",
+		"states" | "events" | "permutation_data" | "boneVisibility" | "partVisibility",
 		({
 			block,
 			presetHandler,

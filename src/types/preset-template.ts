@@ -1,7 +1,7 @@
 declare namespace PresetTemplate {
 	interface TemplateData {
 		[x: string]: any;
-		properties: JSO<number[] | false>;
+		states: JSO<number[] | false>;
 		/**
 		 * e.g. { event: { "on_interact.handler": "...", "on_interact.trigger_items": { [string]: "..." } } }
 		 */
