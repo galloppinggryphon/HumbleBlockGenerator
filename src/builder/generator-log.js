@@ -2,7 +2,12 @@ import path from 'path'
 
 import chalk from 'chalk'
 import _ from 'lodash'
-import { log } from '../lib/utils.js'
+
+// function log( ...msg ) {
+// 	console.log( ...msg )
+// }
+
+const log = console.log.bind( console )
 
 /**
  * Logging factory.

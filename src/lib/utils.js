@@ -1,8 +1,6 @@
 'use strict'
 
-function log( ...msg ) {
-	console.log( ...msg )
-}
+const log = console.log.bind( console )
 
 const delay = ( ms ) => new Promise( ( r ) => setTimeout( r, ms ) )
 
