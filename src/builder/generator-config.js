@@ -4,6 +4,15 @@ const logger = GeneratorLog()
 
 const blockFormatVersion = '1.20.10'
 
+const formatVersionCompatibilityTable = {
+	properties: 'states',
+	block_collision: 'collision_box',
+	block_light_absorption: 'light_dampening',
+	block_light_filter: 'light_dampening',
+	block_light_emission: 'light_emission',
+	part_visibility: [ 'geometry', 'bone_visibility' ],
+}
+
 const generatorPaths = {
 	bundledPresetsDir: 'src/builder/block-generator/presets',
 }
@@ -116,4 +125,4 @@ const defaultSeparators = {
 	titles: { '*': ' - ' },
 }
 
-export { blockFormatVersion, defaultSeparators, directives, directivePrefix, generatorPaths, logger, expressionPrefix, magicExpressionMetaDivider, magicExpressionPathDivider, materialDirectives, mergeKeySuffix, minecraftProps, specialProps, staticPropPrefix, regexFilters, permutationAccumulatorConfig, calculatedPropPrefix, variablePrefix, variantPrefix }
+export { blockFormatVersion, defaultSeparators, directives, directivePrefix, formatVersionCompatibilityTable, generatorPaths, logger, expressionPrefix, magicExpressionMetaDivider, magicExpressionPathDivider, materialDirectives, mergeKeySuffix, minecraftProps, specialProps, staticPropPrefix, regexFilters, permutationAccumulatorConfig, calculatedPropPrefix, variablePrefix, variantPrefix }

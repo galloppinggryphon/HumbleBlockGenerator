@@ -8,7 +8,7 @@ import {
 	resolveRefsRecursively,
 	isObj,
 } from '../../../lib/utils.js'
-import { logger } from '../../generator-config.js'
+import { formatVersionCompatibilityTable, logger } from '../../generator-config.js'
 import appData from '../../../app-data.js'
 import {
 	applyActions,
@@ -602,6 +602,44 @@ const propActionHandlers = {
 }
 
 /**
+ * Check block template keys for compatibility with configured MC format version, update if possible.
+ *
+ * @param {CreateBlock.Block} block
+ */
+function versionCompatibilityCheck( block ) {
+	const setDeepValue = ( obj, keys, value ) => {
+		const key = keys.shift()
+		if ( ! keys.length ) {
+			obj[ key ] = value
+		}
+		else if ( ! obj[ key ] ) {
+			obj[ key ] = {}
+			setDeepValue( obj[ key ], keys, value )
+		}
+	}
+
+	const props = block.data.source.props
+
+	// !! TODO: reducer type is invalid
+	reducer( formatVersionCompatibilityTable, ( _block, [ oldKey, newKey ] ) => {
+		if ( props[ oldKey ] ) {
+			if ( typeof newKey === 'string' ) {
+				props[ newKey ] = props[ oldKey ]
+			}
+			else if ( Array.isArray( newKey ) ) {
+				setDeepValue( _block, newKey, props[ oldKey ] )
+			}
+
+			delete props[ oldKey ]
+		}
+
+		return _block
+	}, block )
+
+	return block
+}
+
+/**
  * Compile valid Minecraft properties from template props and prepared data.
  *
  * Called from CreateBlock.make()
@@ -621,6 +659,7 @@ export default function parseProps( block ) {
 
 	applyActions(
 		block,
+		versionCompatibilityCheck,
 		...Object.values( directiveHandlers ),
 		...Object.values( propHandlers ),
 		...Object.values( propActionHandlers ),
