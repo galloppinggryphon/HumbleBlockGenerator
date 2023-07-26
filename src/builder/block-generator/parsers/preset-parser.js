@@ -183,7 +183,7 @@ const presetPropertyResolvers = {
 					return
 				}
 
-				block.addProperty( property, values )
+				block.addState( property, values )
 			} )
 		}
 

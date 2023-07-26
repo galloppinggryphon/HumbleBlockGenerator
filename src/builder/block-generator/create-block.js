@@ -109,7 +109,7 @@ export function CreateBlock( blockTemplateData, blockInfo = {}, permutationTreeD
 			dir.part_visibility[ bone ].push( ...conditionsArr )
 		},
 
-		addProperty( key, values, asInteger = true ) {
+		addState( key, values, asInteger = true ) {
 			const { props } = this.data.source
 			props.states = props.states ?? {}
 

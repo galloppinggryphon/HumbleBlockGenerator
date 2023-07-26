@@ -9,7 +9,7 @@ declare namespace CreateBlock {
 			materialInstanceName: string,
 			conditions: string[]
 		): void;
-		addProperty(key: string, values: any): void;
+		addState(key: string, values: any): void;
 		make(prepareFinalBlock?: boolean): GeneratedBlockData;
 	}
 
