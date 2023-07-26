@@ -728,7 +728,12 @@ function getTemplateData( presetNames ) {
 		delete source.templates
 
 		// Load the root as the base template
-		target.data = mergePresetData( source, target.data )
+		try {
+			target.data = mergePresetData( source, target.data )
+		}
+		catch ( e ) {
+			console.error( e )
+		}
 		return target
 	}, template )
 
