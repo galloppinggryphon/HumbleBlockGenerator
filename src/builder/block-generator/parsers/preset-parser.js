@@ -6,7 +6,6 @@ import {
 	logger, magicExpressionMetaDivider, variablePrefix,
 } from '../../generator-config.js'
 import {
-	resolveTemplateStrings,
 	resolveTemplateStringsRecursively,
 	resolveRefsRecursively,
 	resolveNestedVariables,
@@ -15,158 +14,10 @@ import {
 	kebabToCamelCase,
 } from '../../../lib/utils.js'
 import { filterPropsByKeyPrefix, mergeProps, stringContainsUnresolvedRef, prefixer, applyActions } from '../../builder-utils.js'
-import { BlockTemplateData } from '../data-factories.js'
-import { findMagicExpressionsInObj, findMagicKeywordsInString, getPropertyData, mergePresetData, parseMagicExpression } from './parser-utils.js'
-import PresetDataHandler from './preset-handler.js'
+import { findMagicExpressionsInObj, findMagicKeywordsInString, getPropertyData, parseMagicExpression } from './parser-utils.js'
+import { applyPreset, setupTemplateData, resolveTemplates } from './preset-utils.js'
 
 const { computedProp } = prefixer
-
-/**
- * Process blockData data and inject template snippets.
- *
- * @param {CreateBlock.Block} block
- */
-export function parsePresets( block ) {
-	const { presets, presetScripts } = appData.generatorData
-	const { dir } = block.data.source
-
-	if ( ! dir.apply || ! dir.apply.length ) {
-		return
-	}
-
-	if ( ! presets ) {
-		logger.error(
-			`Cannot apply presets: no preset file is loaded.`,
-		)
-		return
-	}
-
-	/**
-	 * @type {JSO<{ templates: string[], data: JSO }>}
-	 */
-	const applyPresets = {}
-
-	// Collect presets to apply
-	for ( const presetTemplateData of dir.apply ) {
-		compilePresetNames( presetTemplateData, applyPresets )
-	}
-
-	// Walk through presets collection
-	for ( const [ presetName, data ] of Object.entries( applyPresets ) ) {
-		applyPreset( block, presetName, data )
-	}
-}
-
-function compilePresetNames( presetTemplateData, applyPresets ) {
-	const { presets } = appData.generatorData
-
-	if ( ! presetTemplateData ) {
-		return
-	}
-
-	const presetName = presetTemplateData.preset
-
-	// Template is disabled
-	if ( presetTemplateData === false || presetTemplateData?.disabled ) {
-		logger.error( `Skipping disabled preset '${ presetName }'.` )
-		return
-	}
-
-	if ( ! ( presetName in presets ) ) {
-		logger.error( `Preset not found: '${ presetName }'.` )
-		return
-	}
-
-	// Check if the preset should be disabled
-	if ( presetTemplateData.config.disabled === true ) {
-		return
-	}
-
-	const { parent, templates } = presets[ presetName ]
-
-	if ( templates ) {
-		if ( applyPresets[ presetName ] ) {
-			const _templates = [ templates ].flat()
-			applyPresets[ parent ].templates.push( ..._templates )
-			Object.assign( applyPresets[ presetName ].data, presetTemplateData )
-		}
-		else {
-			applyPresets[ presetName ] = {
-				templates: [ ...templates, presetName ],
-				data: presetTemplateData,
-			}
-		}
-	}
-	else if ( parent ) {
-		if ( applyPresets[ parent ] ) {
-			applyPresets[ parent ].templates.push( presetName )
-			Object.assign( applyPresets[ parent ].data, presetTemplateData )
-		}
-		else {
-			applyPresets[ parent ] = {
-				templates: [ parent, presetName ],
-				data: presetTemplateData,
-			}
-		}
-	}
-	else {
-		applyPresets[ presetName ] = {
-			templates: [ presetName ],
-			data: presetTemplateData,
-		}
-	}
-}
-
-/**
- * @param {CreateBlock.Block} block
- * @param {string} presetName
- * @param {JSO} data
- */
-function applyPreset( block, presetName, data ) {
-	const templateData = { data: {} }
-
-	if ( typeof data.data.config === 'string' ) {
-		// !! Non-worky
-		// TODO: this code is non-functional
-		// Check if a feature variation is requested - and if it exists
-		const presetTemplateData = {}
-		const { config } = presetTemplateData
-		if ( config ) {
-			if ( ! ( config in templateData ) ) {
-				logger.error(
-					`Preset subtype '${ config }' not found in preset '${ presetName }'.`,
-				)
-				return
-			}
-
-			templateData.data = templateData.data[ config ]
-		}
-	}
-	else {
-		templateData.data = getTemplateData( data.templates )
-	}
-
-	// Check if a handler is specified
-	const { handler } = templateData.data
-
-	if ( handler ) {
-		const presetTemplate = _.cloneDeep( templateData.data )
-		const presetData = PresetDataHandler( block, { presetName, presetTemplate, presetConfig: data.data.config } )
-
-		applyActions(
-			{
-				block,
-				presetHandler: presetData,
-				presetName: presetData.name,
-			},
-			...Object.values( presetPropertyResolvers ),
-		)
-	}
-	else {
-		const presetData = BlockTemplateData( templateData.data )
-		mergeProps( block.data.source, presetData )
-	}
-}
 
 /** @type {Presets.TemplateParsers} */
 const presetPropertyResolvers = {
@@ -194,6 +45,10 @@ const presetPropertyResolvers = {
 	 * Create events. Receives preset directives `@events`, `@event_handlers` and `@properties`.
 	 */
 	events( { block, presetHandler, presetName } ) {
+		presetHandler.createEvents()
+
+		return { block, presetHandler, presetName }
+
 		const { events, event_handlers: eventHandlers } = presetHandler.params
 
 		if ( ! events || ! Object.keys( events ).length ) {
@@ -202,50 +57,14 @@ const presetPropertyResolvers = {
 
 		/** @type {JSO<Partial<Events.EventParserData>>} */
 		const eventData = {}
+		// ### How this works ###
+		// 1. Scan object for all magic expressions
+		// 2. Parse magic expressions and generate substitution variables
+		// 3.
 
 		// Parse events data
 		reducer( events, ( result, [ eventName, props ] ) => {
-			result[ eventName ] ??= { eventName }
-			const eventItem = result[ eventName ]
-
-			const magicExpressions = findMagicExpressionsInObj( props )
-
-			const magicData = reducer( magicExpressions, ( vars, [ __, key ] ) => {
-				const exprMeta = parseMagicExpression( key )
-				let data = presetHandler.getParamByPath( ...exprMeta.path )
-
-				if ( ! data ) {
-					data = _.get( props.params, exprMeta.path )
-				}
-
-				const propData = getPropertyData( exprMeta.property, data )
-				vars[ key ] = propData[ exprMeta.metaKey ]
-
-				presetHandler.setCustomVar( key, propData[ exprMeta.metaKey ] )
-				return vars
-			}, {} )
-
-			for ( const [ propKey, value ] of Object.entries( props ) ) {
-				// Normalize JSON key names
-				const property = kebabToCamelCase( propKey )
-
-				if ( magicExpressions.includes( value ) ) {
-					eventItem[ property ] = magicData[ value ]
-				}
-				else if ( typeof value === 'string' ) {
-					const magicStrings = findMagicKeywordsInString( value )
-
-					if ( magicStrings.length ) {
-						eventItem[ property ] = resolveTemplateStrings( value, magicData, { restrictChars: false } )
-					}
-					else {
-						eventItem[ property ] = value
-					}
-				}
-				else {
-					eventItem[ property ] = value
-				}
-			}
+			result[ eventName ] = generateListItem( eventName, props )
 
 			return result
 		}, eventData )
@@ -492,6 +311,10 @@ const presetPropertyResolvers = {
 	},
 
 	boneVisibility( { block, presetHandler, presetName } ) {
+		presetHandler.createBoneVisibilityRules()
+
+		return { block, presetHandler, presetName }
+
 		const { bone_visibility: boneVisibility } = presetHandler.params
 
 		if ( boneVisibility ) {
@@ -509,6 +332,10 @@ const presetPropertyResolvers = {
 			return
 		}
 
+		const { params, condition } = boneVisibility
+
+		const magicExpressions = findMagicKeywordsInString( condition )
+
 		Object.entries( boneVisibility ).forEach( ( [ property, values ] ) => {
 			if ( stringContainsUnresolvedRef( values ) ) {
 				logger.error( `Unresolved variable in 'bone_visibility' in preset '${ presetName }'!`, { boneVisibility } )
@@ -523,7 +350,6 @@ const presetPropertyResolvers = {
 			// ~ Syntax alternatives
 			// [1] bone: values[]
 			// [2] value: bones[]
-
 			const entryArr = Array.from( new Set( [ ...Object.values( values ).flat() ] ) )
 			const entries = entryArr.reduce( ( result, bone ) => (
 				result[ bone ] = [],
@@ -537,7 +363,11 @@ const presetPropertyResolvers = {
 				return result
 			}, entries )
 
-			block.data.source.dir.bone_visibility = entries
+			// result[ key ] = `query.block_property('{{prefix}}:subvariant') == ${ value }`
+
+			block.data.boneVisibility = entries
+
+			// block.data.source.dir.bone_visibility = entries
 
 			// Object.keys( entries || {} ).forEach(
 			// 	( bone ) =>
@@ -715,27 +545,59 @@ function generateMcPermutations( data, permutionTemplate, permutationSets, permu
 }
 
 /**
- * getTemplateData
+ * Process blockData data and inject template snippets.
  *
- * @param {*} presetNames
+ * @param {CreateBlock.Block} block
  */
-function getTemplateData( presetNames ) {
-	const { presets } = appData.generatorData
-	const template = { data: _.cloneDeep( presets.base_preset ) }
+export function parsePresets( block ) {
+	const { presets, presetScripts } = appData.generatorData
+	const { dir } = block.data.source
 
-	presetNames.reduce( ( target, key ) => {
-		const source = _.cloneDeep( presets[ key ] )
-		delete source.templates
+	if ( ! dir.apply || ! dir.apply.length ) {
+		return
+	}
 
-		// Load the root as the base template
-		try {
-			target.data = mergePresetData( source, target.data )
+	if ( ! presets ) {
+		logger.error( `Cannot apply presets: no preset file is loaded.` )
+		return
+	}
+
+	/**
+	 * @type {JSO<{ templates: string[], data: JSO }>}
+	 */
+	const templates = {}
+
+	// Collect presets to apply
+	for ( const presetTemplateData of dir.apply ) {
+		if ( ! presetTemplateData ) {
+			return
 		}
-		catch ( e ) {
-			console.error( e )
-		}
-		return target
-	}, template )
 
-	return template.data
+		const presetName = presetTemplateData.preset
+
+		// Template is disabled
+		if ( presetTemplateData === false || presetTemplateData?.disabled ) {
+			logger.error( `Skipping disabled preset '${ presetName }'.` )
+			continue
+		}
+
+		if ( ! ( presetName in presets ) ) {
+			logger.error( `Preset not found: '${ presetName }'.` )
+			continue
+		}
+
+		// Check if the preset should be disabled
+		if ( presetTemplateData.config.disabled === true ) {
+			continue
+		}
+
+		// mutates 'templates'
+		setupTemplateData( presetTemplateData, templates )
+	}
+
+	// Apply presets in order
+	for ( const [ presetName, preset ] of Object.entries( templates ) ) {
+		const templateData = resolveTemplates( presetName, preset )
+		applyPreset( block, templateData, preset.data.config, presetPropertyResolvers )
+	}
 }
