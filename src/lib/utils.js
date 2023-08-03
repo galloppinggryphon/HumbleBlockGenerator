@@ -38,7 +38,6 @@ function isObj( obj ) {
  * @param {Input} obj - Input object
  * @param {(accumulator: Target, currentValue: CurrentValue, index?: number) => Target } reduceFn - Reducer function
  * @param {Target} [target] Optional target object, defaults to new object
- * return {Target extends any[] ? any[] : JSO}
  * @return {FilterMissingTypeArg<Target> extends never ? Target extends any[] ? any[] : JSO : Target}
  */
 function reducer( obj, reduceFn, target = Object.create( {} ) ) {
@@ -49,6 +48,29 @@ function reducer( obj, reduceFn, target = Object.create( {} ) ) {
 
 	// @ts-ignore
 	return r
+}
+
+/**
+ * Simplified object reducer. Walk through and mutate object with Object.entries().reduce(). Type safe.
+ *
+ * @template {Record<InputKeys, Values>|Values[]} Input
+ * @template {string} InputKeys
+ * @template {any} Values
+ * @template {[InputKeys, Input[InputKeys extends keyof Input ? InputKeys : never]]} CurrentValue
+ * @param {Input} obj - Input object
+ * @param {(accumulator: Input, currentValue: [InputKeys, any], index?: number) => void } func - Function to apply
+ */
+function objWalk( obj, func ) {
+	/**
+	 * @param {Input} result
+	 * @param {CurrentValue} item
+	 */
+	const reduceFn = ( result, item ) => {
+		func( result, item )
+		return result
+	}
+
+	return Object.entries( obj ).reduce( reduceFn, obj )
 }
 
 /**
@@ -486,4 +508,4 @@ export function ProxyReadOnly(
 	} )
 }
 
-export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith }
+export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, camelToKebabCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith, objWalk }
