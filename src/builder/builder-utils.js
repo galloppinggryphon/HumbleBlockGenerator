@@ -252,13 +252,21 @@ export function addStringPrefix( prefix, string ) {
  * @return {InputObj}
  */
 export function applyActions( obj, ...actions ) {
-	// return _.flow( ...actions )( obj )
-
 	try {
 		return _.flow( ...actions )( obj )
 	}
 	catch ( err ) {
-		throw new Error( `\n\n${ err.stack }\n\n` )
+		const errArr = err.stack.split( '\n' )
+		const indexRx = /applyActions/i
+		const atRx = /\sat\s([\w_]+)/i
+		const index = errArr.indexOf( errArr.find( ( line ) => indexRx.test( line ) ) )
+		const line = errArr[ index - 2 ]
+		const fnName = line.match( atRx )[ 1 ]
+		const errStack = errArr.slice( 0, index - 2 ).join( '\n' )
+
+		throw new Error( `An error occurred in applyActions() while executing the function '${ fnName }()'\n\nStack trace: \n\n${ errStack }\n\n` )
+
+		// throw new Error( `\n\n${ err.stack }\n\n` )
 	}
 }
 
