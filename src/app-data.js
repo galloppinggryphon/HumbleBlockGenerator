@@ -4,11 +4,9 @@ import nodePath from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { log } from './lib/utils.js'
 import pathConfig from '../paths.js'
+import { readFile, saveFileAsync } from './lib/fs-utils.js'
 
-/**
- * Application state manager
- */
-const appData = new Proxy( /** @type {Application.AppData} */ ( {
+const proxyData = /** @type {Application.AppData} */ ( {
 	uninitialized: true,
 	generatorData: {
 		output: {
@@ -36,7 +34,12 @@ const appData = new Proxy( /** @type {Application.AppData} */ ( {
 		templateDir: undefined,
 		templatePath: undefined,
 	},
-} ), {} )
+} )
+
+/**
+ * Application state manager
+ */
+const appData = new Proxy( proxyData, {} )
 
 if ( appData.uninitialized ) {
 	delete appData.uninitialized
@@ -46,6 +49,13 @@ if ( appData.uninitialized ) {
 	const __dirname = nodePath.dirname( fileURLToPath( import.meta.url ) )
 	const rootPath = nodePath.resolve( `${ __dirname }/..` )
 	appData.paths.rootPath = rootPath
+}
+
+export function loadSavedAppData() {
+	const fname = nodePath.resolve( appData.paths.rootPath, '~app-data.json' )
+	const _appData = readFile( fname )
+	const json = JSON.parse( _appData )
+	Object.assign( proxyData, json )
 }
 
 export async function initAppData() {
@@ -79,7 +89,12 @@ export async function initAppData() {
 	// @ts-ignore
 	const config = await import( configUrl )
 	appData.settings = config.default
+
 	return true
+}
+
+export function saveAppDataToDisk() {
+	saveFileAsync( appData.paths.rootPath, '~app-data.json', JSON.stringify( appData, null, 4 ) )
 }
 
 export default appData
