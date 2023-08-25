@@ -215,12 +215,12 @@ export function isPathPermitted( directoryPath, illegalDirectories = undefined )
  *
  * @param {string} directoryPath
  */
-export async function eraseDirContentsAsync( directoryPath, { attempts = 5, restrictPathsToCwd = true, verboseErrors = true, throwErrors = true } = {} ) {
+export async function eraseDirContentsAsync( directoryPath, { attempts = 5, restrictPaths = true, restrictPathsToCwd = true, verboseErrors = true, throwErrors = true } = {} ) {
 	if ( restrictPathsToCwd && ! isInsideCwd( directoryPath ) ) {
 		throw new Error( `Cannot use directory '${ directoryPath }': must be a descendant of the current working directory.` )
 	}
 
-	if ( ! isPathPermitted( directoryPath ) ) {
+	if ( restrictPaths && ! isPathPermitted( directoryPath ) ) {
 		throw new Error( `Cannot use directory '${ directoryPath }': illegal path.` )
 	}
 
