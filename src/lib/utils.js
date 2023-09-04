@@ -5,6 +5,31 @@ const log = console.log.bind( console )
 const delay = ( ms ) => new Promise( ( r ) => setTimeout( r, ms ) )
 
 /**
+ * Extract message and stack data as an array of lines from Error object.
+ *
+ * @param {Error} error
+ */
+export function getErrorData( error = undefined ) {
+	let err = error
+	if ( ! error ) {
+		err = new Error()
+	}
+
+	const msg = `Error: ${ err.message }`
+	let stacktrace = err.stack
+	stacktrace = stacktrace.slice( msg.length ) // stacktrace.replace( new RegExp( msg, 'g' ), '' )
+	stacktrace = stacktrace.replace( /^\n*/, '' )
+
+	return {
+		stacktrace,
+		get stack() {
+			return stacktrace.split( '\n' )
+		},
+		message: err.message,
+	}
+}
+
+/**
  * Convert kebab case (kebab_case) to camel case (camelCase).
  * @param {string} string Kebab case string
  */
@@ -56,14 +81,14 @@ function reducer( obj, reduceFn, target = Object.create( {} ) ) {
  * @template {Record<InputKeys, Values>|Values[]} Input
  * @template {string} InputKeys
  * @template {any} Values
- * @template {[InputKeys, Input[InputKeys extends keyof Input ? InputKeys : never]]} CurrentValue
+ * @template {[InputKeys, Input[InputKeys extends keyof Input ? InputKeys : never]]} CurrentItem
  * @param {Input} obj - Input object
- * @param {(accumulator: Input, currentValue: [InputKeys, any], index?: number) => void } func - Function to apply
+ * @param {(accumulator: Input, currentItem: CurrentItem, index?: number) => void } func - Function to apply
  */
 function objWalk( obj, func ) {
 	/**
 	 * @param {Input} result
-	 * @param {CurrentValue} item
+	 * @param {CurrentItem} item
 	 */
 	const reduceFn = ( result, item ) => {
 		func( result, item )
@@ -71,6 +96,28 @@ function objWalk( obj, func ) {
 	}
 
 	return Object.entries( obj ).reduce( reduceFn, obj )
+}
+
+/**
+ * Simplified object reducer. Walk through and mutate object with Object.entries().reduce(). Type safe.
+ *
+ * @template {Record<InputKeys, Values>|Values[]} Input
+ * @template {string} InputKeys
+ * @template {any} Values
+ * @template {[InputKeys, Input[InputKeys extends keyof Input ? InputKeys : never]]} CurrentItem
+ * @param {Input} obj - Input object
+ * @param {(currentItem: CurrentItem, index?: number, obj?: Input) => void } func - Function to apply
+ */
+function objForEach( obj, func ) {
+	/**
+	 * @param {CurrentItem} currentItem
+	 * @param {number} index
+	 */
+	const reduceFn = ( currentItem, index ) => {
+		func( currentItem, index, obj )
+	}
+
+	Object.entries( obj ).forEach( reduceFn, obj )
 }
 
 /**
@@ -508,4 +555,4 @@ export function ProxyReadOnly(
 	} )
 }
 
-export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith, objWalk }
+export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith, objWalk, objForEach }
