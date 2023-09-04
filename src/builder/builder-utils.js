@@ -12,7 +12,7 @@ import {
 	expressionPrefix,
 } from './generator-config.js'
 
-import { isObj, stringHasPrefix } from '../lib/utils.js'
+import { getErrorData, isObj, stringHasPrefix } from '../lib/utils.js'
 
 /**
  * Sort block props into valid root categories. Mutates source.
@@ -256,17 +256,22 @@ export function applyActions( obj, ...actions ) {
 		return _.flow( ...actions )( obj )
 	}
 	catch ( err ) {
-		const errArr = err.stack.split( '\n' )
+		const { stack, message } = getErrorData( err )
 		const indexRx = /applyActions/i
 		const atRx = /\sat\s([\w_]+)/i
-		const index = errArr.indexOf( errArr.find( ( line ) => indexRx.test( line ) ) )
-		const line = errArr[ index - 2 ]
-		const fnName = line.match( atRx )[ 1 ]
-		const errStack = errArr.slice( 0, index - 2 ).join( '\n' )
+		const index = stack.indexOf( stack.find( ( line ) => indexRx.test( line ) ) )
 
-		throw new Error( `An error occurred in applyActions() while executing the function '${ fnName }()'\n\nStack trace: \n\n${ errStack }\n\n` )
+		if ( index >= 0 ) {
+			const line = stack[ index - 2 ]
+			const fnName = line.match( atRx )[ 1 ]
+			const errStack = stack.slice( 0, index - 2 ).join( '\n' )
 
-		// throw new Error( `\n\n${ err.stack }\n\n` )
+			throw new Error( `An error occurred in applyActions() while executing the function '${ fnName }()
+			'\n\nError: ${ message }\n\nStack trace: \n\n${ errStack }\n\n` )
+		}
+		else {
+			throw new Error( `An error occurred in applyActions().\n\nError: ${ message }\n\nStack trace: \n\n${ stack.join( '\n' ) }\n\n` )
+		}
 	}
 }
 
