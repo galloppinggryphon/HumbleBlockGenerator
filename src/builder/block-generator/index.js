@@ -11,7 +11,7 @@ import {
 	generatorPaths,
 	logger,
 } from '../generator-config.js'
-import appData from '../../app-data.js'
+import appData, { saveAppDataToDisk } from '../../app-data.js'
 import { loadBlockTemplate, loadBlockTemplateFiles, loadJson, loadTemplateScripts } from './template-loaders.js'
 import display, { log } from '../../lib/display.js'
 import generateBlocks from './block-generator.js'
@@ -173,6 +173,8 @@ async function blockGeneratorSetup() {
 	// Merge bundled presets
 	generatorData.presets = Object.assign( {}, templateData.presets, templateData.bundledPresets )
 	generatorData.presetScripts = Object.assign( {}, templateScripts.presetScripts, templateScripts.bundledPresetScripts )
+
+	saveAppDataToDisk()
 
 	return true
 }
