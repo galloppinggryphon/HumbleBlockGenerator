@@ -94,6 +94,21 @@ export default function BlockParser( blockTemplate ) {
 			mergeProps( this.data.block.props, obj )
 		},
 
+		exportdata() {
+			const generatorData = this.export()
+			const { currentPermutation } = generatorData.data
+
+			/** @type {CreateBlock.BlockInfo} */
+			const blockInfo = {
+				key: currentPermutation.key,
+				name: currentPermutation.name,
+				fullName: currentPermutation.fullName,
+				finalPermutation: generatorData.permutations.getFinalPermution(),
+			}
+
+			return [ generatorData.data.block, blockInfo, generatorData.permutations ]
+		},
+
 		createBlock() {
 			const generatorData = this.export()
 			const { currentPermutation } = generatorData.data
