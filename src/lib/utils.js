@@ -121,6 +121,28 @@ function objForEach( obj, func ) {
 }
 
 /**
+ * Simplified object reducer. Walk through and mutate object with Object.entries().reduce(). Type safe.
+ *
+ * @template {Record<InputKeys, Values>|Values[]} Input
+ * @template {string} InputKeys
+ * @template {any} Values
+ * @template {[InputKeys, Input[InputKeys extends keyof Input ? InputKeys : never]]} CurrentItem
+ * @param {Input} obj - Input object
+ * @param {(currentItem: CurrentItem, index?: number, obj?: Input) => any} func - Function to apply
+ */
+function objMap( obj, func ) {
+	/**
+	 * @param {CurrentItem} currentItem
+	 * @param {number} index
+	 */
+	const reduceFn = ( currentItem, index ) => {
+		return func( currentItem, index, obj )
+	}
+
+	return Object.entries( obj ).map( reduceFn, obj )
+}
+
+/**
  * Check if an object contains any of the keys in an array.
  *
  * @param {Record<string, any>} obj
@@ -555,4 +577,4 @@ export function ProxyReadOnly(
 	} )
 }
 
-export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith, objWalk, objForEach }
+export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith, objMap, objWalk, objForEach }
