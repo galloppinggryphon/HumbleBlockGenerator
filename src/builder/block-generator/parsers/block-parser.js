@@ -49,6 +49,11 @@ export default function BlockParser( blockTemplate ) {
 					return data.permutationInfo.map( ( p ) => p.key )
 				},
 				getFinalPermution( includeMaterialPermutations = false ) {
+					if ( ! data.permutationInfo || ! data.permutationInfo.length ) {
+						logger.error( 'Missing material permutations!' )
+						return
+					}
+
 					return includeMaterialPermutations
 						? data.permutationInfo.at( -1 ).key
 						: data.permutationInfo.filter( ( p ) => p.type !== 'material' ).at( -1 ).key
