@@ -97,7 +97,8 @@ export function resolveTemplates( presetName, templateData ) {
  */
 function getTemplateData( presetNames ) {
 	const { presets } = appData.generatorData
-	const template = { data: _.cloneDeep( presets.base_preset ) }
+	// const template = { data: _.cloneDeep( presets.base_preset ) }
+	const template = { data: {} }
 
 	presetNames.reduce( ( target, key ) => {
 		const source = _.cloneDeep( presets[ key ] )
