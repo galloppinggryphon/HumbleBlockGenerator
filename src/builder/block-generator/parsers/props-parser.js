@@ -620,9 +620,8 @@ function versionCompatibilityCheck( block ) {
 
 	const props = block.data.source.props
 
-	// !! TODO: reducer type is invalid
 	reducer( formatVersionCompatibilityTable, ( _block, [ oldKey, newKey ] ) => {
-		if ( props[ oldKey ] ) {
+		if ( props[ oldKey ] !== undefined ) {
 			if ( typeof newKey === 'string' ) {
 				props[ newKey ] = props[ oldKey ]
 			}
