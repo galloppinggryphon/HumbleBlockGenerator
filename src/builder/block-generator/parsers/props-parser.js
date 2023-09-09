@@ -645,7 +645,7 @@ function versionCompatibilityCheck( block ) {
  *
  * @param {CreateBlock.Block} block
  */
-export default function parseProps( block ) {
+export default function parseTemplateProps( block ) {
 	const { extraVars, source } = block.data
 	const data = { props: source.props, dir: source.dir }
 	const vars = {
