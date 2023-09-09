@@ -76,9 +76,7 @@ export function resolveTemplates( presetName, templateData ) {
 		const { config } = presetTemplateData
 		if ( config ) {
 			if ( ! ( config in resolvedTemplate ) ) {
-				logger.error(
-					`Preset subtype '${ config }' not found in preset '${ presetName }'.`,
-				)
+				logger.error( `Preset subtype '${ config }' not found in preset '${ presetName }'.` )
 				return
 			}
 
@@ -90,35 +88,6 @@ export function resolveTemplates( presetName, templateData ) {
 	}
 
 	return resolvedTemplate.data
-}
-
-/**
- * @param {CreateBlock.Block} block
- * @param {JSO} templateData
- * @param {JSO} presetConfig
- * @param {JSO} presetPropertyResolvers
- */
-export function applyPreset( block, templateData, presetConfig, presetPropertyResolvers ) {
-	const { handler, presetName } = templateData
-
-	// Check if a handler is specified
-	if ( handler ) {
-		const presetTemplate = _.cloneDeep( templateData )
-		const presetData = PresetDataHandler( block, { presetName, presetTemplate, presetConfig } )
-
-		applyActions(
-			{
-				block,
-				presetHandler: presetData,
-				presetName: presetData.name,
-			},
-			...Object.values( presetPropertyResolvers ),
-		)
-	}
-	else {
-		const presetData = BlockTemplateData( templateData )
-		mergeProps( block.data.source, presetData )
-	}
 }
 
 /**
