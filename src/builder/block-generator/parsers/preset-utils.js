@@ -11,44 +11,53 @@ import PresetDataHandler from './preset-handler.js'
 
 /**
  * @param {JSO} presetTemplateData
- * @param {JSO<{ templates: string[], data: JSO }>} applyPresets
+ * @param {JSO<{ templates?: string[], data?: JSO }>} results
  */
-export function setupTemplateData( presetTemplateData, applyPresets ) {
+export function prepareTemplateMeta( presetTemplateData, results ) {
 	const presetName = presetTemplateData.preset
 	const { presets } = appData.generatorData
 	const { parent, templates } = presets[ presetName ]
 
 	if ( templates ) {
-		if ( applyPresets[ presetName ] ) {
+		if ( results[ presetName ] ) {
 			const _templates = [ templates ].flat()
-			applyPresets[ parent ].templates.push( ..._templates )
-			Object.assign( applyPresets[ presetName ].data, presetTemplateData )
+			results[ parent ].templates.push( ..._templates )
+			Object.assign( results[ presetName ].data, presetTemplateData )
 		}
 		else {
-			applyPresets[ presetName ] = {
+			results[ presetName ] = {
 				templates: [ ...templates, presetName ],
 				data: presetTemplateData,
 			}
 		}
 	}
 	else if ( parent ) {
-		if ( applyPresets[ parent ] ) {
-			applyPresets[ parent ].templates.push( presetName )
-			Object.assign( applyPresets[ parent ].data, presetTemplateData )
+		if ( results[ parent ] ) {
+			results[ parent ].templates.push( presetName )
+			Object.assign( results[ parent ].data, presetTemplateData )
 		}
 		else {
-			applyPresets[ parent ] = {
+			results[ parent ] = {
 				templates: [ parent, presetName ],
 				data: presetTemplateData,
 			}
 		}
 	}
 	else {
-		applyPresets[ presetName ] = {
+		results[ presetName ] = {
 			templates: [ presetName ],
 			data: presetTemplateData,
 		}
 	}
+
+	const key = parent ? parent : presetName
+
+	// templates ? parent : presetName
+
+	results[ key ].templates ??= []
+	results[ key ].templates.unshift( 'base_preset' )
+
+	return results
 }
 
 /**
