@@ -1,6 +1,6 @@
 'use strict'
 import _ from 'lodash'
-import { stringStartsWith } from '../../../lib/utils.js'
+import { reducer, stringStartsWith } from '../../../lib/utils.js'
 import { logger, magicExpressionMetaDivider, magicExpressionPathDivider, mergeKeySuffix, regexFilters } from '../../generator-config.js'
 import { prefixer } from '../../builder-utils.js'
 
@@ -154,7 +154,7 @@ export function getMagicKeyExpressionMeta( magicKeyword, magicKeywordInfo ) {
 	( divider === magicExpressionMetaDivider && 'meta' )
 	|| ( divider === magicExpressionPathDivider && 'path' )
 
-	/** @type {MagicExpressionMeta} */
+	/** @type {ExpressionMeta} */
 	const meta = {
 		isMagicExpression: true,
 		path: [ propertyName ],
@@ -199,81 +199,108 @@ export function getPropertyKeyMeta( propertyName ) {
 }
 
 /**
- * Generate attributes for a property.
- *
- * Not all attributes are applicable all properties.
- *
- * Attributes:
- * ```
- * key: string
- * name: string
- * magic_key: string
- * current_block_state: string
- * is_main_hand: boolean
- * keys: string[]
- * key_list: string
- * length: number
- * min: number
- * max: number
- * value: any
- * value_list: string
- * ```
- *
- * @param {string} propertyName
- * @param {string|string[]|number|number[]} propertyValue
- * @param {number|string} currentValue
  * @return {MagicExpressionData}
  */
-export function getPropertyData( propertyName, propertyValue = undefined, currentValue = undefined ) {
+export function getPropertyData( propertyName, propertyData, currentValue = undefined ) {
 	const meta = getPropertyKeyMeta( propertyName )
-	if ( ! propertyValue ) {
-		return meta
-	}
 
 	/** @type {MagicExpressionData} */
 	const data = {
 		...meta,
-		[ propertyName ]: propertyValue,
 		is_main_hand: undefined,
 		keys: undefined,
 		key_list: undefined,
 		length: undefined,
 		max: undefined,
 		min: undefined,
-		value: propertyValue,
+		data: propertyData,
+		value: propertyData,
 		value_list: undefined,
+		first_value: undefined,
+		last_value: undefined,
+		next_value: undefined,
+		next_block_state: undefined, // `query.block_property('{{prefix}}:${ propertyName }') + 1`,
 	}
 
 	if ( currentValue !== undefined ) {
-		const num = Number( currentValue )
+		const num = parseInt( currentValue )
 		data.current_value = isNaN( num ) ? currentValue : num
+		// data.value = isNaN( num ) ? currentValue : num
 	}
 
 	let arrValues
 	let isObject = false
 
-	if ( Array.isArray( propertyValue ) ) {
-		arrValues = propertyValue
+	if ( Array.isArray( propertyData ) ) {
+		arrValues = propertyData.filter( ( v ) => v !== undefined )
 	}
-	else if ( Object( propertyValue ) === propertyValue ) {
+	else if ( Object( propertyData ) === propertyData ) {
 		isObject = true
-		arrValues = Object.values( propertyValue )
+		arrValues = Object.values( propertyData )
 	}
 	else {
 		// arrValues = [ propertyValue ]
-		data.is_main_hand = `query.is_item_name_any('slot.weapon.mainhand', 0, '${ propertyValue }')`
+		data.is_main_hand = `query.is_item_name_any('slot.weapon.mainhand', 0, '${ propertyData }')`
 	}
 
 	if ( arrValues ) {
-		const arr = arrValues.map( ( v ) => {
-			const num = Number( v )
-			return isNaN( num ) ? v : num
-		} )
+		/* *
+		 * @type {{values: Array<number>, keys: number[]}}
+		 */
+		// const arr = arrValues.reduce( ( result, v ) => {
+		// 	const num = Number( v )
+		// 	if ( isNaN( num ) ) {
+		// 		result.values.push( v )
+		// 		result.keys.push( result.keys.length )
+		// 	}
+		// 	else {
+		// 		result.values[ num ] = v
+		// 		result.keys.push( num )
+		// 	}
+
+		// 	return result
+		// }, { values: [], keys: [] } )
+
+		// const arrKeys = Object.keys( arr )
+
+		const arr = arrValues
+			.map( ( v ) => {
+				const num = Number( v )
+				return isNaN( num ) ? v : num
+			} )
+
+		// const keys = arrValues.map( ( v ) => {
+		// 	const num = Number( v )
+		// 	if ( isNaN( num ) ) {
+		// 		return v
+		// 	}
+		// 	return num
+		// } )
+
+		// const keys = Object.keys( values )
+		// const next_index = index >= values.length ? 0 : index + 1 // keys[ index + 1 ]
+		// // next_index = ! next_index ? keys[ 0 ] : next_index
+
+		// const key = keys[ index ]
+		// const next_key = keys[ next_index ]
+
+		// // const value = values[ index ]
+		// const next_value = values[ key ]
+		// const first_value = values[ keys[ 0 ] ]
+		// const last_value = values[ keys.at( -1 ) ]
+
+		const arrKeys = [ ...arr.keys() ]
 
 		Object.assign( data, {
-			[ propertyName ]: arr,
+			// [ propertyName ]: arr,
 			get length() {
 				return arr.length
+			},
+			get first_value() {
+				return arr[ arrKeys[ 0 ] ]
+			},
+			get last_value() {
+				return arr[ arrKeys.at( -1 ) ]
 			},
 			get max() {
 				return Math.max( ...arr )
@@ -287,11 +314,14 @@ export function getPropertyData( propertyName, propertyValue = undefined, curren
 					.map( ( val ) => `'${ val }'` )
 					.join( ',' )
 			},
+			get next_block_state() {
+				return `(query.block_property('{{prefix}}:${ propertyName }') + 1)`
+			},
 		} )
 	}
 
 	if ( isObject ) {
-		const objKeys = Object.keys( propertyValue )
+		const objKeys = Object.keys( propertyData )
 		Object.assign( data, {
 			get keys() {
 				return objKeys
