@@ -290,3 +290,28 @@ export default function PresetDataHandler( block, initData ) {
 		}, presetHandler.params )
 	}
 }
+function parseBoneVisisibilityRules( values ) {
+	// return Object.entries( boneVisibility ).map( ( [ property, values ] ) => {
+	if ( stringContainsUnresolvedRef( values ) ) {
+		// logger.error( `Unresolved variable in 'bone_visibility' in preset '${ presetName }'!`, { boneVisibility } )
+		return
+	}
+
+	// ~ Syntax alternatives
+	// [1] bone: values[]
+	// [2] value: bones[]
+	const entryArr = Array.from( new Set( [ ...Object.values( values ).flat() ] ) )
+	const entries = entryArr.reduce( ( result, bone ) => (
+		result[ bone ] = [],
+		result
+	), {} )
+
+	reducer( values, ( result, [ key, bones ] ) => {
+		bones.forEach( ( bone ) => {
+			result[ bone ].push( key === '' ? false : key )
+		} )
+		return result
+	}, entries )
+
+	return entries
+}
