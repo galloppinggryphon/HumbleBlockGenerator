@@ -1,4 +1,3 @@
-
 type MagicExpressionMatch = {
 	divider: string;
 	dynamic_key: string;
@@ -7,16 +6,18 @@ type MagicExpressionMatch = {
 	sub_key: string;
 };
 
-interface MagicExpressionMeta<IsMagicExpression extends boolean = true> {
-	isMagicExpression: IsMagicExpression;
+type ExpressionMeta = {
+	isMagicExpression: boolean;
 	property: string;
-	path: string[];
-	dynamicProperty: any;
-	magicExpression: string;
-	operation: string;
-	metaKey: string;
-	variable: string;
+	path?: string[];
+	dynamicProperty?: any;
+	magicExpression?: string;
+	operation?: string;
+	metaKey?: string;
+	variable?: string;
+	notFound?: boolean
 }
+
 
 type MagicExpressionKeyData = {
 	key?: string;
@@ -39,16 +40,3 @@ interface MagicExpressionData extends MagicExpressionKeyData {
 	value?: string | string[] | number | number[];
 	value_list?: string;
 }
-
-type LogItem = {
-	level: number;
-	levelStr: string;
-	context: string;
-	label: string;
-	msg: string;
-	line?: string;
-	file?: string;
-	column?: string;
-	stacktrace?: string;
-	additionalData: string;
-};
