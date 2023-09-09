@@ -209,23 +209,23 @@ let propHandlerList = []
  * @type {PropParsers}
  */
 const propHandlers = {
-	block_collision( block ) {
+	collision_box( block ) {
 		const { source, props } = block.data
-		const { block_collision } = source.props
+		const { collision_box } = source.props
 
-		if ( ! block_collision ) {
+		if ( ! collision_box ) {
 			return block
 		}
 
-		if ( typeof block_collision === 'string' ) {
-			logger.error( `Invalid value for 'block_collision', must be a number. Is it an unevaluated variable?`, { block_collision } )
+		if ( typeof collision_box === 'string' ) {
+			logger.error( `Invalid value for 'collision_box', must be a number. Is it an unevaluated variable?`, { collision_box } )
 			return block
 		}
 
-		const collisionBox = parseCollisionBox( source.props, props, 'block_collision' )
+		const collisionBox = parseCollisionBox( source.props, props, 'collision_box' )
 		if ( collisionBox ) {
-			props.block_collision = collisionBox
-			delete source.props.block_collision
+			props.collision_box = collisionBox
+			delete source.props.collision_box
 		}
 
 		return block
