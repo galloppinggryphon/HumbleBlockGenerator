@@ -21,6 +21,7 @@ declare namespace BlockParser {
 			blockTemplate: JSO
 		): PermutationBuilder;
 		createBlock(): GeneratedBlockData;
+		exportdata(): any;
 		newMaterialPermutation(
 			name: string,
 			materials: BlockTemplateData
