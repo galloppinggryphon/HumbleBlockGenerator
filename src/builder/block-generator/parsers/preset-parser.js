@@ -20,9 +20,7 @@ import PresetDataHandler from './preset-handler.js'
 import { BlockTemplateData } from '../data-factories.js'
 import parsePresetPermutations from './preset-permutations.js'
 
-const { computedProp } = prefixer
-
-/** @type {Presets.TemplateParsers} */
+/** @type {Presets.PresetParsers} */
 const presetPropertyResolvers = {
 	states( { block, presetHandler, presetName } ) {
 		const { states } = presetHandler.params
@@ -44,404 +42,35 @@ const presetPropertyResolvers = {
 		return { block, presetHandler, presetName }
 	},
 
+	boneVisibility( { block, presetHandler, presetName } ) {
+		const { bone_visibility: boneVisibility } = presetHandler.params
+		presetHandler.prepareBoneVisibilityRules()
+		return { block, presetHandler, presetName }
+	},
+
 	/**
 	 * Create events. Receives preset directives `@events`, `@event_handlers` and `@properties`.
 	 */
 	events( { block, presetHandler, presetName } ) {
-		presetHandler.createEvents()
-
-		return { block, presetHandler, presetName }
-
-		const { events, event_handlers: eventHandlers } = presetHandler.params
-
-		if ( ! events || ! Object.keys( events ).length ) {
-			return { block, presetHandler, presetName }
-		}
-
-		/** @type {JSO<Partial<Events.EventParserData>>} */
-		const eventData = {}
-		// ### How this works ###
-		// 1. Scan object for all magic expressions
-		// 2. Parse magic expressions and generate substitution variables
-		// 3.
-
-		// Parse events data
-		reducer( events, ( result, [ eventName, props ] ) => {
-			result[ eventName ] = generateListItem( eventName, props )
-
-			return result
-		}, eventData )
-
-		// Normalize eventHandlers
-		Object.entries( eventHandlers ).reduce( ( result, [ key, value ] ) => {
-			for ( const property of Object.keys( value ) ) {
-				const _prop = kebabToCamelCase( property )
-				if ( _prop !== property ) {
-					result[ key ][ _prop ] = value[ property ]
-					delete result[ key ][ property ]
-				}
-			}
-			return result
-		}, eventHandlers )
-
-		// Create events from prepared data
-		Object.values( eventData ).forEach( ( event ) => {
-			const { condition, eventName, handler, params } = event
-
-			if ( ! handler ) {
-				return
-			}
-
-			if ( ! ( handler in eventHandlers ) ) {
-				logger.error( `Invalid handler '${ handler }' supplied in preset '${ presetName }'.` )
-				return
-			}
-
-			const { action } = eventHandlers[ handler ] ?? {}
-
-			if ( ! action ) {
-				logger.error( `Problems were found in preset '${ presetName }'. Missing required key in event template: 'action'.` )
-				return
-			}
-
-			presetHandler.createEvent( { condition, action, eventName, handler, params } )
-		} )
-
+		presetHandler.prepareEvents()
 		return { block, presetHandler, presetName }
 	},
 
-	permutation_data( { block, presetHandler, presetName } ) {
-		const { permutation_data, part_visibility } = presetHandler.params
+	permutations( { block, presetHandler, presetName } ) {
+		const { permutation_data } = presetHandler.params
+
+		if ( permutation_data === null ) {
+			return { block, presetHandler, presetName }
+		}
 
 		if ( ! isObj( permutation_data ) || ! Object.keys( permutation_data ).length ) {
-			if ( ! part_visibility ) {
-				logger.error( `Invalid 'permutations' property for preset '${ presetHandler.name }'.`, { permutation_data } )
-			}
-			return { block, presetHandler, presetName }
-		}
-
-		// Check validity and combine key-value permutations template with permutation values, transform to array of permutations
-		Object.entries( permutation_data ).forEach( ( [ currentPreset, permutationConfig ] ) => {
-			// This permutation_data key is disabled
-			if ( permutationConfig === false ) {
-				return
-			}
-
-			if ( ! permutationConfig ) {
-				logger.error( `Missing permutation data for preset '${ currentPreset }'. To disable permutations for this key, set '${ `$property_name` }:permutations' to 'false'
-				return false` )
-			}
-
-			const { permutations, template: permutationTemplate } = permutationConfig
-
-			if ( ! permutations ) {
-				logger.error( `Missing permutation data for preset '${ currentPreset }' (in 'permutation_data->${ currentPreset }->permutations').`, { permutationTemplate } )
-				return
-			}
-
-			if ( ! permutationTemplate.block_props ) {
-				logger.error( `Missing 'block_props' key in permutation template for preset '${ currentPreset }'.`, { permutationTemplate } )
-				return
-			}
-
-			Object.entries( permutations ).some( ( [ key, value ] ) => {
-				// if(value === false)
-				// return false
-				if ( value === undefined || value === null ) {
-					logger.error( `Missing permutation data for key '${ key }' in 'permutation_data->${ currentPreset }->permutations'. To disable permutations for this key, set '${ `$${ key }` }:permutations' to 'false'.`, { permutationTemplate } )
-
-					delete permutations[ key ]
-					return true
-				}
-				if ( value === false ) {
-					delete permutations[ key ]
-					return true
-				}
-				return false
-			} )
-
-			// Resolve variables in the template object, but not in block_props yet
-			const presetVars = _.cloneDeep( presetHandler.presetVars )
-			let template = resolveRefsRecursively( permutationTemplate, presetVars )
-
-			const { block_props: blockProps, ...templateData } = template
-
-			// try {
-			template = resolveTemplateStringsRecursively( templateData, { ...presetHandler.presetVars }, { restrictChars: false /* accumulateErrors: true*/ } )
-			template.block_props = blockProps
+			// if ( ! part_visibility ) {
+			// 	logger.error( `Invalid 'permutations' property for preset '${ presetHandler.name }'.`, { permutation_data } )
 			// }
-			// catch ( err ) {
-			// 	logger.error( err )
-			// }
-
-			const { for_each: forEach, params } = template
-
-			// Resolve for_each if it is an expression
-			if ( ! params ) {
-				logger.error( `Missing 'params' in permutation template.`, { permutationTemplate } )
-				return
-			}
-
-			let permutationSets = []
-			const permutationVars = {}
-
-			if ( forEach ) {
-				if ( ! params[ forEach ] ) {
-					logger.error( `Missing value for for_each parameter ('${ forEach }') in params.`, permutationTemplate )
-					return
-				}
-
-				/** @type {JSO} */
-				const forEachProps = isObj( params[ forEach ] )
-					? params[ forEach ]
-					: { [ forEach ]: params[ forEach ] }
-
-				permutationSets = reducer( forEachProps, ( result, [ forEachKey, forEachItem ] ) => {
-					if ( ! permutations[ forEachKey ] ) {
-						// logger.error( `Missing permutations data for '${ forEachKey }'!`, { forEachItem } )
-						return result
-					}
-
-					let paramsData
-					if ( typeof forEachItem === 'string' ) {
-						const forEachMeta = parseMagicExpression( forEachItem )
-						paramsData = presetHandler.getParamByPath( ...forEachMeta.path )
-
-						if ( ! paramsData || ! paramsData.length ) {
-							logger.error( `${ forEachMeta.path } not found.` )
-							return result
-						}
-
-						params[ forEachKey ] = paramsData
-					}
-
-					const permutationData = permutations[ forEachKey ]
-
-					if ( permutationData === false ) {
-						return result
-					}
-
-					const forEachData = getPropertyData( forEachKey, permutationData )
-
-					const magicExpressions = findMagicExpressionsInObj( template.block_props )
-
-					if ( magicExpressions.length ) {
-						for ( let index = 0; index < paramsData.length; index++ ) {
-							// Resolve and add %forEach variables
-							const forEachCurrent = {
-								index,
-							}
-
-							permutationVars[ computedProp( `for_each${ magicExpressionMetaDivider }index` ) ] = index
-
-							magicExpressions.forEach( ( expression ) => {
-								const meta = parseMagicExpression( expression )
-
-								const paramValue = params[ meta.property ]
-
-								const { dynamicProperty } = meta
-
-								if ( dynamicProperty ) {
-									const dynamicKey = forEachCurrent[ dynamicProperty.metaKey ]
-									permutationVars[ expression ] = paramValue[ dynamicKey ]
-								}
-							} )
-						}
-					}
-
-					result.push( forEachData )
-
-					return result
-				}, [] )
-
-				if ( ! permutationSets.length ) {
-					return
-				}
-
-				const { conditionalConditions } = template
-
-				if ( conditionalConditions ) {
-					if ( typeof conditionalConditions === 'string' ) {
-						const ccMeta = parseMagicExpression( conditionalConditions )
-
-						if ( ccMeta.dynamicProperty ) {
-							const dpData = params[ ccMeta.dynamicProperty.property ]
-							const dpMeta = getPropertyData( ccMeta.dynamicProperty.property, dpData )
-							const ccData = params[ ccMeta.property ]
-							const conditionArr = dpMeta.keys.map( ( key ) => ccData[ key ] )
-							template.condition = conditionArr.join( ' && ' )
-						}
-					}
-				}
-			}
-			else {
-				permutationSets = reducer( permutations, ( sets, [ setKey, setValue ] ) => {
-					sets.push( {
-						key: setKey,
-						value: Object.values( setValue ),
-					} )
-					return sets
-				}, [] )
-			}
-
-			const _template = { condition: template.condition, block_props: template.block_props }
-
-			const data = {
-				// permutationVars,
-				source: block.data.source.vars,
-				presetVars: presetHandler.presetVars,
-				template: filterPropsByKeyPrefix( params, variablePrefix ),
-				magicExpressionsInTemplate: findMagicExpressionsInObj( _template ),
-			}
-
-			if ( ! permutationSets.length ) {
-				logger.error( `Failed to process permutation data, perhaps due to earlier errors.`, { [ currentPreset ]: permutationConfig } )
-				return
-			}
-
-			const mcPermutations = generateMcPermutations( data, _template, permutationSets )
-
-			if ( mcPermutations && mcPermutations.length ) {
-				mcPermutations.forEach(
-					( { condition, key, block_props } ) => {
-						presetHandler.createPermutation( { condition, block_props, key } )
-					}, this,
-				)
-			}
-		} )
-
-		return { block, presetHandler, presetName }
-	},
-
-	boneVisibility( { block, presetHandler, presetName } ) {
-		presetHandler.createBoneVisibilityRules()
-
-		return { block, presetHandler, presetName }
-
-		const { bone_visibility: boneVisibility } = presetHandler.params
-
-		if ( boneVisibility ) {
-			block.addBoneVisibility( boneVisibility )
-		}
-
-		return { block, presetHandler, presetName }
-
-		if ( ! boneVisibility ) {
 			return { block, presetHandler, presetName }
 		}
 
-		if ( stringContainsUnresolvedRef( boneVisibility ) ) {
-			logger.error( `Unresolved variable in 'bone_visibility' in preset '${ presetName }'!`, { boneVisibility } )
-			return
-		}
-
-		const { params, condition } = boneVisibility
-
-		const magicExpressions = findMagicKeywordsInString( condition )
-
-		Object.entries( boneVisibility ).forEach( ( [ property, values ] ) => {
-			if ( stringContainsUnresolvedRef( values ) ) {
-				logger.error( `Unresolved variable in 'bone_visibility' in preset '${ presetName }'!`, { boneVisibility } )
-				return
-			}
-
-			if ( ! isObj( values ) ) {
-				logger.error( `Invalid data in 'bone_visibility' in preset '${ presetName }'!`, { property, values } )
-				return
-			}
-
-			// ~ Syntax alternatives
-			// [1] bone: values[]
-			// [2] value: bones[]
-			const entryArr = Array.from( new Set( [ ...Object.values( values ).flat() ] ) )
-			const entries = entryArr.reduce( ( result, bone ) => (
-				result[ bone ] = [],
-				result
-			), {} )
-
-			reducer( values, ( result, [ key, bones ] ) => {
-				bones.forEach( ( bone ) => {
-					result[ bone ].push( +key )
-				} )
-				return result
-			}, entries )
-
-			// result[ key ] = `query.block_property('{{prefix}}:subvariant') == ${ value }`
-
-			block.data.boneVisibility = entries
-
-			// block.data.source.dir.bone_visibility = entries
-
-			// Object.keys( entries || {} ).forEach(
-			// 	( bone ) =>
-			// 		block.addBoneVisibility( bone, true ),
-			// 	// presetHandler.createBoneVisibilityRule( key, value, property ),
-			// )
-		} )
-
-		return { block, presetHandler, presetName }
-	},
-
-	partVisibility( { block, presetHandler, presetName } ) {
-		// return { block, presetHandler, presetName }
-
-		const { part_visibility: boneVisibility, part_visibility_conditions } = presetHandler.params
-
-		if ( ! boneVisibility ) {
-			return { block, presetHandler, presetName }
-		}
-
-		if ( stringContainsUnresolvedRef( boneVisibility ) ) {
-			logger.error( `Unresolved variable in 'part_visibility' in preset '${ presetName }'!`, { boneVisibility } )
-			return
-		}
-
-		if ( ! part_visibility_conditions ) {
-			logger.error( `Missing property 'part_visibility_conditions' in preset '${ presetName }'!` )
-			return
-		}
-
-		Object.entries( boneVisibility ).forEach( ( [ property, values ] ) => {
-			if ( stringContainsUnresolvedRef( values ) ) {
-				logger.error( `Unresolved variable in 'part_visibility' in preset '${ presetName }'!`, { boneVisibility } )
-				return
-			}
-
-			if ( ! isObj( values ) ) {
-				logger.error( `Invalid data in 'part_visibility' in preset '${ presetName }'!`, { property, values } )
-				return
-			}
-
-			// ~ Syntax alternatives
-			// [1] bone: values[]
-			// [2] value: bones[]
-			const i = Object.keys( values )[ 0 ]
-			const valueBonesSyntax = Number.isInteger( i && +i[ 0 ] )
-
-			if ( ! valueBonesSyntax ) {
-				Object.entries( values || {} ).forEach(
-					( [ key, value ] ) => presetHandler.createPartVisibilityRule( key, [ value ].flat(), property ),
-				)
-			}
-			else {
-				const entryArr = Array.from( new Set( [ ...Object.values( values ).flat() ] ) )
-				const entries = entryArr.reduce( ( result, bone ) => (
-					result[ bone ] = [],
-					result
-				), {} )
-
-				reducer( values, ( result, [ key, bones ] ) => {
-					bones.forEach( ( bone ) => {
-						result[ bone ].push( +key )
-					} )
-					return result
-				}, entries )
-
-				Object.entries( entries || {} ).forEach(
-					( [ key, value ] ) => presetHandler.createPartVisibilityRule( key, value, property ),
-				)
-			}
-		} )
+		parsePresetPermutations( block, presetHandler, presetName )
 
 		return { block, presetHandler, presetName }
 	},
