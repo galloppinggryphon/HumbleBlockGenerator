@@ -31,8 +31,8 @@ export default function ComponentGenerator( presetHandler ) {
 
 	function generateSingle( templateObj ) {
 		const { magicExpressions, magicVars } = resolveMagicVars( templateObj )
-		const { template } = templateObj
-		return resolveTemplateData( template, magicExpressions, magicVars )
+		const { template, params, ...rest } = templateObj
+		return resolveTemplateData( template ?? rest, magicExpressions, magicVars )
 	}
 
 	/**
@@ -105,8 +105,6 @@ export default function ComponentGenerator( presetHandler ) {
 		const obj = {}
 
 		for ( const [ propKey, value ] of Object.entries( templateObj ) ) {
-			// const item = {}
-
 			if ( isObj( value ) ) {
 				const resolved = resolveTemplateData( value, magicExpressions, magicVars )
 				Object.assign( obj, { [ propKey ]: resolved } )
@@ -521,7 +519,7 @@ function generateComponentElements( data ) {
 			}
 			// else the parameter is an object
 			else {
-				property = forEachCurrent.value.toString() // !!
+				property = forEachCurrent.value.toString()
 			}
 		}
 
@@ -611,7 +609,6 @@ function generateComponentElements( data ) {
 		const { forEachCurrent, dynamicVars } = createForEachData( index, propKey.toString(), value )
 
 		// Parse magic expressions in template and generate variables
-		// Mutates vars
 		const vars = computeMagicVars( { ...sharedVars, ...dynamicVars }, currentParams, forEachCurrent )
 
 		if ( dynamicVars[ '%for_each::value' ] === null ) {
@@ -686,11 +683,3 @@ function generateComponentElements( data ) {
 // ::next_value = value[next_key]
 
 // Need to extract trigger_items.rotate_x[for_each::key]
-
-// ~~~ example (bone_visibility) ~~~
-// ForEach data: subvariant = [0,1,2,3]
-// valueSet = {
-// 		"0": ["nb", "c"],
-// 		"1": ["nm", "c"],
-// 		"2": ["nt", "c"]
-// }
