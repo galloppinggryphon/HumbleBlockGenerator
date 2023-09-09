@@ -15,7 +15,10 @@ import {
 } from '../../../lib/utils.js'
 import { filterPropsByKeyPrefix, mergeProps, stringContainsUnresolvedRef, prefixer, applyActions } from '../../builder-utils.js'
 import { findMagicExpressionsInObj, findMagicKeywordsInString, getPropertyData, parseMagicExpression } from './parser-utils.js'
-import { applyPreset, setupTemplateData, resolveTemplates } from './preset-utils.js'
+import { prepareTemplateMeta, resolveTemplates } from './preset-utils.js'
+import PresetDataHandler from './preset-handler.js'
+import { BlockTemplateData } from '../data-factories.js'
+import parsePresetPermutations from './preset-permutations.js'
 
 const { computedProp } = prefixer
 
@@ -595,9 +598,31 @@ export function parsePresets( block ) {
 		setupTemplateData( presetTemplateData, templates )
 	}
 
-	// Apply presets in order
-	for ( const [ presetName, preset ] of Object.entries( templates ) ) {
-		const templateData = resolveTemplates( presetName, preset )
-		applyPreset( block, templateData, preset.data.config, presetPropertyResolvers )
+
+/**
+ * @param {CreateBlock.Block} block
+ * @param {JSO} templateData
+ * @param {JSO} presetConfig
+ */
+function applyPreset( block, templateData, presetConfig ) {
+	const { handler, presetName } = templateData
+
+	// Check if a handler is specified
+	if ( handler ) {
+		const presetTemplate = _.cloneDeep( templateData )
+		const presetData = PresetDataHandler( block, { presetName, presetTemplate, presetConfig } )
+
+		applyActions(
+			{
+				block,
+				presetHandler: presetData,
+				presetName: presetData.name,
+			},
+			...Object.values( presetPropertyResolvers ),
+		)
+	}
+	else {
+		const presetData = BlockTemplateData( templateData )
+		mergeProps( block.data.source, presetData )
 	}
 }
