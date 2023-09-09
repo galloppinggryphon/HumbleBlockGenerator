@@ -5,7 +5,7 @@ declare namespace Events {
 		 *
 		 * Valid event types: @see https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockevents/blockeventlist
 		 */
-		action?: Events.EventActionItem[];
+		action?: Presets.ComponentData[];
 		/** Action execution filter (Molang expression(s)) */
 		condition?: string | string[];
 		/**
@@ -57,19 +57,11 @@ declare namespace Events {
 
 	/** Used by block templates */
 	interface EventDirectives {
-		[eventHandlerName: string]: EventDirectiveItem | Events.EventActionItem[];
+		[eventHandlerName: string]: EventDirectiveItem | Presets.ComponentData[];
 	}
 
 	type EventActionSequence = {
-		sequence: Events.EventActionItem[];
+		sequence: Presets.ComponentData[];
 	};
 
-	type EventActionItem = {
-		forEach?: string;
-		for_each?: string;
-		params?: JSO;
-	} & {
-		[action: string]: string;
-		condition?: string;
-	};
 }
