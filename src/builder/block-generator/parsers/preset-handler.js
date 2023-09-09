@@ -8,7 +8,8 @@ import {
 	resolveNestedVariables,
 	reducer,
 	isObj,
-	kebabToCamelCase,
+	objForEach,
+	objWalk,
 } from '../../../lib/utils.js'
 import {
 	logger, variablePrefix,
@@ -16,9 +17,10 @@ import {
 import appData from '../../../app-data.js'
 import { filterPropsByKeyPrefix, mergeProps, stringContainsUnresolvedRef, prefixer, filterObjKeys, hasPrefix } from '../../builder-utils.js'
 import { BlockTemplateData, Props } from '../data-factories.js'
-import { findMagicExpressionsInObj, getPropertyData, mergePresetData, parseMagicExpression } from './parser-utils.js'
-import EventActionParser from './event-action-parser.js'
+import { mergePresetData } from './parser-utils.js'
+import ComponentGenerator from './component-generator.js'
 
+const log = console.log.bind( console )
 const { computedProp } = prefixer
 
 /**
@@ -36,12 +38,7 @@ const { computedProp } = prefixer
 export default function PresetDataHandler( block, initData ) {
 	const { presetName = undefined, presetConfig, presetTemplate, customVars = undefined, actionHooks = undefined, skipInit = false } = initData
 	const { source } = block.data
-
-	/**
-	 * @type {ReturnType<typeof EventActionParser>}
-	 */
-	// eslint-disable-next-line prefer-const
-	let eventActionParser
+	const { alias } = presetTemplate
 
 	const defaultCustomVars = {
 		// '%variant%': block.data.permutations.path.slice( -1 ),
@@ -60,6 +57,7 @@ export default function PresetDataHandler( block, initData ) {
 	 * @type {Presets.PresetHandlerData}
 	 */
 	const presetHandlerData = {
+		alias,
 		params: undefined,
 		presetName,
 		presetConfig,
@@ -114,6 +112,10 @@ export default function PresetDataHandler( block, initData ) {
 		},
 
 		get presetPropertyVars() {
+			if ( ! this.params.states ) {
+				return {}
+			}
+
 			return Object.keys( this.params.states ).reduce( ( result, key ) => {
 				const _key = computedProp( key )
 				const value = `{{prefix}}:${ key }`
@@ -176,33 +178,68 @@ export default function PresetDataHandler( block, initData ) {
 			block.addMinecraftPermutation( permutation.condition, permutation.props.export() )
 		},
 
-		createPartVisibilityRule( bone, values, property ) {
-			const partVisibility = { bone, values, conditions: [] }
-			const { part_visibility_conditions } = this.params
+		// ~~~ example (bone_visibility) ~~~
+		// ForEach data: subvariant = [0,1,2,3]
+		// valueSet = {
+		// 		"0": ["nb", "c"],
+		// 		"1": ["nm", "c"],
+		// 		"2": ["nt", "c"]
+		// }
+		prepareBoneVisibilityRules() {
+			const { vars } = this
+			const bvVars = [ `$${ alias }:bone_visibility`, `$${ presetName }:bone_visibility` ]
 
-			const vars = {
-				[ computedProp( `property` ) ]: property,
+			const bvVarKey =
+				( bvVars[ 0 ] in vars && bvVars[ 0 ] )
+				|| ( bvVars[ 1 ] in vars && bvVars[ 1 ] )
+
+			const boneVisibility = vars[ bvVarKey ]
+
+			block.data.boneVisibility ??= {}
+
+			// let  boneVisibility = {}
+			if ( boneVisibility ) {
+				const staticRules = reducer( boneVisibility, ( result, [ key, value ] ) => {
+					const valueArr = [ value ].flat()
+
+					if ( ! key ) {
+						result.push( ...valueArr )
+						delete boneVisibility[ key ]
+					}
+
+					return result
+				}, [] )
+
+				const bvVarValues = parseBoneVisisibilityRules( boneVisibility )
+
+				if ( staticRules.length ) {
+					staticRules.forEach( ( key ) => {
+						block.data.boneVisibility[ key ] = false
+					} )
+				}
+
+				if ( bvVarValues ) {
+					vars[ bvVarKey ] = bvVarValues
+				}
 			}
 
-			const template = part_visibility_conditions[ property ] ?? part_visibility_conditions[ '*' ]
+			if ( boneVisibility && Object.keys( boneVisibility ).length ) {
+				const parser = ComponentGenerator( this )
 
-			// Generate conditions
-			partVisibility.values.reduce( ( result, value ) => {
-				vars[ computedProp( `property.value` ) ] = value
-				const condition = resolveTemplateStrings( template, vars, { restrictChars: false } )
-				partVisibility.conditions.push( condition )
-				return result
-			}, partVisibility )
+				/** @type {JSO} */
+				const items = parser.generateObject( presetHandler.params.bone_visibility )
 
-			// this.applyActionHook( 'part_visibility', { preset: presetHandler, boneVisibility } )
-
-			partVisibility.bone = resolveTemplateStrings( partVisibility.bone, presetHandler.customVars )
-			// resolveTemplateStringsRecursively( boneVisibility.conditions, vars, { mutateSource: true, restrictChars: false } )
-
-			block.addPartVisibility( partVisibility.bone, partVisibility.conditions )
+				Object.assign( block.data.boneVisibility, items )
+			}
 		},
 
-		createEvent( { action, eventName, handler, condition = undefined, params = undefined } ) {
+		createEvent( eventName, eventProps, action ) {
+			// Process event
+			const eventParser = ComponentGenerator( this )
+			const event = eventParser.generateSingle( eventProps )
+
+			const { handler, condition = undefined } = event
+
 			/**
 			 * @type {Events.EventData}
 			 */
@@ -212,7 +249,7 @@ export default function PresetDataHandler( block, initData ) {
 				handler,
 			}
 
-			// Process variables
+			// Process event trigger
 			if ( condition ) {
 				if ( stringContainsUnresolvedRef( condition ) ) {
 					logger.error( `Error parsing event data: unresolved variable in 'condition'.`, { presetName, handler, condition } )
@@ -222,9 +259,79 @@ export default function PresetDataHandler( block, initData ) {
 				}
 			}
 
-			eventData.action = eventActionParser( { action, params } )
+			const { event_handlers: eventHandlers } = presetHandler.params
+			if ( ! ( handler in eventHandlers ) ) {
+				logger.error( `Invalid handler '${ handler }' supplied in preset '${ presetName }'.` )
+				return
+			}
+
+			const { generateArray, generateSingle } = ComponentGenerator( this )
+
+			const resolvedAction = resolveRefsRecursively( action, presetHandler.vars )
+
+			// Process event handler
+			// Generate actions for multiple trigger items, if defined
+			const actionCopy = _.cloneDeep( resolvedAction )
+			const resolvedActions = actionCopy.reduce( ( actionArray, actionItem ) => {
+				try {
+					if ( 'for_each' in actionItem ) {
+						const elements = generateArray( actionItem )
+						if ( elements ) {
+							actionArray.push( ...elements )
+						}
+					}
+					else {
+						const generatedAction = generateSingle( actionItem )
+						actionArray.push( generatedAction )
+					}
+				}
+				catch ( err ) {
+					logger.error( `An error occurred while creating events from the preset '${ presetName }':\n\n${ err }\n`, { block: block.permutationInfo.path.join( '.' ), eventName, data: actionItem }, err )
+				}
+
+				return actionArray
+			}, [] )
+
+			eventData.action = resolvedActions
 
 			block.addEvent( eventData )
+		},
+
+		prepareEvents() {
+			// return
+			const { events, event_handlers: eventHandlers } = presetHandler.params
+			// return
+
+			if ( ! events || ! Object.keys( events ).length ) {
+				return
+			}
+
+			// Create events from prepared data
+			Object.entries( events ).forEach( ( [ eventName, event ] ) => {
+				if ( ! event ) {
+					return
+				}
+
+				const { handler } = event
+
+				if ( ! handler ) {
+					return
+				}
+
+				if ( ! eventHandlers || ! eventHandlers[ handler ] ) {
+					logger.error( `Could not find handler '${ handler }' in eventHandlers.`, { eventHandlers } )
+					return
+				}
+
+				const { action } = eventHandlers[ handler ] ?? {}
+
+				if ( ! action ) {
+					logger.warn( `Problems were found in preset '${ presetName }'. Missing required key in event template: 'action'.` )
+					return
+				}
+
+				presetHandler.createEvent( eventName, event, action )
+			} )
 		},
 
 		checkRequiredParams() {
@@ -244,7 +351,6 @@ export default function PresetDataHandler( block, initData ) {
 	}
 
 	if ( ! skipInit ) {
-		eventActionParser = EventActionParser( presetHandler )
 		resolvePresetVars()
 	}
 
@@ -290,6 +396,7 @@ export default function PresetDataHandler( block, initData ) {
 		}, presetHandler.params )
 	}
 }
+
 function parseBoneVisisibilityRules( values ) {
 	// return Object.entries( boneVisibility ).map( ( [ property, values ] ) => {
 	if ( stringContainsUnresolvedRef( values ) ) {
