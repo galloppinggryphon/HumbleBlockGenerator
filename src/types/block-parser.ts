@@ -73,3 +73,29 @@ declare namespace BlockParser {
 	// 	make(): GeneratedBlockData;
 	// }
 }
+
+declare namespace Block {
+
+}
+
+interface GeneratedBlockData {
+	source: BlockTemplateData;
+	block: JSO; // Props( data.props ),
+	identifier: string;
+	title: string;
+	permutationData: {
+		data: PermutationInfo[];
+		path: string[];
+	};
+}
+
+
+interface BlockTemplateData {
+	dir?: JSO;
+	props: PropsProxy<Props>;
+	static?: JSO;
+	tags?: JSO;
+	templateStrings?: JSO;
+	variants?: JSO;
+	vars?: JSO;
+}
