@@ -448,127 +448,44 @@ const presetPropertyResolvers = {
 }
 
 /**
- * Recursively generate permutations from custom properties.
- *
- * `permutationData` contains sets of permutation data:
- * key-value pairs of property names and an object consting of property values mapped to block properties.
- *
- * One permuation is generated per data item in each in permutation set.
- *
- * Each data item is combined with `permutionTemplate`.
- *
- * The function iterates recursively over `permutationSets` until it is empty.
- *
- * Generated permutations are stored in `permutations`.
- *
- * @param {{ presetVars: JSO<string>, source: JSO<string>, template: JSO<string>, magicExpressionsInTemplate: string[]}} data
- * @param {PresetTemplate.PermutationProps} permutionTemplate
- * @param {MagicExpressionData[]} permutationSets
- * @param {PresetTemplate.PermutationTemplate[]} permutations
- * @param {JSO<number>} indices Matrix of the permutation indices for the properties to iterate over
- */
-function generateMcPermutations( data, permutionTemplate, permutationSets, permutations = [], indices = {} ) {
-	const template = _.cloneDeep( permutionTemplate )
-
-	// Grab next permutation set in the pipeline
-	const currentPermutation = permutationSets.pop()
-	const currentProperty = currentPermutation.key
-	const permutationValues = currentPermutation.keys ?? currentPermutation.value
-
-	if ( ! permutationValues || ! Array.isArray( permutationValues ) ) {
-		logger.error( 'Invalid permutation data - expected an array of type MagicExpressionData.', { permutationValues } )
-		return
-	}
-
-	// Iterate over permutation set data values
-	permutationValues.forEach( ( permutationKeyString, permutationIndex ) => {
-		const permutationKey = Number( permutationKeyString )
-		const props = currentPermutation.value[ permutationIndex ]
-
-		indices[ currentProperty ] = permutationKey
-
-		const permutationData = _.cloneDeep( template )
-		Object.assign( permutationData.block_props, props )
-
-		if ( permutationSets.length ) {
-			generateMcPermutations( data, permutationData, _.cloneDeep( permutationSets ), permutations, indices )
-		}
-		else {
-			// Resolve magic vars
-			const { magicExpressionsInTemplate } = data
-
-			const magicVars = magicExpressionsInTemplate.reduce( ( result, magicKey ) => {
-				const { metaKey, property, dynamicProperty } = parseMagicExpression( magicKey )
-
-				if ( dynamicProperty ) {
-					// const v = variables[ property ]
-					// const ii = 0
-
-				}
-				else {
-					const propertyIndex = indices[ property ]
-					const keyData = getPropertyData( property, [], propertyIndex ) // !! Hack
-					result[ magicKey ] = keyData[ metaKey ]
-				}
-
-				return result
-			}, {} )
-
-			// Extract variables
-			const permutationVars = filterPropsByKeyPrefix( permutationData.block_props, [ variablePrefix, calculatedPropPrefix ] )
-
-			const vars = _.cloneDeep( {
-				...data.presetVars,
-				...data.template,
-				...data.source,
-				...permutationVars,
-				...magicVars,
-			} )
-
-			// Substitute variables
-			try {
-				resolveNestedVariables( vars )
-				resolveRefsRecursively( permutationData, vars, { mutateSource: true } )
-				resolveTemplateStringsRecursively( permutationData, vars, { mutateSource: true, restrictChars: false, accumulateErrors: true } )
-			}
-			catch ( err ) {
-				logger.error( err )
-			}
-
-			// Remove variables
-			if ( Object( permutationData.block_props ) !== permutationData.block_props ) {
-				logger.error( 'Invalid permutation data (block_props): likely an unresolved variable.', permutationData )
-				return
-			}
-
-			permutations.push( permutationData )
-		}
-	} )
-	return permutations
-}
-
-/**
  * Process blockData data and inject template snippets.
  *
  * @param {CreateBlock.Block} block
  */
 export function parsePresets( block ) {
 	const { presets, presetScripts } = appData.generatorData
-	const { dir } = block.data.source
 
-	if ( ! dir.apply || ! dir.apply.length ) {
+	const templates = getBlockPresets( block )
+
+	if ( ! templates ) {
 		return
 	}
+
+	// Apply presets in order
+	for ( const [ presetName, preset ] of Object.entries( templates ) ) {
+		const templateData = resolveTemplates( presetName, preset )
+		applyPreset( block, templateData, preset.data.config )
+	}
+}
+
+export function getBlockPresets( block ) {
+	const { presets, presetScripts } = appData.generatorData
 
 	if ( ! presets ) {
 		logger.error( `Cannot apply presets: no preset file is loaded.` )
 		return
 	}
 
+	const { dir } = block.data.source
+
+	if ( ! dir.apply || ! dir.apply.length ) {
+		return
+	}
+
 	/**
 	 * @type {JSO<{ templates: string[], data: JSO }>}
 	 */
-	const templates = {}
+	const presetData = {}
 
 	// Collect presets to apply
 	for ( const presetTemplateData of dir.apply ) {
@@ -594,10 +511,11 @@ export function parsePresets( block ) {
 			continue
 		}
 
-		// mutates 'templates'
-		setupTemplateData( presetTemplateData, templates )
+		prepareTemplateMeta( presetTemplateData, presetData )
 	}
 
+	return presetData
+}
 
 /**
  * @param {CreateBlock.Block} block
