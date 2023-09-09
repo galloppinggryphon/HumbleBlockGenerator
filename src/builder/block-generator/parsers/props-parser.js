@@ -465,14 +465,24 @@ const propHandlers = {
 
 				const blockPermutation = CreateBlock( BlockTemplateData( permutationProps ), block.data.blockInfo )
 
-				applyActions( blockPermutation, ...Object.values( directiveHandlers.events ) )
+				versionCompatibilityCheck( blockPermutation )
 
-				// Permutations only support a subset of props
-				const { block_collision, selection_box, components, geometry } = propHandlers
-
+				// Apply directive handlers
 				applyActions(
 					blockPermutation,
-					block_collision, selection_box, geometry, components,
+					...Object.values( directiveHandlers.events ),
+				)
+
+				// Permutations only support a subset of props
+				const { collision_box, selection_box, components, geometry } = propHandlers
+
+				// Apply propHandlers
+				applyActions(
+					blockPermutation,
+					collision_box,
+					selection_box,
+					geometry,
+					components,
 				)
 
 				// todo: filter should be positive, not negative
