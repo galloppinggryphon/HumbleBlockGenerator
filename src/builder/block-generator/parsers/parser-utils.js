@@ -44,15 +44,25 @@ export function findMagicKeywordsInString( input = '', matchWholeString = false 
  *
  * Attributes can include (depending on the tyoe of variable): `key`, `name`, `magic_key`, `current_block_state`, `is_main_hand`, `keys`, `key_list`, `length`, `max`, `min`, `value`, `value_list`.
  *
- * @param {JSO} _action
+ * @param {JSO} obj
+ * @param {boolean} parseKeys
  * @return {string[]}
  */
-export function findMagicExpressionsInObj( _action ) {
-	const inputArr = Array.isArray( _action ) ? _action : Object.values( _action )
+export function findMagicExpressionsInObj( obj, parseKeys = false ) {
+	let inputArr = Array.isArray( obj ) && obj
+
+	if ( ! inputArr ) {
+		inputArr = Object.values( obj )
+
+		if ( parseKeys ) {
+			inputArr.push( ...Object.keys( obj ) )
+		}
+	}
+
 	const arr = inputArr
 		.reduce( ( result, value ) => {
 			if ( Object( value ) === value ) {
-				const _data = findMagicExpressionsInObj( value )
+				const _data = findMagicExpressionsInObj( value, parseKeys )
 				result.push( ..._data )
 			}
 			else if ( typeof value === 'string' ) {
@@ -88,7 +98,7 @@ export function findMagicExpressionsInObj( _action ) {
  * { isMagicKeyword: false, property: magicKeyword }
  * ```
  * @param {string} magicKeyword
- * @return {MagicExpressionMeta<true> | Partial<MagicExpressionMeta<false>>}
+ *  return {ExpressionMeta<true> | Partial<ExpressionMeta<false>>}
  */
 export function parseMagicExpression( magicKeyword ) {
 	const rx = regexFilters.magicExpressionMatch
@@ -98,7 +108,11 @@ export function parseMagicExpression( magicKeyword ) {
 		/** @type {any} */ ( [ ...magicKeyword.matchAll( rx ) ] )
 
 	if ( ! data.length ) {
-		return { isMagicExpression: false, property: magicKeyword }
+		if ( stringStartsWith( magicKeyword, '%' ) ) {
+			magicKeyword = magicKeyword.slice( 1 )
+		}
+
+		return { isMagicExpression: false, property: magicKeyword, notFound: true }
 	}
 
 	return getMagicKeyExpressionMeta( magicKeyword, data[ 0 ].groups )
