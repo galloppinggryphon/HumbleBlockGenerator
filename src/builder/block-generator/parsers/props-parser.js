@@ -65,41 +65,42 @@ const directiveHandlers = {
 
 	/**
 	 * Parse '@bone_visibility' directive.
-	 *
-	 * ! Note !
-	 * ~ With MC 1.19.80, `part__visibility` has moved to the `geometry` key and has been renamed `bone_visibility`
 	 */
 	bone_visibility( block ) {
-		const { dir } = block.data.source
+		const { bone_visibility } = block.data.source.dir
 
-		if ( ! dir.bone_visibility ) {
+		if ( ! bone_visibility ) {
 			return block
 		}
 
-		const boneVisibility = reducer( dir.bone_visibility,
-			( result, [ state, bone ] ) => {
-				const bones = [ bone ].flat()
+		const boneVisibility = reducer( bone_visibility, ( result, [ state, boneMap ] ) => {
+			reducer( boneMap,
+				( boneConditions, [ stateValue, bone ] ) => {
+					const boneArr = [ bone ].flat()
 
-				if ( state === '' ) {
-					return bones.reduce( ( boneData, value ) => {
+					if ( stateValue === '' ) {
+						return boneArr.reduce( ( boneData, value ) => {
+							boneData[ value ] ??= []
+							boneData[ value ].push( false )
+							return boneConditions
+						}, boneConditions )
+					}
+
+					return boneArr.reduce( ( boneData, value ) => {
 						boneData[ value ] ??= []
-						boneData[ value ].push( false )
-						return result
-					}, result )
-				}
+						boneData[ value ].push( `query.block_property('{{prefix}}:${ state }') == ${ stateValue }` )
+						return boneData
+					}, boneConditions )
+				},
+				result,
+			)
 
-				return bones.reduce( ( boneData, value ) => {
-					boneData[ value ] ??= []
-					boneData[ value ].push( `query.block_property('{{prefix}}:subvariant') == ${ state }` )
-					return boneData
-				}, result )
-			},
-			{},
-		)
-
-		const boneVisibilityCompiled = reducer( boneVisibility, ( result, [ bone, conditions ] ) => {
-			result[ bone ] = Array.isArray( conditions ) ? conditions.join( ' || ' ) : conditions
 			return result
+		}, {} )
+
+		const boneVisibilityCompiled = reducer( boneVisibility, ( boneConditions, [ bone, conditions ] ) => {
+			boneConditions[ bone ] = Array.isArray( conditions ) ? conditions.join( ' || ' ) : conditions
+			return boneConditions
 		}, {} )
 
 		resolveTemplateStringsRecursively( boneVisibilityCompiled, block.data.extraVars, { mutateSource: true } )
