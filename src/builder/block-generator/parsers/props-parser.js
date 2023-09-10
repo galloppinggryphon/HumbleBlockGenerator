@@ -7,6 +7,7 @@ import {
 	resolveTemplateStringsRecursively,
 	resolveRefsRecursively,
 	isObj,
+	resolveTemplateStrings,
 } from '../../../lib/utils.js'
 import { formatVersionCompatibilityTable, logger } from '../../generator-config.js'
 import appData from '../../../app-data.js'
@@ -69,86 +70,41 @@ const directiveHandlers = {
 	 * ~ With MC 1.19.80, `part__visibility` has moved to the `geometry` key and has been renamed `bone_visibility`
 	 */
 	bone_visibility( block ) {
-		return block
-
-		const { dir, props } = block.data.source
+		const { dir } = block.data.source
 
 		if ( ! dir.bone_visibility ) {
 			return block
 		}
 
-		// if ( typeof dir.bone_visibility === 'string' ) {
-		// 	block.data.source.props.bone_visibility = dir.bone_visibility
-		// 	return block
-		// }
+		const boneVisibility = reducer( dir.bone_visibility,
+			( result, [ state, bone ] ) => {
+				const bones = [ bone ].flat()
 
-		// ! Currently unsupported: Conditional bone visibility
-		// const boneVisibility = Object.entries( dir.bone_visibility ).reduce(
-		// 	( result, [ materialInstance, conditions ] ) => {
-		// 		const allConditions = _.uniq( [
-		// 			...[ result[ materialInstance ] ?? [] ].flat(),
-		// 			...[ conditions ].flat(),
-		// 		] )
+				if ( state === '' ) {
+					return bones.reduce( ( boneData, value ) => {
+						boneData[ value ] ??= []
+						boneData[ value ].push( false )
+						return result
+					}, result )
+				}
 
-		// 		result[ materialInstance ] = allConditions.join( ' || ' )
-		// 		return result
-		// 	},
-		// 	{},
-		// )
-
-		// Save to block.data. Added to the geometry key later.
-		// ! Disabled: block.data.boneVisibility = boneVisibility
-
-		const { bones, visible } = dir.bone_visibility
-
-		const visibleBones = Object.values( visible )
-		const boneVisibility = reducer( bones, ( result, [ __, bone ] ) => {
-			if ( ! visibleBones.includes( bone ) ) {
-				result[ bone ] = false
-			}
-			// result[ bone ] = visibleBones.includes( bone ) ?? false
-			return result
-		} )
-
-		props.geometry ??= {}
-		props.geometry.bone_visibility = boneVisibility
-
-		return block
-	},
-
-	/**
-	 * Parse '@part_visibility' directive.
-	 *
-	 * ! Note: Prior to 1.19.80 !
-	 */
-	part_visibility( block ) {
-		// return block
-
-		const { dir } = block.data.source
-
-		if ( ! dir.part_visibility ) {
-			return block
-		}
-
-		// ! Currently unsupported: Conditional bone visibility
-		const boneVisibility = Object.entries( dir.part_visibility ).reduce(
-			( result, [ materialInstance, conditions ] ) => {
-				const allConditions = _.uniq( [
-					...[ result[ materialInstance ] ?? [] ].flat(),
-					...[ conditions ].flat(),
-				] )
-
-				result[ materialInstance ] = allConditions.join( ' || ' )
-				return result
+				return bones.reduce( ( boneData, value ) => {
+					boneData[ value ] ??= []
+					boneData[ value ].push( `query.block_property('{{prefix}}:subvariant') == ${ state }` )
+					return boneData
+				}, result )
 			},
 			{},
 		)
 
-		block.data.source.props.part_visibility = {
-			conditions: boneVisibility,
-		}
+		const boneVisibilityCompiled = reducer( boneVisibility, ( result, [ bone, conditions ] ) => {
+			result[ bone ] = Array.isArray( conditions ) ? conditions.join( ' || ' ) : conditions
+			return result
+		}, {} )
 
-		delete dir.part_visibility
+		resolveTemplateStringsRecursively( boneVisibilityCompiled, block.data.extraVars, { mutateSource: true } )
+
+		block.data.boneVisibility = boneVisibilityCompiled
 
 		return block
 	},
@@ -387,9 +343,11 @@ const propHandlers = {
 			return block
 		}
 
+		let geoString
+
 		// ~ Pre 1.19.80 update ~
 		if ( typeof source.props.geometry === 'string' ) {
-			let geoString = source.props.geometry
+			geoString = source.props.geometry
 
 			if ( stringHasPrefix( 'geometry.', geoString ) ) {
 				logger.notice(
@@ -402,39 +360,46 @@ const propHandlers = {
 			const { geometryPrefix } = appData.settings
 			const geoPrefix = typeof geometryPrefix === 'string' ? geometryPrefix : ''
 			geoString = `geometry.${ geoPrefix + geoString }`
-
-			block.data.props.geometry = geoString
-			return block
-		}
-
-		const { identifier, bone_visibility } = source.props.geometry ?? {}
-
-		if ( ! identifier ) {
-			return block
-		}
-
-		let geoString = identifier
-
-		if ( typeof geoString !== 'string' ) {
-			return block
-		}
-
-		if ( stringHasPrefix( 'geometry.', geoString ) ) {
-			logger.notice(
-				`The 'geometry.*' prefix was found in the 'geometry' property. You can omit this prefix, it is added automatically.`,
-			)
-			// geoString = geoString.slice( 9 )
 		}
 		else {
-			const { geometryPrefix } = appData.settings
-			const geoPrefix = typeof geometryPrefix === 'string' ? geometryPrefix : ''
-			geoString = `geometry.${ geoPrefix + geoString }`
+			const { identifier } = source.props.geometry ?? {}
+
+			if ( ! identifier ) {
+				return block
+			}
+
+			geoString = identifier
+
+			if ( typeof geoString !== 'string' ) {
+				return block
+			}
+
+			if ( stringHasPrefix( 'geometry.', geoString ) ) {
+				logger.notice(
+					`The 'geometry.*' prefix was found in the 'geometry' property. You can omit this prefix, it is added automatically.`,
+				)
+				// geoString = geoString.slice( 9 )
+			}
+			else {
+				const { geometryPrefix } = appData.settings
+				const geoPrefix = typeof geometryPrefix === 'string' ? geometryPrefix : ''
+				geoString = `geometry.${ geoPrefix + geoString }`
+			}
 		}
 
-		// Convert from string to object
 		props.geometry = {
-			bone_visibility,
 			identifier: geoString,
+		}
+
+		const { boneVisibility } = block.data
+		if ( boneVisibility ) {
+			resolveTemplateStringsRecursively( boneVisibility, block.data.extraVars, { mutateSource: true } )
+			props.geometry.bone_visibility = block.data.boneVisibility
+		}
+		else {
+			const { bone_visibility } = source.props.geometry ?? {}
+			props.geometry.bone_visibility = bone_visibility
+			// todo: props.bone_visibility
 		}
 
 		delete source.props.geometry
