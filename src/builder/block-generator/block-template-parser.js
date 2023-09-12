@@ -27,7 +27,7 @@ import { BlockTemplateData } from './data-factories.js'
 import { parsePresets } from './parsers/preset-parser.js'
 
 /**
- * Block parser factory.
+ * Block template parser factory.
  *
  * @param {JSO} blockTemplate
  */
