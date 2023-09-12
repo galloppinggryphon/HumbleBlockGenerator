@@ -1,4 +1,5 @@
 'use strict'
+import _ from 'lodash'
 import {
 	reducer,
 	recursivePrefixer,
@@ -6,7 +7,7 @@ import {
 	resolveRefsRecursively,
 	setObjValueByPath,
 } from '../../lib/utils.js'
-import { formatVersionCompatibilityTable } from '../generator-config.js'
+import { blockFormatVersion, formatVersionCompatibilityTable } from '../generator-config.js'
 import {
 	applyActions,
 	mergeProps,
@@ -18,6 +19,8 @@ import propParsers from './parsers/prop-parsers.js'
 import { CreateBlock } from './create-block.js'
 import { BlockTemplateData } from './data-factories.js'
 import { parseCollisionBox } from './parsers/collision-box.js'
+import { getPermutationName, getPermutationTitle } from './generator-utils.js'
+import appData from '../../app-data.js'
 
 /**
  * Compile valid Minecraft properties from template props and prepared data.
@@ -47,6 +50,20 @@ export function BlockCompiler( block ) {
 		newCompiler,
 		parseCollisionBox,
 		prefixComponentProps,
+	}
+
+	/**
+	 *  Wrap block props in minecraft block skeleton with some default props.
+	 */
+	function finalizeBlock() {
+		const { props, blockInfo } = block.data
+		props.description.identifier = `${ appData.settings.prefix }:${ blockInfo.identifier }`
+
+		const template = _.cloneDeep( appData.generatorData.scaffolding )
+
+		block.data.block = mergeProps( template, {
+			'minecraft:block': props.export(),
+		} )
 	}
 
 	/**
@@ -128,7 +145,11 @@ export function BlockCompiler( block ) {
 		return BlockCompiler( newBlock )
 	}
 
-	function compile() {
+	/**
+	 * @param {boolean} finalize
+	 * @return {GeneratedBlockData}
+	 */
+	function compile( finalize = true ) {
 		const { extraVars, source } = block.data
 		const data = { props: source.props, dir: source.dir }
 		const vars = {
@@ -148,11 +169,36 @@ export function BlockCompiler( block ) {
 			...Object.values( propParsers ),
 		)
 
-		// Finalize block
+		// Finalize components
 		addStaticProps()
 		addTags()
 		prefixComponentProps()
 		filterEmpty()
+
+		if ( ! finalize ) {
+			return {
+				source,
+				block: block.data.props.export(),
+				identifier: undefined,
+				title: undefined,
+				permutationData: block.permutationInfo,
+			}
+		}
+
+		// Finalize block
+		const { blockInfo } = block.data
+		blockInfo.identifier = getPermutationName( block.permutationInfo.data )
+		blockInfo.title = getPermutationTitle( block.permutationInfo.data )
+
+		finalizeBlock()
+
+		return {
+			source,
+			block: block.data.block,
+			identifier: blockInfo.identifier,
+			title: blockInfo.title,
+			permutationData: block.permutationInfo,
+		}
 	}
 
 	return blockCompiler

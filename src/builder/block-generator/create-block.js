@@ -1,49 +1,10 @@
 'use strict'
 import _ from 'lodash'
-import { blockFormatVersion, logger } from '../generator-config.js'
-import appData from '../../app-data.js'
-import { applyActions, mergeProps, prefixer, stringContainsUnresolvedRef } from '../builder-utils.js'
-import {
-	getPermutationName,
-	getPermutationTitle,
-
-} from './generator-utils.js'
-
-// import { parsePresets } from './parsers/preset-parser.js'
-import { CreateBlockData, Props } from './data-factories.js'
+import { logger } from '../generator-config.js'
+import { mergeProps, stringContainsUnresolvedRef } from '../builder-utils.js'
+import { CreateBlockData } from './data-factories.js'
 import { isObj, reducer } from '../../lib/utils.js'
 import { BlockCompiler } from './block-compiler.js'
-
-const blockActions = {
-	/**
-	 * Add format_version, title and ID.
-	 *
-	 * @param {GeneratedBlockData} blockData
-	 */
-	prepareBlockPreamble( blockData ) {
-		const { permutationData, block } = blockData
-		blockData.identifier = getPermutationName( permutationData.data )
-		blockData.title = getPermutationTitle( permutationData.data )
-
-		block.description.format_version = blockFormatVersion
-		block.description.identifier = `${ appData.settings.prefix }:${ blockData.identifier }`
-		return blockData
-	},
-
-	/**
-	 * @param {GeneratedBlockData} blockData
-	 */
-	addScaffolding( blockData ) {
-		const { scaffolding } = appData.generatorData
-		const template = _.cloneDeep( scaffolding )
-
-		blockData.block = mergeProps( template, {
-			'minecraft:block': blockData.block,
-		} )
-
-		return blockData
-	},
-}
 
 /**
  * @param {BlockTemplateData} blockTemplateData
@@ -125,33 +86,9 @@ export function CreateBlock( blockTemplateData, blockInfo = {}, permutationTreeD
 		 * @return {GeneratedBlockData}
 		 */
 		make( prepareFinalBlock = true ) {
-			// const parsedBlock =
-			// parseBlockProps( this )
 			const compiler = BlockCompiler( this )
-			compiler.compile()
-
-			const { source, props } = this.data
-
-			/** @type {GeneratedBlockData} */
-			const blockData = {
-				source,
-				block: props.export(),
-				identifier: undefined,
-				title: undefined,
-				permutationData: permutationTreeData,
-			}
-
-			if ( ! prepareFinalBlock ) {
-				return blockData
-			}
-
-			applyActions(
-				blockData,
-				blockActions.prepareBlockPreamble,
-				blockActions.addScaffolding,
-			)
-
-			return blockData
+			const output = compiler.compile( prepareFinalBlock )
+			return output
 		},
 
 	}
