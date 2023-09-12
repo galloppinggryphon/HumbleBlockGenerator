@@ -2,15 +2,17 @@
 import _ from 'lodash'
 import { blockFormatVersion, logger } from '../generator-config.js'
 import appData from '../../app-data.js'
-import { applyActions, mergeProps, prefixer } from '../builder-utils.js'
+import { applyActions, mergeProps, prefixer, stringContainsUnresolvedRef } from '../builder-utils.js'
 import {
 	getPermutationName,
 	getPermutationTitle,
+
 } from './generator-utils.js'
 
-import { parsePresets } from './parsers/preset-parser.js'
-import parseProps from './parsers/props-parser.js'
+// import { parsePresets } from './parsers/preset-parser.js'
 import { CreateBlockData, Props } from './data-factories.js'
+import { isObj, reducer } from '../../lib/utils.js'
+import { BlockCompiler } from './block-compiler.js'
 
 const blockActions = {
 	/**
@@ -123,8 +125,12 @@ export function CreateBlock( blockTemplateData, blockInfo = {}, permutationTreeD
 		 * @return {GeneratedBlockData}
 		 */
 		make( prepareFinalBlock = true ) {
-			const parsedBlock = parseProps( this )
-			const { source, props } = parsedBlock.data
+			// const parsedBlock =
+			// parseBlockProps( this )
+			const compiler = BlockCompiler( this )
+			compiler.compile()
+
+			const { source, props } = this.data
 
 			/** @type {GeneratedBlockData} */
 			const blockData = {
