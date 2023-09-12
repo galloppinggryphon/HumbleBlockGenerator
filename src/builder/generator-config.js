@@ -45,10 +45,12 @@ const mergeKeySuffixRx = String.raw `\[\]`
 const staticPropPrefix = '§'// todo: change to &
 
 const directivePrefix = '@'
+
 /**
  * All template directives
  */
-const directives = [ 'apply', 'events', 'export', 'materials', 'exclude_materials', 'material_templates', 'material_permutations', 'material_instances', 'bone_visibility', 'render', 'texture', 'title', 'type', 'variants' ]
+const directives = [ 'apply', 'events', 'export', 'materials', 'exclude_materials', 'material_templates', 'material_permutations', 'material_instances', 'bone_visibility', 'render', 'rotation', 'scale', 'texture', 'title', 'translation', 'type', 'variants' ]
+
 /**
  * All directives used to generate materials.
  */
