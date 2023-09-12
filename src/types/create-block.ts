@@ -42,4 +42,20 @@ declare namespace CreateBlock {
 	type MinecraftPermutationData = {
 		[condition: string]: any;
 	};
+
+	type BlockCompiler = {
+		readonly block: Block;
+		addStaticProps(): void;
+		addTags(): void;
+		compatibilityCheck(props: JSO): void;
+		filterEmpty(): void;
+		prefixComponentProps(): void;
+		compile(): void;
+		newCompiler(blockData: JSO): BlockCompiler;
+		propParsers: PropParsers;
+		directiveParsers: PropParsers;
+		parseCollisionBox(source: JSO, propertyKey: string);
+	};
 }
+
+// BlockTemplateData( permutationProps )

@@ -11,6 +11,6 @@ type PropsProxy<Props> = Props & {
 	export(): Props;
 };
 
-interface PropParsers {
-	[propName: string]: (block: CreateBlock.Block) => CreateBlock.Block;
+type PropParsers = {
+	[propName: string]: (compiler: CreateBlock.BlockCompiler) => CreateBlock.BlockCompiler
 }
