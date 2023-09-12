@@ -13,9 +13,10 @@ import {
  * Transform math expressions in block_collision/selection_box coordinates.
  *
  * param {{origin: Coordinates, size: Coordinates, anchor?: UnitCubeTransformAnchors}} collisionBox
+ * @param {JSO} source
  * @param {string} propertyKey
  */
-export function parseCollisionBox( source, props, propertyKey ) {
+export function parseCollisionBox( source, propertyKey ) {
 	const collisionBox = { ...source[ propertyKey ] }
 
 	reducer( collisionBox, ( result, [ key, coordinates ] ) => {
