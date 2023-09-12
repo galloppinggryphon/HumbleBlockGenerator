@@ -143,6 +143,16 @@ function objMap( obj, func ) {
 }
 
 /**
+ * Check if object has own key.
+ *
+ * @param {JSO} obj
+ * @param {string} key
+ */
+function objHasOwn( obj, key ) {
+	return Reflect.ownKeys( obj ).includes( key )
+}
+
+/**
  * Set value at given object path.
  *
  * @param {JSO} obj
@@ -595,4 +605,4 @@ export function ProxyReadOnly(
 	} )
 }
 
-export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith, objMap, objWalk, objForEach, setObjValueByPath }
+export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith, objMap, objWalk, objForEach, setObjValueByPath, objHasOwn }

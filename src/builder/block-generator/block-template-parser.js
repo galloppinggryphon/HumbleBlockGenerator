@@ -408,8 +408,3 @@ function BlockPermutationData( prevData = undefined, exportData = false ) {
 				},
 	}
 }
-
-// TODO: move to utils
-function objHasOwn( obj, key ) {
-	return Reflect.ownKeys( obj ).includes( key )
-}
