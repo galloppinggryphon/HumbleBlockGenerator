@@ -7,7 +7,7 @@ import {
 	logger,
 } from '../generator-config.js'
 import appData from '../../app-data.js'
-import BlockParser from './parsers/block-parser.js'
+import BlockTemplateParser from './block-parser.js'
 import display, { log } from '../../lib/display.js'
 import { saveDataToJson } from '../../lib/json-utils.js'
 
@@ -92,7 +92,7 @@ function* BlockGenerator( {
 
 	const permutation = prevPermutation
 		? prevPermutation.newPermutation( permutationKey, blockData )
-		: BlockParser( blockData )
+		: BlockTemplateParser( blockData )
 
 	if ( ! permutation.isValid() ) {
 		return

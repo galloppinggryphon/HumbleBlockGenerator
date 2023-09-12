@@ -31,7 +31,7 @@ import { parsePresets } from './parsers/preset-parser.js'
  *
  * @param {JSO} blockTemplate
  */
-export default function BlockParser( blockTemplate ) {
+export default function BlockTemplateParser( blockTemplate ) {
 	/**
 	 * Block parser.
 	 *
