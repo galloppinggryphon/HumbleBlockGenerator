@@ -21,6 +21,7 @@ import { BlockTemplateData } from './data-factories.js'
 import { parseCollisionBox } from './parsers/collision-box.js'
 import { getPermutationName, getPermutationTitle } from './generator-utils.js'
 import appData from '../../app-data.js'
+import { parsePresets } from './parsers/preset-parser.js'
 
 /**
  * Compile valid Minecraft properties from template props and prepared data.
@@ -150,6 +151,9 @@ export function BlockCompiler( block ) {
 	 * @return {GeneratedBlockData}
 	 */
 	function compile( finalize = true ) {
+		// Parse @apply directive and apply presets
+		parsePresets( block )
+
 		const { extraVars, source } = block.data
 		const data = { props: source.props, dir: source.dir }
 		const vars = {

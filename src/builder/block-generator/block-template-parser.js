@@ -129,11 +129,6 @@ export default function BlockTemplateParser( blockTemplate ) {
 			}
 
 			const block = CreateBlock( generatorData.data.block, blockInfo, generatorData.permutations )
-
-			// ! Temporary relocation? Moved from CreateBlock
-			// ~ Parse @apply directive ~
-			parsePresets( block )
-
 			const compiler = BlockCompiler( block )
 			const output = compiler.compile()
 			return output
