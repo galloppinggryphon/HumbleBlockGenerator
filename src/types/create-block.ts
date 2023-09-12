@@ -14,6 +14,7 @@ declare namespace CreateBlock {
 	}
 
 	interface Data {
+		block: JSO;
 		boneVisibility?: JSO;
 		blockInfo: Partial<CreateBlock.BlockInfo>;
 		source: BlockTemplateData;
@@ -37,6 +38,9 @@ declare namespace CreateBlock {
 		name: string;
 		fullName: string;
 		finalPermutation: string;
+		identifier?: string
+		title?: string
+
 	};
 
 	type MinecraftPermutationData = {
@@ -50,7 +54,7 @@ declare namespace CreateBlock {
 		compatibilityCheck(props: JSO): void;
 		filterEmpty(): void;
 		prefixComponentProps(): void;
-		compile(): void;
+		compile(finalize?: boolean): GeneratedBlockData;
 		newCompiler(blockData: JSO): BlockCompiler;
 		propParsers: PropParsers;
 		directiveParsers: PropParsers;
