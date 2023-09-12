@@ -143,6 +143,24 @@ function objMap( obj, func ) {
 }
 
 /**
+ * Set value at given object path.
+ *
+ * @param {JSO} obj
+ * @param {string[]} path
+ * @param {any} value
+ */
+function setObjValueByPath( obj, path, value ) {
+	const key = path.shift()
+	if ( ! path.length ) {
+		obj[ key ] = value
+	}
+	else if ( ! obj[ key ] ) {
+		obj[ key ] = {}
+		setObjValueByPath( obj[ key ], path, value )
+	}
+}
+
+/**
  * Check if an object contains any of the keys in an array.
  *
  * @param {Record<string, any>} obj
@@ -577,4 +595,4 @@ export function ProxyReadOnly(
 	} )
 }
 
-export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith, objMap, objWalk, objForEach }
+export { arrayMerge, delay, extractArrayElements, isObj, kebabToCamelCase, log, hasKeysAny, reducer, stringHasPrefix, recursivePrefixer, removeArrayElements, removeObjectKeys, replaceValue, resolveTemplateStrings, resolveTemplateStringsRecursively, resolveRefsRecursively, resolveNestedVariables, stringStartsWith, objMap, objWalk, objForEach, setObjValueByPath }
