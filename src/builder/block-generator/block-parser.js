@@ -1,6 +1,6 @@
 'use strict'
 import _ from 'lodash'
-import appData from '../../../app-data.js'
+import appData from '../../app-data.js'
 
 import {
 	arrayMerge,
@@ -9,22 +9,22 @@ import {
 	resolveTemplateStringsRecursively,
 	resolveRefsRecursively,
 	reducer,
-} from '../../../lib/utils.js'
+} from '../../lib/utils.js'
 
-import { mergeProps } from '../../builder-utils.js'
+import { mergeProps } from '../builder-utils.js'
 import {
 	getPermutationName,
 	isAnonymousPermutationBranch,
 	replaceValues,
 	validatePermutationName,
-} from '../generator-utils.js'
+} from './generator-utils.js'
 
-import { logger } from '../../generator-config.js'
+import { logger } from '../generator-config.js'
 
-import { CreateBlock } from '../create-block.js'
-import { MaterialBuilder } from './material-parser.js'
-import { BlockTemplateData } from '../data-factories.js'
-import { parsePresets } from './preset-parser.js'
+import { CreateBlock } from './create-block.js'
+import { MaterialBuilder } from './parsers/material-parser.js'
+import { BlockTemplateData } from './data-factories.js'
+import { parsePresets } from './parsers/preset-parser.js'
 
 /**
  * Block parser factory.
@@ -352,6 +352,8 @@ export default function BlockParser( blockTemplate ) {
 	 * @param {BlockParser.PermutationBuilder} [props.prevBuilder]
 	 * @param {JSO} [props.children]
 	 * @param {boolean} [props.exportData]
+	 *
+	 * TODO: initial lower case
 	 */
 	const CreatePermutationHandler = ( { prevBuilder, children = {}, exportData = false } ) => {
 		/** @type {Partial<BlockParser.PermutationBuilderProxy>} */
@@ -407,6 +409,7 @@ function BlockPermutationData( prevData = undefined, exportData = false ) {
 	}
 }
 
+// TODO: move to utils
 function objHasOwn( obj, key ) {
 	return Reflect.ownKeys( obj ).includes( key )
 }
