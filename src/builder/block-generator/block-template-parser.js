@@ -356,7 +356,7 @@ export default function BlockTemplateParser( blockTemplate ) {
 	 *
 	 * TODO: initial lower case
 	 */
-	const CreatePermutationHandler = ( { prevBuilder, children = {}, exportData = false } ) => {
+	const createPermutationHandler = ( { prevBuilder, children = {}, exportData = false } ) => {
 		/** @type {Partial<BlockParser.PermutationBuilderProxy>} */
 		const proxyData = {}
 
@@ -371,15 +371,15 @@ export default function BlockTemplateParser( blockTemplate ) {
 			handlers: /** @type {BlockParser.PermutationBuilderHandlers} */ ( dataHandlers ),
 			materials,
 			copyPermutationData() {
-				return CreatePermutationHandler( { prevBuilder: proxy } )
+				return createPermutationHandler( { prevBuilder: proxy } )
 			},
 			export() {
-				return CreatePermutationHandler( { prevBuilder: proxy, exportData: true } )
+				return createPermutationHandler( { prevBuilder: proxy, exportData: true } )
 			},
 		} )
 
 		return proxy
 	}
 
-	return CreatePermutationHandler( { children: blockTemplate } )
+	return createPermutationHandler( { children: blockTemplate } )
 }
