@@ -1,4 +1,6 @@
 'use strict'
+import _ from 'lodash'
+
 import {
 	directivePrefix,
 	directives,
@@ -229,5 +231,31 @@ export function CreateBlockData( source, blockInfo ) {
 		permutations: ProxyObj( {} ),
 		eventTriggers: ProxyObj( {} ),
 		eventHandlers: {},
+	}
+}
+
+/**
+ * Block permudation data object.
+ *
+ * @param {PermutationData} [prevData]
+ * @param {boolean} [exportData]
+ * @return {PermutationData}
+ */
+export function BlockPermutationData( prevData = undefined, exportData = false ) {
+	const data = prevData ? _.cloneDeep( prevData ) : {}
+
+	return {
+		block: data.block ?? BlockTemplateData(),
+		permutationInfo: data.permutationInfo ?? [],
+		materialPermutations: data.materialPermutations ?? [],
+		currentPermutation:
+			prevData && exportData
+				? data.currentPermutation
+				: {
+					isValid: true,
+					key: undefined,
+					name: undefined,
+					fullName: undefined,
+				},
 	}
 }

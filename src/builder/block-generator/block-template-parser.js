@@ -24,7 +24,7 @@ import { logger } from '../generator-config.js'
 
 import { CreateBlock } from './create-block.js'
 import { MaterialBuilder } from './parsers/material-parser.js'
-import { BlockTemplateData } from './data-factories.js'
+import { BlockPermutationData, BlockTemplateData } from './data-factories.js'
 import { parsePresets } from './parsers/preset-parser.js'
 
 /**
@@ -382,30 +382,4 @@ export default function BlockTemplateParser( blockTemplate ) {
 	}
 
 	return CreatePermutationHandler( { children: blockTemplate } )
-}
-
-/**
- * Block permudation data object.
- *
- * @param {PermutationData} [prevData]
- * @param {boolean} [exportData]
- * @return {PermutationData}
- */
-function BlockPermutationData( prevData = undefined, exportData = false ) {
-	const data = prevData ? _.cloneDeep( prevData ) : {}
-
-	return {
-		block: data.block ?? BlockTemplateData(),
-		permutationInfo: data.permutationInfo ?? [],
-		materialPermutations: data.materialPermutations ?? [],
-		currentPermutation:
-			prevData && exportData
-				? data.currentPermutation
-				: {
-					isValid: true,
-					key: undefined,
-					name: undefined,
-					fullName: undefined,
-				},
-	}
 }
