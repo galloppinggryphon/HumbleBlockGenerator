@@ -397,7 +397,7 @@ export default function PresetDataHandler( block, initData ) {
 	}
 }
 
-function parseBoneVisisibilityRules( values ) {
+export function parseBoneVisisibilityRules( values ) {
 	// return Object.entries( boneVisibility ).map( ( [ property, values ] ) => {
 	if ( stringContainsUnresolvedRef( values ) ) {
 		// logger.error( `Unresolved variable in 'bone_visibility' in preset '${ presetName }'!`, { boneVisibility } )
@@ -414,7 +414,8 @@ function parseBoneVisisibilityRules( values ) {
 	), {} )
 
 	reducer( values, ( result, [ key, bones ] ) => {
-		bones.forEach( ( bone ) => {
+		const boneArr = [ bones ].flat()
+		boneArr.forEach( ( bone ) => {
 			result[ bone ].push( key === '' ? false : key )
 		} )
 		return result
