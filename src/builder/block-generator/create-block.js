@@ -4,7 +4,6 @@ import { logger } from '../generator-config.js'
 import { mergeProps, stringContainsUnresolvedRef } from '../builder-utils.js'
 import { CreateBlockData } from './data-factories.js'
 import { isObj, reducer } from '../../lib/utils.js'
-import { BlockCompiler } from './block-compiler.js'
 
 /**
  * @param {BlockTemplateData} blockTemplateData
@@ -79,18 +78,6 @@ export function CreateBlock( blockTemplateData, blockInfo = {}, permutationTreeD
 			const _values = asInteger ? values.map( _.toInteger ).sort() : values
 			props.states[ key ] = _values
 		},
-
-		/**
-		 * Generate blockData JSON from generator data. Called for every final permutation.
-		 *
-		 * @return {GeneratedBlockData}
-		 */
-		make( prepareFinalBlock = true ) {
-			const compiler = BlockCompiler( this )
-			const output = compiler.compile( prepareFinalBlock )
-			return output
-		},
-
 	}
 
 	return block
