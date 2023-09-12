@@ -7,7 +7,7 @@ import {
 	logger,
 } from '../generator-config.js'
 import appData from '../../app-data.js'
-import BlockTemplateParser from './block-parser.js'
+import BlockTemplateParser from './block-template-parser.js'
 import display, { log } from '../../lib/display.js'
 import { saveDataToJson } from '../../lib/json-utils.js'
 
