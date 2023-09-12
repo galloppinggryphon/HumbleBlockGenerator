@@ -9,6 +9,7 @@ import {
 	resolveTemplateStringsRecursively,
 	resolveRefsRecursively,
 	reducer,
+	objHasOwn,
 } from '../../lib/utils.js'
 
 import { mergeProps } from '../builder-utils.js'
