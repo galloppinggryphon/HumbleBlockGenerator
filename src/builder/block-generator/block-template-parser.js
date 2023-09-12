@@ -26,6 +26,7 @@ import { CreateBlock } from './create-block.js'
 import { MaterialBuilder } from './parsers/material-parser.js'
 import { BlockPermutationData, BlockTemplateData } from './data-factories.js'
 import { parsePresets } from './parsers/preset-parser.js'
+import { BlockCompiler } from './block-compiler.js'
 
 /**
  * Block template parser factory.
@@ -133,7 +134,9 @@ export default function BlockTemplateParser( blockTemplate ) {
 			// ~ Parse @apply directive ~
 			parsePresets( block )
 
-			return block.make()
+			const compiler = BlockCompiler( block )
+			const output = compiler.compile()
+			return output
 		},
 
 		isValid() {
